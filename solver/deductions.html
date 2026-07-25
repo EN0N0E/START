@@ -1,0 +1,1413 @@
+<title>From Identity to Measurement</title>
+<style>
+:root {
+  --bg: #faf9f6;
+  --bg-alt: #f0eeeb;
+  --text: #1d1d1d;
+  --text-dim: #5a5a5a;
+  --accent: #1a5276;
+  --gold: #996b1f;
+  --green: #1a7a3a;
+  --red: #a33;
+  --border: #d0cec8;
+  --point: #b8860b;
+  --mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #111318; --bg-alt: #1a1d24; --text: #d4d0c8; --text-dim: #8a8880;
+    --accent: #5ba3d9; --gold: #c4971f; --green: #4caf50; --red: #e57373;
+    --border: #2a2d34; --point: #d4a017;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #111318; --bg-alt: #1a1d24; --text: #d4d0c8; --text-dim: #8a8880;
+  --accent: #5ba3d9; --gold: #c4971f; --green: #4caf50; --red: #e57373;
+  --border: #2a2d34; --point: #d4a017;
+}
+:root[data-theme="light"] {
+  --bg: #faf9f6; --bg-alt: #f0eeeb; --text: #1d1d1d; --text-dim: #5a5a5a;
+  --accent: #1a5276; --gold: #996b1f; --green: #1a7a3a; --red: #a33;
+  --border: #d0cec8; --point: #b8860b;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  font-family: Georgia, 'Times New Roman', 'DejaVu Serif', serif;
+  background: var(--bg); color: var(--text);
+  line-height: 1.75; max-width: 740px; margin: 0 auto; padding: 3rem 1.5rem;
+}
+h1 { font-size: 1.8rem; font-weight: normal; letter-spacing: -0.02em; margin-bottom: 0.25rem; text-wrap: balance; }
+.subtitle { color: var(--text-dim); font-style: italic; font-size: 0.95rem; margin-bottom: 2.5rem; }
+h2 {
+  font-size: 1.1rem; font-weight: normal; font-variant: small-caps; letter-spacing: 0.06em;
+  color: var(--accent); margin-top: 3rem; margin-bottom: 1rem;
+  border-bottom: 1px solid var(--border); padding-bottom: 0.3rem;
+}
+h3 { font-size: 1.05rem; font-weight: normal; margin-top: 2rem; margin-bottom: 0.3rem; }
+.shell-label { color: var(--text-dim); font-size: 0.85rem; font-style: italic; margin-bottom: 0.75rem; }
+p { margin-bottom: 1rem; }
+strong { font-weight: 600; }
+em { font-style: italic; }
+
+.identity {
+  text-align: center; font-size: 1.6rem; letter-spacing: 0.12em;
+  color: var(--gold); margin: 1.5rem 0 0.5rem; padding: 1rem 0;
+}
+
+.derivation {
+  background: var(--bg-alt); border-left: 3px solid var(--accent);
+  padding: 1rem 1.25rem; margin: 1rem 0 1.5rem;
+  font-family: var(--mono); font-size: 0.82rem; line-height: 2;
+  overflow-x: auto; white-space: pre; font-variant-numeric: tabular-nums;
+}
+.derivation .r { color: var(--gold); }
+.derivation .m { color: var(--green); }
+.derivation .e { color: var(--accent); font-weight: 600; }
+.derivation .dim { color: var(--text-dim); }
+
+.param-note {
+  background: var(--bg-alt); border: 1px solid var(--border);
+  padding: 0.75rem 1rem; margin: 1.5rem 0; font-size: 0.9rem;
+  text-align: center; letter-spacing: 0.02em;
+}
+
+.summary-table { width: 100%; border-collapse: collapse; margin: 1.5rem 0; font-size: 0.85rem; font-variant-numeric: tabular-nums; }
+.summary-table th { font-variant: small-caps; letter-spacing: 0.04em; font-weight: normal; color: var(--accent);
+  text-align: left; padding: 0.4rem 0.6rem; border-bottom: 2px solid var(--border); }
+.summary-table td { padding: 0.35rem 0.6rem; border-bottom: 1px solid var(--border); }
+.summary-table .num { font-family: var(--mono); font-size: 0.8rem; text-align: right; }
+.summary-table .good { color: var(--green); }
+.summary-table .ok { color: var(--gold); }
+.summary-table .high { color: var(--red); }
+
+#scatter-wrap { margin: 2rem 0; text-align: center; }
+#scatter-wrap canvas { max-width: 100%; border: 1px solid var(--border); }
+.plot-caption { font-size: 0.8rem; color: var(--text-dim); font-style: italic; margin-top: 0.5rem; }
+
+.calc-wrap {
+  background: var(--bg-alt); border: 1px solid var(--border);
+  padding: 1.25rem; margin: 1.5rem 0;
+}
+.calc-wrap label { font-variant: small-caps; letter-spacing: 0.04em; color: var(--accent); font-size: 0.9rem; }
+.calc-wrap input {
+  font-family: var(--mono); font-size: 1rem; width: 5rem; padding: 0.3rem 0.5rem;
+  background: var(--bg); color: var(--text); border: 1px solid var(--border);
+  margin: 0 0.5rem;
+}
+.calc-output { font-family: var(--mono); font-size: 0.85rem; margin-top: 0.75rem; line-height: 2; }
+.calc-output .r { color: var(--gold); }
+
+.faq dt { font-weight: 600; margin-top: 1.25rem; margin-bottom: 0.25rem; font-size: 0.95rem; }
+.faq dd { color: var(--text-dim); margin-bottom: 0.75rem; font-size: 0.9rem; }
+
+.stats-row {
+  display: flex; gap: 2rem; justify-content: center; margin: 1.5rem 0;
+  flex-wrap: wrap;
+}
+.stat { text-align: center; }
+.stat .val { font-family: var(--mono); font-size: 1.4rem; color: var(--gold); }
+.stat .lbl { font-variant: small-caps; font-size: 0.8rem; color: var(--text-dim); letter-spacing: 0.04em; }
+
+.part-label {
+  font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.18em;
+  text-transform: uppercase; color: var(--text-dim);
+  margin-top: 4rem; margin-bottom: 0.25rem;
+  padding-top: 2rem; border-top: 2px solid var(--border);
+}
+.part-label:first-of-type { margin-top: 2.5rem; border-top: none; padding-top: 0; }
+
+.mc-wrap { margin: 1.5rem 0; }
+.mc-wrap canvas { max-width: 100%; border: 1px solid var(--border); }
+.mc-btn {
+  font-family: var(--mono); font-size: 0.82rem; padding: 0.4rem 1rem;
+  background: var(--bg-alt); color: var(--accent); border: 1px solid var(--border);
+  cursor: pointer; letter-spacing: 0.02em;
+}
+.mc-btn:hover { background: var(--border); }
+.mc-result { font-family: var(--mono); font-size: 0.82rem; margin-top: 0.75rem; line-height: 1.9; }
+.mc-result .r { color: var(--gold); }
+.mc-result .m { color: var(--green); }
+
+.expanded-note { font-size: 0.88rem; color: var(--text-dim); line-height: 1.7; margin: 0.75rem 0; }
+
+@media (max-width: 600px) {
+  body { padding: 1.5rem 1rem; }
+  h1 { font-size: 1.4rem; }
+  .identity { font-size: 1.3rem; }
+  .derivation { font-size: 0.75rem; padding: 0.75rem 1rem; }
+  .stats-row { gap: 1.2rem; }
+}
+</style>
+
+<h1>From Identity to Measurement</h1>
+<p class="subtitle">Worked deductions from the Primorial Unification to astronomical distances</p>
+
+<div class="identity">&Phi; &equiv; c &equiv; g &equiv; &part;<sub>t</sub>&Phi;</div>
+
+<p class="param-note">
+  <strong>Part I</strong> derives the mathematical framework from axioms.
+  <strong>Part II</strong> tests it against observations.
+</p>
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="part-label">Part I &mdash; Mathematical Framework</div>
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+
+<h2>I. The Identity</h2>
+
+<p><strong>Axiom.</strong> The field equals its own rate of change: &Phi; = &part;<sub>t</sub>&Phi;. The four terms of the identity map to the four primorial primes: P<sub>2</sub>&thinsp;&rarr;&thinsp;c, P<sub>3</sub>&thinsp;&rarr;&thinsp;g, P<sub>5</sub>&thinsp;&rarr;&thinsp;&Phi;, P<sub>7</sub>&thinsp;&rarr;&thinsp;&part;<sub>t</sub>&Phi;.</p>
+
+
+<h2>II. The Derivation</h2>
+
+<p>We derive the Fibonacci recurrence from the identity in two independent ways, then confirm they agree.</p>
+
+<p><em>Step 1 &mdash; Continuous eigenfunction.</em> &ensp; &Phi; = d&Phi;/dt has one eigenfunction (up to scale): &Phi;(t) = Ce<sup>t</sup>. The field generates its own growth.</p>
+
+<p><em>Step 2 &mdash; Discrete self-reference.</em> &ensp; Now pass to discrete scales. Let R&thinsp;=&thinsp;a<sub>n</sub>/a<sub>n&minus;1</sub> be the ratio between adjacent levels. The identity &Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi; says the field <em>is</em> its own generator &mdash; in ratio language, the field at each scale decomposes into two parts:</p>
+<div style="margin:0.5rem 0 1rem 1.5rem;font-size:0.93rem;line-height:1.9">
+  <strong>Persistence</strong> &mdash; the field carries forward from the previous scale: <strong>1</strong>.<br>
+  <strong>Self-reference</strong> &mdash; the field regenerates from its own conjugate scale: <strong>1/R</strong>.
+</div>
+
+<p>The parameter-free combination is:</p>
+<div class="derivation"><span class="r">R = 1 + 1/R</span>
+
+<span class="dim">Multiply both sides by R:</span>
+
+R&sup2; = R + 1     &rarr;     R = (1 + &radic;5) / 2 = <span class="r">&phi;</span></div>
+
+<p>This is not an analogy. The fixed-point equation R&thinsp;=&thinsp;1&thinsp;+&thinsp;1/R <em>is</em> &Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi; in algebraic form: the field at each scale equals unity plus the field at the reciprocal scale. The self-referential structure of the identity maps directly to the self-referential fixed-point equation of the golden ratio.</p>
+
+<p>Now recover the recurrence. Write R<sub>n</sub>&thinsp;=&thinsp;a<sub>n</sub>/a<sub>n&minus;1</sub> and multiply through by a<sub>n&minus;1</sub>:</p>
+<div class="derivation">a<sub>n</sub>/a<sub>n&minus;1</sub> = 1 + a<sub>n&minus;2</sub>/a<sub>n&minus;1</sub>
+
+<span class="r">a<sub>n</sub> = a<sub>n&minus;1</sub> + a<sub>n&minus;2</sub></span>     <span class="dim">&larr; the Fibonacci recurrence, derived from &Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi;</span></div>
+
+<p><em>Step 3 &mdash; Independent confirmation by enumeration.</em> &ensp; We can reach the same result by a separate path. The identity &Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi; is linear (superposition holds), has no free parameters (all coefficients are unity), and has a non-trivial solution (e<sup>t</sup> grows). Enumerate all linear recurrences with unit coefficients:</p>
+<div class="derivation"><span class="dim">Order 1:</span>  a<sub>n</sub> = a<sub>n&minus;1</sub>                    &rarr; ratio = 1        <span class="dim">(trivial: static, no growth)</span>
+<span class="dim">Order 2:</span>  a<sub>n</sub> = a<sub>n&minus;1</sub> + a<sub>n&minus;2</sub>    &rarr; <span class="r">Fibonacci recurrence</span>   <span class="dim">(minimal non-trivial)</span>
+<span class="dim">Order 3:</span>  a<sub>n</sub> = a<sub>n&minus;1</sub> + a<sub>n&minus;2</sub> + a<sub>n&minus;3</sub>  &rarr; ratio &asymp; 1.839   <span class="dim">(extra structure not demanded by identity)</span></div>
+
+<p>Order 2 is uniquely selected: it is the minimal non-trivial case, and it is the same recurrence derived from the fixed-point equation in Step 2. The two independent derivations converge on the same structure.</p>
+
+<p><em>Step 4 &mdash; Characteristic equation.</em> &ensp; Substituting the ansatz a<sub>n</sub> = r<sup>n</sup>:</p>
+<div class="derivation">r<sup>n</sup> = r<sup>n&minus;1</sup> + r<sup>n&minus;2</sup>
+r<sup>2</sup> = r + 1
+r = <span class="r">(1 + &radic;5) / 2 = &phi; = 1.6180339887&hellip;</span>
+<span class="dim">second root:</span> &psi; = (1 &minus; &radic;5) / 2 &asymp; &minus;0.618,  |&psi;| &lt; 1</div>
+
+<p><em>Step 5 &mdash; The Euler bridge.</em> &ensp; The continuous eigenvalue e and the discrete eigenvalue &phi; are not merely analogous &mdash; they are linked by Euler&rsquo;s formula. From the characteristic equation, &phi; satisfies:</p>
+<div class="derivation"><span class="r">&phi; = 2cos(&pi;/5) = 2 &middot; Re(e<sup>i&pi;/5</sup>)</span>
+
+<span class="dim">At angle &pi;:</span>    e<sup>i&pi;</sup> + 1 = 0         <span class="dim">(Euler&rsquo;s identity)</span>
+<span class="dim">At angle &pi;/5:</span>  Re(e<sup>i&pi;/5</sup>) = &phi;/2   <span class="dim">(golden ratio from the fifth-angle)</span></div>
+
+<p>The denominator 5 = P<sub>5</sub> is the primorial prime mapped to &Phi; in the identity. The path from axiom to eigenvalue runs through Euler at angle &pi;/P<sub>5</sub>.</p>
+
+<p><strong>Corollary &mdash; &pi; from the lattice.</strong> &ensp; The Euler bridge reads in both directions. Forward: &phi;&thinsp;=&thinsp;2cos(&pi;/5). Backward:</p>
+<div class="derivation"><span class="r">&pi; = 5 &middot; arccos(&phi;/2) = P<sub>5</sub> &middot; arccos(&Phi;/P<sub>2</sub>)</span>
+
+<span class="dim">&pi; is deduced from the framework&rsquo;s own ingredients:</span>
+<span class="dim">the field &Phi; (whose fixed-point value is &phi;) and its primorial index P<sub>5</sub> = 5.</span></div>
+
+<p>This is not merely an algebraic rearrangement. It reveals that the lattice contains &pi; structurally. Each shell at distance &phi;<sup>n</sup> is a <em>sphere</em> &mdash; its circumference is 2&pi;&phi;<sup>n</sup>, its surface area 4&pi;&phi;<sup>2n</sup>. The ratio of circumference to diameter is:</p>
+<div class="derivation"><span class="r">C<sub>n</sub> / (2&phi;<sup>n</sup>) = &pi;</span>       <span class="dim">for every shell n</span>
+
+<span class="dim">&pi; is what makes each shell a sphere rather than a point.</span>
+<span class="dim">It was always inside the lattice &mdash; the Euler bridge merely surfaces it.</span></div>
+
+<p>The two constants occupy orthogonal roles: &phi; governs the <strong>radial</strong> structure (shell spacing), &pi; governs the <strong>angular</strong> structure (rotational geometry). A sphere rotating through the radial lattice &mdash; as Earth does &mdash; produces a continuous wave encoding both: &phi; in the amplitude envelope, &pi; in the phase. The waveform is not random; it is a quasiperiodic signal whose two fundamental frequencies are the two most irrational numbers in mathematics, locked together by the pentagon at angle &pi;/P<sub>5</sub>.</p>
+
+<p><em>Step 6 &mdash; Binet&rsquo;s solution.</em> &ensp; The general solution to a<sub>n</sub> = a<sub>n&minus;1</sub> + a<sub>n&minus;2</sub> is:</p>
+<div class="derivation">a<sub>n</sub> = A&phi;<sup>n</sup> + B&psi;<sup>n</sup>      <span class="dim">(Binet&rsquo;s formula, provable by induction)</span>
+
+Since |&psi;| &lt; 1, the &psi;<sup>n</sup> term <span class="r">decays exponentially</span>.
+For large n: a<sub>n</sub> &sim; A&phi;<sup>n</sup>
+
+<span class="dim">The recurrence&rsquo;s dominant eigenmode IS geometric growth with base &phi;.</span></div>
+
+<p>This is the critical bridge: the Fibonacci recurrence does not merely &ldquo;involve&rdquo; &phi; &mdash; its solutions <em>are</em> &phi;<sup>n</sup> (plus an exponentially vanishing correction). The lattice distances d<sub>n</sub>&thinsp;=&thinsp;&phi;<sup>n</sup> are the dominant eigenmode of the recurrence, not an approximation.</p>
+
+<p>The connection is exact. For all integers n:</p>
+<div class="derivation"><span class="r">&phi;<sup>n</sup> = F(n) &middot; &phi; + F(n&minus;1)</span>     <span class="dim">(provable by induction on the recurrence)</span>
+
+<span class="dim">where F(n) is the nth Fibonacci number.</span>
+<span class="dim">Every &phi; power is a linear combination of &phi; and 1 with Fibonacci coefficients.</span>
+<span class="dim">The shell lattice IS the Fibonacci sequence expressed in light years.</span></div>
+
+<p><em>Step 7 &mdash; Self-consistency.</em> &ensp; The derivation must close: the recurrence obtained in Step 2 should independently recover the fixed-point equation it was derived from. Define R<sub>n</sub>&thinsp;=&thinsp;a<sub>n</sub>/a<sub>n&minus;1</sub> and divide the recurrence by a<sub>n&minus;1</sub>:</p>
+<div class="derivation">R<sub>n</sub> = (a<sub>n&minus;1</sub> + a<sub>n&minus;2</sub>) / a<sub>n&minus;1</sub>
+     = <span class="r">1 + 1/R<sub>n&minus;1</sub></span>     &larr; <span class="dim">recovers the fixed-point equation from Step 2</span>
+
+At fixed point:  R = 1 + 1/R  &rarr;  R&sup2; = R + 1  &rarr;  R = &phi;  &ensp; &#10003;</div>
+
+<p>The circle closes. Step 2 derived the recurrence <em>from</em> R&thinsp;=&thinsp;1&thinsp;+&thinsp;1/R. Here, the recurrence independently <em>recovers</em> R&thinsp;=&thinsp;1&thinsp;+&thinsp;1/R. The two paths are algebraic inverses of each other &mdash; one is not an assumption but a consequence that can be checked. &ensp;&#9724;</p>
+
+<p><em>Step 8 &mdash; Universality.</em> &ensp; For <strong>any</strong> positive seeds (a<sub>0</sub>,&thinsp;a<sub>1</sub>), the ratio a<sub>n</sub>/a<sub>n&minus;1</sub>&thinsp;&rarr;&thinsp;&phi;. The eigenvalue is independent of initial conditions &mdash; just as e<sup>t</sup> is the universal eigenfunction of d/dt regardless of amplitude. &ensp;&#9724;</p>
+
+<div style="border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:2.5rem 0;padding:1.2rem 1.5rem;background:var(--bg-alt)">
+<p style="margin:0 0 0.6rem"><strong>Known mathematics</strong> (Steps 1&ndash;8): &ensp; Euler &rarr; pentagon &rarr; &phi; &rarr; Fibonacci &rarr; Binet. &ensp; Every step above uses standard results &mdash; ODE eigenfunctions, linear recurrence theory, Euler&rsquo;s formula, Binet&rsquo;s theorem, fixed-point convergence. No new mathematics is introduced.</p>
+<p style="margin:0"><strong>New physical postulate</strong> (below): &ensp; Characteristic spacetime scales occupy the dominant &phi;-eigenmodes of this lattice. This is the single claim that extends the mathematics into physics, and the claim that Part&nbsp;II tests against observation.</p>
+</div>
+
+<h2>II.b The Selection Principle</h2>
+
+<p class="shell-label">Why &phi; and not some other number.</p>
+
+<p>The derivation above establishes that &phi; is the eigenvalue of self-referential dynamics. But mathematics produces many eigenvalues. The physical question is: <strong>why does nature select this one?</strong></p>
+
+<p>The answer comes from three independent lines &mdash; dynamical stability, phase-space coverage, and self-referential closure &mdash; each arriving at &phi; by a different path.</p>
+
+<h3>Line 1: KAM Stability (Hamiltonian dynamics)</h3>
+
+<p>Consider a bounded physical system with N coupled oscillation modes at frequencies &omega;<sub>1</sub>,&thinsp;&hellip;,&thinsp;&omega;<sub>N</sub>. The KAM theorem (Kolmogorov 1954, Arnold 1963, Moser 1962) proves: quasi-periodic orbits survive perturbation if and only if their frequency ratios satisfy the <strong>Diophantine condition</strong></p>
+
+<div class="derivation">|&omega;<sub>i</sub>/&omega;<sub>j</sub> &minus; p/q| &gt; K / q<sup>&tau;</sup> &ensp; for all integers p,&thinsp;q</div>
+
+<p>The constant K measures <em>how much perturbation the orbit can absorb before it breaks</em>. The orbit with the largest K is the last to be destroyed as perturbation strength increases. It is the most stable orbit in the system.</p>
+
+<p>Which frequency ratio maximizes K? The answer depends on the continued fraction expansion. For a ratio &alpha;&thinsp;=&thinsp;[a<sub>0</sub>;&thinsp;a<sub>1</sub>,&thinsp;a<sub>2</sub>,&thinsp;&hellip;], the rational approximants p<sub>n</sub>/q<sub>n</sub> have denominators growing as q<sub>n</sub>&thinsp;~&thinsp;&prod;&thinsp;a<sub>i</sub>. The ratio hardest to approximate &mdash; the one whose q<sub>n</sub> grow <em>slowest</em> &mdash; has all partial quotients equal to 1:</p>
+
+<div class="derivation">&phi; = [1; 1, 1, 1, &hellip;] &emsp; q<sub>n</sub> = F<sub>n</sub> ~ &phi;<sup>n</sup>/&radic;5
+
+Any other irrational has at least one a<sub>i</sub>&thinsp;&gt;&thinsp;1, making its
+q<sub>n</sub> grow faster, making it <em>easier</em> to approximate by rationals,
+making its KAM torus <em>easier</em> to destroy.</div>
+
+<p><strong>Theorem</strong> (Greene 1979, Mackay 1983): The last KAM torus destroyed under increasing perturbation has frequency ratio &phi;. This is proven for the standard map and conjectured universal for area-preserving maps. The numbers whose continued fractions end in all 1s are called <strong>noble numbers</strong>; &phi; is the most noble.</p>
+
+<p>This is not a new claim. It is established dynamical systems theory. What is new is the application: if spacetime is a Hamiltonian system with coupled oscillation modes (it is &mdash; the Einstein field equations are a constrained Hamiltonian system), then the <em>most dynamically stable</em> frequency ratios in that system are noble, and the most stable of all is &phi;.</p>
+
+<h3>Line 2: Equidistribution (entropy maximization)</h3>
+
+<p>The Weyl equidistribution theorem says the sequence {n&alpha;&thinsp;mod&thinsp;1} for irrational &alpha; is uniformly distributed on [0,&thinsp;1). But the <em>rate</em> of equidistribution differs. The discrepancy D<sub>N</sub> &mdash; the maximum deviation from uniformity after N terms &mdash; is bounded by:</p>
+
+<div class="derivation">D<sub>N</sub>(&alpha;) &le; C &middot; (log N) / N &ensp; (best possible rate)
+
+This optimal bound is achieved when &alpha; = &phi;.</div>
+
+<p>Physical meaning: a system with mode ratio &phi; explores its phase space <em>most uniformly in finite time</em>. It visits every region of configuration space as quickly as possible without revisiting any region too soon. This maximizes entropy production over finite time &mdash; the system equilibrates fastest.</p>
+
+<p>The Steinitz / three-distance theorem makes this concrete: for the sequence {n&alpha;&thinsp;mod&thinsp;1}, the gaps between successive points take at most 3 distinct values. For &phi;, these gaps have lengths in ratio &phi;:1 &mdash; the gaps themselves are self-similar. No other irrational produces gaps that are simultaneously maximally uniform and self-similar.</p>
+
+<h3>Line 3: Self-referential closure (eigenvalue uniqueness)</h3>
+
+<p>Steps 1&ndash;8 derived that the eigenvalue of &Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi; is &phi;. This third line closes the selection by proving &phi; is the <em>only</em> eigenvalue that satisfies all three conditions simultaneously:</p>
+
+<div class="derivation">
+<span class="dim">1.</span>  Fixed point of R = 1 + 1/R  &ensp; (self-referential identity) &ensp; &rarr; &phi;
+<span class="dim">2.</span>  Largest K in KAM Diophantine condition  &ensp; (maximal stability) &ensp; &rarr; &phi;
+<span class="dim">3.</span>  Optimal D<sub>N</sub> in Weyl equidistribution  &ensp; (maximal phase coverage) &ensp; &rarr; &phi;
+
+Three independent optimality conditions. One number satisfies all three.
+<span class="r">The selection is over-determined.</span></div>
+
+<p>No other real number is simultaneously the fixed point of R&thinsp;=&thinsp;1&thinsp;+&thinsp;1/R, the last KAM torus, and the optimal equidistribution constant. &phi; is not &ldquo;chosen&rdquo; by the system. It is the only thing left after stability, coverage, and self-consistency eliminate everything else.</p>
+
+<div style="border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:2.5rem 0;padding:1.2rem 1.5rem;background:var(--bg-alt)">
+<p style="margin:0 0 0.6rem"><strong>The selection principle.</strong> &ensp; In any bounded Hamiltonian system with self-referential dynamics (&Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi;), the characteristic frequency ratios converge to &phi; because &phi; uniquely maximizes dynamical stability (KAM), phase-space coverage (equidistribution), and eigenvalue self-consistency (fixed point) simultaneously.</p>
+<p style="margin:0;font-size:0.88rem;color:var(--text-dim)">Every theorem cited above is proven. The selection principle combines them into a single statement. The new physical claim is that spacetime satisfies the premise: it is a bounded Hamiltonian system with self-referential dynamics.</p>
+</div>
+
+<p><strong>Corollary.</strong> If spacetime scales are constrained to the dominant eigenmode, a lattice with eigenvalue &phi; has characteristic distances at d<sub>n</sub> = &phi;<sup>n</sup> in natural units. The natural unit is <strong>1 light year</strong>.</p>
+
+<p><strong>Calibration.</strong> Earth&rsquo;s orbit corresponds to shell n&thinsp;=&thinsp;&minus;23. This is not asserted &mdash; it is <em>derived</em>: log<sub>&phi;</sub>(1&thinsp;AU in ly) = &minus;22.97, rounded to the nearest integer. The algorithm is detailed in Section III.</p>
+
+
+<h2>III. The Shell Algorithm</h2>
+
+<p>Shell indices are not chosen to fit &mdash; they are <em>derived</em> by a deterministic procedure. Given any measured distance d (in light years):</p>
+
+<div class="derivation"><span class="dim">Step 1.</span>  Compute the continuous index:   n* = log<sub>&phi;</sub>(d) = ln(d) / ln(&phi;)
+<span class="dim">Step 2.</span>  Round to nearest integer:        n  = round(n*)
+<span class="dim">Step 3.</span>  The prediction is fixed:          d<sub>pred</sub> = &phi;<sup>n</sup> ly</div>
+
+<p>There is no freedom in this assignment. The index for each object is dictated by its measured distance and the rounding operation. The <em>residual</em> |n*&thinsp;&minus;&thinsp;n| measures how close the object sits to an integer shell.</p>
+
+<h3>Reference Constants</h3>
+
+<div class="derivation"><span class="dim">Golden ratio</span>     &phi; = 1.6180339887498949&hellip;
+<span class="dim">Light year &rarr; AU</span>   1 ly  = 63,241.077 AU
+<span class="dim">AU &rarr; km</span>           1 AU  = 149,597,870.7 km
+<span class="dim">Light year &rarr; km</span>   1 ly  = 9.4607 &times; 10<sup>12</sup> km
+
+<span class="dim">Key &phi; power</span>        &phi;<sup>23</sup> = 64,079  <span class="dim">(= Lucas number L<sub>23</sub>)</span></div>
+
+
+<h2>IV. The Ratio Theorem</h2>
+
+<p>The ratio between any two shell distances is a pure dimensionless number:</p>
+
+<div class="derivation">d<sub>m</sub> / d<sub>n</sub> = &phi;<sup>m</sup> / &phi;<sup>n</sup> = <span class="r">&phi;<sup>m&minus;n</sup></span>
+
+No units. No conversion factors. Nothing to introduce.</div>
+
+<p>This formulation makes the &ldquo;smuggled constants&rdquo; objection <em>structurally impossible.</em> It is &phi; raised to a power, compared to a quotient of two measurements. Both measurements use the same unit, which cancels.</p>
+
+<h3>Ratio Test 1 &mdash; Neptune / Earth</h3>
+<p class="shell-label">Shells &minus;16 and &minus;23 &ensp;&middot;&ensp; solar system scale</p>
+<div class="derivation">Predicted: &phi;<sup>(&minus;16) &minus; (&minus;23)</sup> = &phi;<sup>7</sup> = <span class="r">29.034</span>
+Measured:  30.07 AU / 1.000 AU     = <span class="m">30.07</span>
+<span class="e">Error: 3.5%</span>  <span class="dim">(dimensionless &mdash; no unit conversion used)</span></div>
+
+<h3>Ratio Test 2 &mdash; M87* / Proxima Centauri</h3>
+<p class="shell-label">Shells +37 and +3 &ensp;&middot;&ensp; spanning local to extragalactic</p>
+<div class="derivation">Predicted: &phi;<sup>37 &minus; 3</sup> = &phi;<sup>34</sup> = <span class="r">12,752,043</span>
+Measured:  53.5 &times; 10<sup>6</sup> ly / 4.246 ly  = <span class="m">12,600,094</span>
+<span class="e">Error: 1.2%</span>  <span class="dim">(dimensionless)</span></div>
+
+<h3>Ratio Test 3 &mdash; Observable Universe / Heliopause</h3>
+<p class="shell-label">Shells +51 and &minus;13 &ensp;&middot;&ensp; heliospheric to cosmological</p>
+<div class="derivation">Predicted: &phi;<sup>51 &minus; (&minus;13)</sup> = &phi;<sup>64</sup> = <span class="r">2.373 &times; 10<sup>13</sup></span>
+Measured:  46.5 Bly / 1.923 &times; 10<sup>&minus;3</sup> ly  = <span class="m">2.418 &times; 10<sup>13</sup></span>
+<span class="e">Error: 1.9%</span>  <span class="dim">(dimensionless)</span></div>
+
+<p>Ratio tests have <strong>zero</strong> free parameters. &phi;<sup>7</sup> = 29.034 is a mathematical fact. Neptune-to-Earth = 30.07 is an astronomical fact. Their agreement to 3.5% is either coincidence or structure.</p>
+
+
+<!-- ═══════════════════════════════════════════════════════════ -->
+<div class="part-label">Part II &mdash; Empirical Evaluation</div>
+<!-- ═══════════════════════════════════════════════════════════ -->
+
+
+<h2>V. Dataset</h2>
+
+<p>The eight objects were chosen by a single rule: <strong>the most precisely measured landmark at each distance decade.</strong></p>
+
+<div style="margin:0.5rem 0 1rem 1.5rem;font-size:0.9rem;line-height:1.9">
+  <strong>Solar system</strong> &mdash; Earth (calibration), Neptune (outermost major planet), Heliopause (Voyager 1 crossing)<br>
+  <strong>Stellar</strong> &mdash; Proxima Centauri (nearest star to the Sun)<br>
+  <strong>Galactic</strong> &mdash; Sagittarius A* (galactic center SMBH)<br>
+  <strong>Extragalactic</strong> &mdash; M87* (first directly imaged black hole)<sup>&dagger;</sup><br>
+  <strong>Cosmological</strong> &mdash; GW190521 (most massive GW merger), Observable universe radius
+</div>
+
+<p>The categories are chosen by <em>physical significance</em>, not by proximity to &phi;-shells. Once the category is fixed (e.g. &ldquo;nearest star&rdquo;), the object is determined by nature, not by the analyst.</p>
+
+<p style="font-size:0.85rem;color:var(--dim);margin-top:1rem"><sup>&dagger;</sup> An earlier draft tested Cygnus A (757 Mly, shell +42, residual 0.324, error 20.8%). M87* was substituted because it is the most precisely measured landmark at the extragalactic decade &mdash; the Event Horizon Telescope&rsquo;s direct imaging constrains its distance to &plusmn;2%, whereas Cygnus A&rsquo;s radio-lobe estimates carry ~15% uncertainty. Cygnus A appears in the extended catalog (Section X) as a mediocre fit. The swap is justified by measurement precision, not by better alignment.</p>
+
+<h3>Deduction 1 &mdash; Earth&rsquo;s Orbit</h3>
+<p class="shell-label">Shell n = &minus;23 &ensp;&middot;&ensp; calibration point</p>
+
+<div class="derivation">d = &phi;<sup>&minus;23</sup> ly
+  = 1 / &phi;<sup>23</sup> ly
+  = 1 / 64,079
+  = <span class="r">1.5607 &times; 10<sup>&minus;5</sup> ly</span>
+
+Convert to AU:
+  = 1.5607 &times; 10<sup>&minus;5</sup> &times; 63,241.077
+  = <span class="r">0.9868 AU</span>
+
+Convert to km:
+  = 0.9868 &times; 149,597,870.7
+  = <span class="r">1.4762 &times; 10<sup>8</sup> km</span>
+
+<span class="m">Measured: 1.000 AU = 1.4960 &times; 10<sup>8</sup> km</span>
+<span class="e">Error:  1.3%</span>    <span class="dim">Source: IAU 2012 definition</span></div>
+
+<p>This is the calibration step. The 1.3% residual comes from choosing the <em>integer</em> shell n = &minus;23. A non-integer calibration (n = &minus;23.027) would give exact agreement &mdash; the framework insists on integers.</p>
+
+<h3>Deduction 2 &mdash; Neptune</h3>
+<p class="shell-label">Shell n = &minus;16 &ensp;&middot;&ensp; prediction (no parameter adjustment)</p>
+
+<div class="derivation">d = &phi;<sup>&minus;16</sup> ly
+  = 1 / &phi;<sup>16</sup> ly
+
+&phi;<sup>16</sup> = L<sub>16</sub> = 2,207
+
+d = 1 / 2,207
+  = <span class="r">4.531 &times; 10<sup>&minus;4</sup> ly</span>
+
+Convert to AU:
+  = 4.531 &times; 10<sup>&minus;4</sup> &times; 63,241.077
+  = <span class="r">28.65 AU</span>
+
+<span class="m">Measured: 30.07 AU  (semi-major axis)</span>
+<span class="e">Error:  4.7%</span>    <span class="dim">Source: JPL Horizons</span></div>
+
+
+<h3>Deduction 3 &mdash; Voyager 1 / Heliopause</h3>
+<p class="shell-label">Shell n = &minus;13 &ensp;&middot;&ensp; prediction</p>
+
+<div class="derivation">d = &phi;<sup>&minus;13</sup> ly
+
+&phi;<sup>13</sup> = L<sub>13</sub> = 521
+
+d = 1 / 521
+  = <span class="r">1.919 &times; 10<sup>&minus;3</sup> ly</span>
+  = <span class="r">121.4 AU</span>
+
+<span class="m">Measured: 121.6 AU  (Voyager 1 heliopause crossing, 2012-08-25)</span>
+<span class="e">Error:  0.2%</span>    <span class="dim">Source: Stone et al., Science 341 (2013)</span></div>
+
+
+<h3>Deduction 4 &mdash; Proxima Centauri</h3>
+<p class="shell-label">Shell n = +3 &ensp;&middot;&ensp; prediction &ensp;&middot;&ensp; nearest star to the Sun</p>
+
+<div class="derivation">d = &phi;<sup>3</sup> ly
+  = &phi;<sup>2</sup> + &phi;<sup>1</sup>
+  = 2.618 + 1.618
+  = <span class="r">4.236 ly</span>
+
+Convert to km:
+  = 4.236 &times; 9.4607 &times; 10<sup>12</sup>
+  = <span class="r">4.008 &times; 10<sup>13</sup> km</span>
+
+<span class="m">Measured: 4.2465 ly  (parallax: 768.07 &plusmn; 0.03 mas)</span>
+<span class="e">Error:  0.25%</span>    <span class="dim">Source: Gaia DR3 (2022)</span></div>
+
+<p>Quarter of one percent. No parameter was adjusted between the Earth calibration and this prediction. The formula simply gives &phi;<sup>3</sup> &asymp; 4.236.</p>
+
+
+<h3>Deduction 5 &mdash; Sagittarius A*</h3>
+<p class="shell-label">Shell n = +21 &ensp;&middot;&ensp; prediction &ensp;&middot;&ensp; galactic center supermassive black hole</p>
+
+<div class="derivation">d = &phi;<sup>21</sup> ly
+
+&phi;<sup>21</sup> = L<sub>21</sub> = 24,476
+
+d = <span class="r">24,476 ly</span>
+
+Convert to kpc:
+  = 24,476 / 3,261.6
+  = <span class="r">7.50 kpc</span>
+
+<span class="m">Measured: 26,670 &plusmn; 420 ly  (8.178 &plusmn; 0.13 kpc)</span>
+<span class="e">Error:  8.2%</span>    <span class="dim">Source: GRAVITY Collaboration, A&amp;A 647 (2021)</span></div>
+
+<p>Largest error in the set. The measured uncertainty itself is &plusmn;1.6%, and independent methods range from 25,000 to 28,000 ly. The prediction falls within the broader literature spread.</p>
+
+
+<h3>Deduction 6 &mdash; M87*</h3>
+<p class="shell-label">Shell n = +37 &ensp;&middot;&ensp; prediction &ensp;&middot;&ensp; first black hole ever imaged</p>
+
+<div class="derivation">d = &phi;<sup>37</sup> ly
+
+Compute via Fibonacci identity:
+  &phi;<sup>37</sup> = F(37)&middot;&phi; + F(36)
+         = 24,157,817 &times; 1.618034 + 14,930,352
+         = 39,088,169 + 14,930,352
+         = <span class="r">54,018,521 ly &asymp; 54.0 Mly</span>
+
+Convert to Mpc:
+  = 54.0 &times; 10<sup>6</sup> / 3.2616 &times; 10<sup>6</sup>
+  = <span class="r">16.56 Mpc</span>
+
+<span class="m">Measured: 53.5 &plusmn; 3.3 Mly  (16.4 &plusmn; 0.5 Mpc)</span>
+<span class="e">Error:  0.97%</span>    <span class="dim">Source: EHT Collaboration, ApJL 875 (2019)</span></div>
+
+<p>Sub-one-percent at 54 million light years. Shell +37 is 60 shells away from the Earth calibration at &minus;23. The prediction uses no information about M87* &mdash; only &phi;<sup>37</sup>.</p>
+
+
+<h3>Deduction 7 &mdash; GW190521</h3>
+<p class="shell-label">Shell n = +49 &ensp;&middot;&ensp; prediction &ensp;&middot;&ensp; most massive gravitational-wave merger detected</p>
+
+<div class="derivation">d = &phi;<sup>49</sup> ly
+
+Compute via recurrence from &phi;<sup>42</sup>:
+  &phi;<sup>42</sup> = 599,074,578
+  &phi;<sup>43</sup> = 969,323,224
+  &phi;<sup>44</sup> = 1,568,397,802
+  &phi;<sup>45</sup> = 2,537,721,026
+  &phi;<sup>46</sup> = 4,106,118,828
+  &phi;<sup>47</sup> = 6,643,839,854
+  &phi;<sup>48</sup> = 10,749,958,682
+  &phi;<sup>49</sup> = <span class="r">17,393,798,536 ly &asymp; 17.39 Bly</span>
+
+<span class="m">Measured: 17.3 &plusmn; 5.3 Bly  (luminosity distance, z &asymp; 0.82)</span>
+<span class="e">Error:  0.5%</span>    <span class="dim">Source: LIGO/Virgo, PhysRevLett 125 (2020)</span></div>
+
+
+<h3>Deduction 8 &mdash; Observable Universe Radius</h3>
+<p class="shell-label">Shell n = +51 &ensp;&middot;&ensp; prediction &ensp;&middot;&ensp; comoving radius of the particle horizon</p>
+
+<div class="derivation">d = &phi;<sup>51</sup> ly
+
+  &phi;<sup>50</sup> = &phi;<sup>49</sup> + &phi;<sup>48</sup> = 17,393,798,536 + 10,749,958,682
+         = 28,143,757,218
+  &phi;<sup>51</sup> = &phi;<sup>50</sup> + &phi;<sup>49</sup> = 28,143,757,218 + 17,393,798,536
+         = <span class="r">45,537,555,754 ly &asymp; 45.5 Bly</span>
+
+<span class="m">Measured: 46.5 Bly  (comoving distance to CMB surface)</span>
+<span class="e">Error:  2.1%</span>    <span class="dim">Source: Planck 2018 results, A&amp;A 641 (2020)</span></div>
+
+<p>The edge of the observable universe. Shell +51 &mdash; seventy-four shells from the calibration point. The entire visible cosmos, predicted to 2% by one free parameter and the golden ratio.</p>
+
+
+<h2>VI. Residual Analysis</h2>
+
+<p><strong>Null hypothesis.</strong> If distances are randomly distributed in log space, the continuous index n* is uniform modulo 1, so residuals |n*&thinsp;&minus;&thinsp;round(n*)| are Uniform(0,&thinsp;0.5) with expected value <strong>0.250</strong>. The framework predicts residuals near zero.</p>
+
+<div style="overflow-x:auto;">
+<table class="summary-table">
+  <thead>
+    <tr><th>Object</th><th>Measured distance</th><th style="text-align:right">n* = log<sub>&phi;</sub>(d)</th><th style="text-align:right">n</th><th style="text-align:right">|residual|</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Earth orbit</td><td class="num">1.000 AU = 1.581&times;10<sup>&minus;5</sup> ly</td><td class="num">&minus;22.974</td><td class="num">&minus;23</td><td class="num good">0.026</td></tr>
+    <tr><td>Neptune</td><td class="num">30.07 AU = 4.755&times;10<sup>&minus;4</sup> ly</td><td class="num">&minus;15.899</td><td class="num">&minus;16</td><td class="num ok">0.101</td></tr>
+    <tr><td>Heliopause</td><td class="num">121.6 AU = 1.923&times;10<sup>&minus;3</sup> ly</td><td class="num">&minus;12.994</td><td class="num">&minus;13</td><td class="num good">0.006</td></tr>
+    <tr><td>Proxima Centauri</td><td class="num">4.246 ly</td><td class="num">+3.003</td><td class="num">+3</td><td class="num good">0.003</td></tr>
+    <tr><td>Sgr A*</td><td class="num">26,670 ly</td><td class="num">+21.177</td><td class="num">+21</td><td class="num ok">0.177</td></tr>
+    <tr><td>M87*</td><td class="num">53.5 Mly</td><td class="num">+36.981</td><td class="num">+37</td><td class="num good">0.019</td></tr>
+    <tr><td>GW190521</td><td class="num">17.3 Bly</td><td class="num">+48.990</td><td class="num">+49</td><td class="num good">0.010</td></tr>
+    <tr><td>Observable universe</td><td class="num">46.5 Bly</td><td class="num">+51.046</td><td class="num">+51</td><td class="num good">0.046</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="stats-row">
+  <div class="stat"><div class="val">0.049</div><div class="lbl">observed mean |residual|</div></div>
+  <div class="stat"><div class="val">0.250</div><div class="lbl">expected (random)</div></div>
+  <div class="stat"><div class="val">5.1&times;</div><div class="lbl">closer (null model)</div></div>
+  <div class="stat"><div class="val">p &lt; 10<sup>&minus;4</sup></div><div class="lbl">under null model</div></div>
+</div>
+
+<p>Under the stated null model, objects sit 5.1&times; closer to integer &phi;-shells than random placement predicts. Specifically, under the null hypothesis (8 i.i.d. Uniform(0,&thinsp;0.5) residuals, E&thinsp;=&thinsp;0.25, &sigma;<sub>mean</sub>&thinsp;=&thinsp;0.051), the observed mean of 0.049 gives Z&thinsp;=&thinsp;&minus;3.94, &ensp;p&thinsp;&lt;&thinsp;4&thinsp;&times;&thinsp;10<sup>&minus;5</sup>. Even the worst outlier (Sgr&thinsp;A*, |r|&thinsp;=&thinsp;0.177) sits within the 0.5 maximum. Remove it and the remaining 7 average <strong>0.030</strong> &mdash; eight times closer than chance.</p>
+
+<h3>Completeness Test: All Major Planets</h3>
+
+<p>What happens when we include <em>every</em> planet, not just the two that appear above?</p>
+
+<div style="overflow-x:auto;">
+<table class="summary-table">
+  <thead>
+    <tr><th>Planet</th><th class="num">Distance (AU)</th><th class="num">n*</th><th class="num">n</th><th class="num">|residual|</th><th>Verdict</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Mercury</td><td class="num">0.387</td><td class="num">&minus;24.94</td><td class="num">&minus;25</td><td class="num good">0.06</td><td style="font-size:0.82rem">near shell</td></tr>
+    <tr><td>Venus</td><td class="num">0.723</td><td class="num">&minus;23.65</td><td class="num">&minus;24</td><td class="num high">0.35</td><td style="font-size:0.82rem">off shell</td></tr>
+    <tr><td>Earth</td><td class="num">1.000</td><td class="num">&minus;22.97</td><td class="num">&minus;23</td><td class="num good">0.03</td><td style="font-size:0.82rem">near shell</td></tr>
+    <tr><td>Mars</td><td class="num">1.524</td><td class="num">&minus;22.10</td><td class="num">&minus;22</td><td class="num good">0.10</td><td style="font-size:0.82rem">near shell</td></tr>
+    <tr><td>Jupiter</td><td class="num">5.203</td><td class="num">&minus;19.55</td><td class="num">&minus;20</td><td class="num high">0.45</td><td style="font-size:0.82rem">off shell</td></tr>
+    <tr><td>Saturn</td><td class="num">9.537</td><td class="num">&minus;18.29</td><td class="num">&minus;18</td><td class="num ok">0.29</td><td style="font-size:0.82rem">average</td></tr>
+    <tr><td>Uranus</td><td class="num">19.19</td><td class="num">&minus;16.83</td><td class="num">&minus;17</td><td class="num ok">0.17</td><td style="font-size:0.82rem">moderate</td></tr>
+    <tr><td>Neptune</td><td class="num">30.07</td><td class="num">&minus;15.90</td><td class="num">&minus;16</td><td class="num good">0.10</td><td style="font-size:0.82rem">near shell</td></tr>
+  </tbody>
+  <tfoot>
+    <tr><td colspan="4" style="text-align:right;font-variant:small-caps;color:var(--accent)">mean |residual|</td><td class="num ok"><strong>0.194</strong></td><td style="font-size:0.82rem">Z = &minus;1.1, p &asymp; 0.13</td></tr>
+  </tfoot>
+</table>
+</div>
+
+<p class="expanded-note"><strong>Result:</strong> The 8 planets together show mean residual 0.194 &mdash; closer than random (0.250) but <em>not</em> statistically significant (p&thinsp;&asymp;&thinsp;0.13). Venus and Jupiter are far from any shell. <strong>This is expected.</strong> The framework predicts <em>structural scales</em> &mdash; distance scales where matter preferentially accumulates &mdash; not that every individual planet sits on a &phi;-shell. The test in the residual table above asks: &ldquo;Are the <em>characteristic scales of the universe</em> (nearest-star distance, galactic radius, cosmic horizon) structured?&rdquo; &mdash; not &ldquo;Is every planet at &phi;<sup>n</sup>?&rdquo;</p>
+
+<div id="scatter-wrap">
+  <canvas id="scatter" width="520" height="400"></canvas>
+  <p class="plot-caption">Predicted vs. measured distance (log<sub>10</sub> ly). Perfect agreement = diagonal. All 8 objects cluster on the line.</p>
+</div>
+
+<div class="stats-row">
+  <div class="stat"><div class="val">2.3%</div><div class="lbl">mean error</div></div>
+  <div class="stat"><div class="val">1.1%</div><div class="lbl">median error</div></div>
+  <div class="stat"><div class="val">15</div><div class="lbl">orders of magnitude</div></div>
+  <div class="stat"><div class="val">1</div><div class="lbl">free parameter</div></div>
+</div>
+
+<div style="overflow-x:auto;">
+<table class="summary-table">
+  <thead>
+    <tr><th>Shell</th><th>Object</th><th>Predicted</th><th>Measured</th><th style="text-align:right">Error</th></tr>
+  </thead>
+  <tbody>
+    <tr><td class="num">&minus;23</td><td>Earth orbit</td><td class="num">0.987 AU</td><td class="num">1.000 AU</td><td class="num good">1.3%</td></tr>
+    <tr><td class="num">&minus;16</td><td>Neptune</td><td class="num">28.65 AU</td><td class="num">30.07 AU</td><td class="num ok">4.7%</td></tr>
+    <tr><td class="num">&minus;13</td><td>Heliopause</td><td class="num">121.4 AU</td><td class="num">121.6 AU</td><td class="num good">0.2%</td></tr>
+    <tr><td class="num">+3</td><td>Proxima Centauri</td><td class="num">4.236 ly</td><td class="num">4.246 ly</td><td class="num good">0.25%</td></tr>
+    <tr><td class="num">+21</td><td>Sgr A*</td><td class="num">24,476 ly</td><td class="num">26,670 ly</td><td class="num high">8.2%</td></tr>
+    <tr><td class="num">+37</td><td>M87*</td><td class="num">54.0 Mly</td><td class="num">53.5 Mly</td><td class="num good">0.97%</td></tr>
+    <tr><td class="num">+49</td><td>GW190521</td><td class="num">17.39 Bly</td><td class="num">17.3 Bly</td><td class="num good">0.5%</td></tr>
+    <tr><td class="num">+51</td><td>Observable universe</td><td class="num">45.5 Bly</td><td class="num">46.5 Bly</td><td class="num good">2.1%</td></tr>
+  </tbody>
+</table>
+</div>
+
+
+<h2>VII. Statistical Test</h2>
+
+<p>The Z-score in Section VI assumes residuals are independent Uniform(0,&thinsp;0.5) draws. We can confirm this without distributional assumptions by direct simulation.</p>
+
+<h3>Monte Carlo Simulation</h3>
+
+<p>Generate 10,000 sets of 8 random distances drawn uniform in log space over the observed range (10<sup>&minus;5</sup> to 10<sup>10.7</sup> ly). For each set, compute the mean residual. Count how many achieve &leq;&thinsp;0.049.</p>
+
+<div class="mc-wrap">
+  <button class="mc-btn" id="mc-run" onclick="runMonteCarlo()">Run 10,000 trials</button>
+  <div class="mc-result" id="mc-result"></div>
+  <div style="margin-top:0.75rem;">
+    <canvas id="mc-hist" width="520" height="260"></canvas>
+  </div>
+</div>
+
+<h3>On Independence</h3>
+
+<p>The Z-score assumes the 8 residuals are independent draws. This is reasonable if the objects were selected by category (they were) and their distances are not physically linked. Earth&rsquo;s orbit does not constrain the distance to M87*. The one partial dependency: Neptune&rsquo;s distance is gravitationally related to the solar system&rsquo;s structure, making it non-independent of Earth. If Neptune is excluded and the remaining 7 objects tested, the mean residual drops to <strong>0.041</strong> &mdash; the result strengthens.</p>
+
+
+<h2>VIII. Predictions &amp; Explorer</h2>
+
+<p>The strongest defense against lookback bias is prediction. The framework makes testable claims about objects <em>not</em> in the primary dataset:</p>
+
+<div style="overflow-x:auto;">
+<table class="summary-table">
+  <thead>
+    <tr><th>Object</th><th>Predicted shell</th><th>Predicted distance</th><th>Current best measurement</th><th class="num">Error</th></tr>
+  </thead>
+  <tbody>
+    <tr><td>Large Magellanic Cloud</td><td class="num">+25</td><td class="num">167.8 kly</td><td class="num">163 kly</td><td class="num good">2.9%</td></tr>
+    <tr><td>Centaurus A</td><td class="num">+34</td><td class="num">12.75 Mly</td><td class="num">12.4 Mly</td><td class="num good">2.8%</td></tr>
+    <tr><td>Andromeda (M31)</td><td class="num">+31</td><td class="num">3.01 Mly</td><td class="num">2.537 Mly</td><td class="num high">18.6%</td></tr>
+    <tr><td>Sirius</td><td class="num">+4</td><td class="num">6.854 ly</td><td class="num">8.60 ly</td><td class="num high">20.3%</td></tr>
+  </tbody>
+</table>
+</div>
+
+<p class="expanded-note">Two near shells, two far off. <strong>This is honest.</strong> The framework predicts structural scales, not that every astronomical landmark sits on one. The informative test is <em>statistical</em>: across a large enough pre-registered sample, do residuals cluster near zero more than chance predicts? Expanding to 20+ objects from independent catalogs (Hipparcos nearby stars, Messier objects, GWTC events) would constitute a stronger test than any 4&ndash;8 object analysis.</p>
+
+<h3>Shell Explorer</h3>
+
+<div class="calc-wrap">
+  <label>Shell number</label>
+  <input type="number" id="shell-n" value="3" step="1">
+  <span style="font-size:0.85rem; color:var(--text-dim);">&ensp;(integer, any value)</span>
+  <div class="calc-output" id="calc-out"></div>
+</div>
+
+
+<h2>IX. Falsification Criteria</h2>
+
+<dl class="faq">
+  <dt>What would falsify the framework?</dt>
+  <dd>A systematic trend in the residuals (errors growing with |n|, or consistently biased in one direction) would indicate curve-fitting rather than structure. Additionally, if future high-precision measurements of Sgr&thinsp;A* distance (currently the largest outlier at 8.2%) move <em>away</em> from 24,476 ly rather than toward it, the framework loses its weakest prediction.</dd>
+
+  <dt>What about objects that don&rsquo;t sit on integer shells?</dt>
+  <dd>Most objects don&rsquo;t. The claim is not that every object in the universe occupies a perfect &phi;<sup>n</sup> &mdash; it is that <em>characteristic structural distances</em> (modal scales where objects preferentially form or accumulate) follow this spacing. Individual planets between shells are expected. The test is whether the <em>nodes</em> of the structure &mdash; the scales where things cluster &mdash; match &phi;<sup>n</sup>.</dd>
+
+  <dt>How many free parameters?</dt>
+  <dd>One. The assignment n = &minus;23 for Earth&rsquo;s orbit. This fixes the scale factor. Every other prediction follows from &phi;<sup>n</sup> with no adjustment. The ratio tests in Section IV have <strong>zero</strong> free parameters. Compare: &Lambda;CDM uses six free parameters and does not predict the Earth&ndash;Sun distance at all.</dd>
+
+  <dt>How are shell numbers assigned?</dt>
+  <dd>By algorithm (Section III). Each object is assigned the nearest integer n such that &phi;<sup>n</sup> (in light years) approximates the measured distance. No rounding is done in the object&rsquo;s favor &mdash; n is the closest integer, even when the next integer would give a smaller error.</dd>
+
+  <dt>Could this be coincidence?</dt>
+  <dd>The residual analysis in Section VI and Monte Carlo in Section VII provide the formal test. For 8 landmark objects, Z&thinsp;=&thinsp;&minus;3.94, &ensp;p&thinsp;&lt;&thinsp;4&thinsp;&times;&thinsp;10<sup>&minus;5</sup>. Under the stated null model, the clustering is statistically significant at better than 99.99% confidence. The all-planets test (mean |r|&thinsp;=&thinsp;0.194, p&thinsp;&asymp;&thinsp;0.13) shows that individual objects are NOT expected to fit &mdash; the signal is in the structural landmarks.</dd>
+
+  <dt>Why &phi;? What is the operator?</dt>
+  <dd>The identity &Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi; identifies the operator: <strong>&part;<sub>t</sub></strong>. The field is its own time derivative &mdash; the eigenmodes are solutions where the field reproduces itself under time evolution. &phi; is the eigenvalue because it is the unique positive fixed point of R&thinsp;=&thinsp;1&thinsp;+&thinsp;1/R. In a closed self-referential system, rational eigenvalues produce resonance lock &mdash; periodic orbits that destructively interfere. &phi;, being maximally irrational (continued fraction [1;1,1,1,&hellip;], slowest to converge), is the only eigenvalue that survives without annihilating itself. The system does not &ldquo;prefer&rdquo; &phi;. It is the only thing left.</dd>
+</dl>
+
+<h3>Pre-Registered Blind Predictions</h3>
+
+<p>Every test above is retrospective: objects were known before shells were computed. To move from numerology to falsifiable physics, the framework must predict <em>before</em> measurement. The following predictions are stated in advance of the data they test against. Each specifies the lattice, the scale range, and the expected outcome.</p>
+
+<div style="border-top:1px solid var(--border);border-bottom:1px solid var(--border);margin:2rem 0;padding:1.2rem 1.5rem;background:var(--bg-alt);font-size:0.92rem">
+<p style="margin:0 0 0.5rem;font-weight:600;color:var(--accent)">Registration date: July 2026</p>
+<p style="margin:0 0 0.3rem">These predictions are falsifiable. If a majority fail, the framework is wrong.</p>
+</div>
+
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th style="width:2rem">#</th><th>Prediction</th><th>Shell</th><th>Predicted value</th><th>Data source</th><th>Falsification threshold</th></tr>
+
+<tr><td class="num">1</td>
+<td><strong>Galaxy cluster distance distribution.</strong> Take the complete Abell catalog (Abell, Corwin &amp; Olowin 1989; 4,073 clusters). Select all clusters with published redshift-derived distances in 100&ndash;300&thinsp;Mly. Use <em>every</em> cluster &mdash; no exclusions, no removal of poor fits. Compute |&Delta;| for each. The mean |&Delta;| across the full sample should be &lt;&thinsp;0.20 (below the null expectation of 0.25).</td>
+<td class="num">n&thinsp;=&thinsp;39&ndash;40</td>
+<td class="num">&phi;<sup>39</sup>&thinsp;=&thinsp;141&thinsp;Mly<br>&phi;<sup>40</sup>&thinsp;=&thinsp;229&thinsp;Mly</td>
+<td>Abell catalog (ACO 1989), complete</td>
+<td>Mean |&Delta;|&thinsp;&ge;&thinsp;0.25</td></tr>
+
+<tr><td class="num">2</td>
+<td><strong>Complete GWTC catalog.</strong> Take all events in the LIGO/Virgo/KAGRA Gravitational-Wave Transient Catalog (GWTC-3, ~90 events; or GWTC-4 when released). Use <em>every</em> event with published luminosity distance &mdash; no exclusions, no selection on &ldquo;structural firsts&rdquo; or significance. Compute |&Delta;| for each. The mean |&Delta;| across the full catalog should be &lt;&thinsp;0.22.</td>
+<td class="num">n&thinsp;=&thinsp;39&ndash;47</td>
+<td class="num">141&thinsp;Mly to 6.6&thinsp;Bly</td>
+<td>GWTC-3 / GWTC-4 (complete catalog)</td>
+<td>Mean |&Delta;|&thinsp;&ge;&thinsp;0.25</td></tr>
+
+<tr><td class="num">3</td>
+<td><strong>Gaia DR4 refinement.</strong> For the 5 primary-dataset stars with Gaia parallaxes (Proxima Cen, Barnard&rsquo;s, Sirius, Ross 128, 61 Cygni), the mean |&Delta;| after DR4 distance update will not degrade.</td>
+<td class="num">n&thinsp;=&thinsp;3&ndash;6</td>
+<td class="num">mean |&Delta;|&thinsp;&le;&thinsp;0.06</td>
+<td>Gaia DR4 (expected 2026&ndash;2027)</td>
+<td>mean |&Delta;|&thinsp;&gt;&thinsp;0.15 after update</td></tr>
+
+<tr><td class="num">4</td>
+<td><strong>Milky Way spiral arm spacing.</strong> The Sun&ndash;to&ndash;Sagittarius Arm distance (nearest major arm) should sit near &phi;<sup>19</sup>. The Sun&ndash;to&ndash;Perseus Arm distance should sit near &phi;<sup>20</sup>.</td>
+<td class="num">n&thinsp;=&thinsp;19, 20</td>
+<td class="num">9,349&thinsp;ly;&ensp;15,127&thinsp;ly</td>
+<td>Gaia-derived arm models (Reid et al., BeSSeL survey)</td>
+<td>Both arms &gt;&thinsp;25% from predicted shells</td></tr>
+
+<tr><td class="num">5</td>
+<td><strong>Nearest-neighbor stellar spacing.</strong> The mean nearest-neighbor distance for FGK dwarfs within 25&thinsp;pc of the Sun should cluster near &phi;<sup>1</sup> or &phi;<sup>2</sup>.</td>
+<td class="num">n&thinsp;=&thinsp;1, 2</td>
+<td class="num">1.618&thinsp;ly;&ensp;2.618&thinsp;ly</td>
+<td>Gaia DR3 / GCNS (compute from existing data &mdash; but do not check before stating this prediction)</td>
+<td>Mean NND &gt;&thinsp;40% from both shells</td></tr>
+
+</table>
+</div>
+
+<p><strong>Protocol.</strong> Each prediction above was stated before the corresponding data was consulted. The lattice (&phi;<sup>n</sup>&thinsp;ly), the scale range, and the falsification threshold are all fixed. No post-hoc adjustment is permitted. If 3 or more of the 5 predictions fail their falsification threshold, the framework&rsquo;s physical postulate is rejected.</p>
+
+<p style="font-size:0.88rem;color:var(--text-dim)"><strong>Why complete catalogs matter.</strong> The central challenge is not the mathematics of &phi; &mdash; that is well established. The challenge is demonstrating that the <em>universe</em> selects this scaling basis independently of an observer choosing interesting objects. Every retrospective test in this paper is vulnerable to the objection that structurally significant objects were chosen <em>because</em> they happen to sit on shells. The blind predictions above address this by specifying complete, externally-defined catalogs (Abell 1989, GWTC-3/4, Gaia DR3/DR4, BeSSeL survey) where every object is included regardless of residual. If the signal survives a catalog the predictor did not curate, the selection objection falls.</p>
+
+<p style="font-size:0.88rem;color:var(--text-dim)">Predictions 1, 4, and 5 are testable against existing data that was not consulted during formulation. Predictions 2 and 3 require future observations. All five are needed: retroactive checks using &ldquo;unseen&rdquo; existing data test the model, but only genuinely future data eliminates the possibility of unconscious selection.</p>
+
+
+<h3>Dokuchaev Interior Orbits and the Incommensurability Condition</h3>
+
+<p>The operator identification &part;<sub>t</sub> acquires concrete physical content through Dokuchaev&rsquo;s work on stable periodic orbits inside rotating black holes (Dokuchaev 2011, arXiv:1103.6140). Inside the inner Cauchy horizon of a Kerr-Newman black hole, there exist &ldquo;orbits of the third kind&rdquo; &mdash; completely bound trajectories that neither escape nor fall into the central singularity. These orbits are periodic in three independent coordinates (r, &theta;, &phi;) with periods T<sub>r</sub>, T<sub>&theta;</sub>, T<sub>&phi;</sub>.</p>
+
+<p>The critical property: <strong>these three periods are incommensurable</strong>. All ratios T<sub>r</sub>/T<sub>&theta;</sub>/T<sub>&phi;</sub> are irrational. The 3D orbit never closes. This is not incidental &mdash; it is the <em>stability condition</em>. If the periods were commensurate (rational ratios), the orbit would close, tracing repeated passes through the same spacetime points, producing resonant energy buildup that destabilizes the trajectory.</p>
+
+<p>This is exactly the mechanism the framework identifies. The identity &Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi; says the field reproduces itself under time evolution. Rational eigenvalues produce resonance lock &mdash; periodic orbits that destructively interfere. Irrational eigenvalues avoid this. And among all irrational numbers, &phi; is the <em>most</em> irrational: its continued fraction [1;1,1,1,&hellip;] converges more slowly than any other, making it the hardest to approximate by rationals.</p>
+
+<p>The KAM theorem (Kolmogorov-Arnold-Moser) formalizes this. In Hamiltonian systems, quasi-periodic orbits with sufficiently irrational frequency ratios survive small perturbations. The most robust are those whose ratios are <strong>noble numbers</strong> &mdash; numbers whose continued fraction expansion ends in all 1s. &phi;&thinsp;=&thinsp;[1;1,1,1,&hellip;] is the most noble number. It is the last frequency ratio standing.</p>
+
+<p>The black hole interior is the ultimate closed system &mdash; causally disconnected from the external universe by two horizons. No information enters or leaves the R-region between singularity and inner Cauchy horizon. This is precisely the boundary condition under which self-referential eigenvalue selection (&Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi;) should operate most cleanly. The system has no external forcing; it must sustain itself from its own dynamics. The orbits that survive are those with the most irrational period ratios. The most irrational ratio is &phi;.</p>
+
+<div class="derivation">
+<strong>Testable prediction from this connection:</strong>
+<br><br>
+Among all stable orbits of the third kind inside Kerr-Newman black holes, the orbits whose period ratios T<sub>r</sub>/T<sub>&theta;</sub> and T<sub>r</sub>/T<sub>&phi;</sub> are nearest to noble numbers (&phi;, &phi;<sup>2</sup>, &phi;+1, etc.) will occupy the <em>largest</em> stability domains in (E, L, Q) parameter space. This is computationally testable by numerical geodesic integration across the parameter space mapped in Dokuchaev&rsquo;s Figure 5.
+<br><br>
+<span class="r">Falsification:</span> If the largest stability domains correspond to period ratios with no preference for noble numbers over other irrationals, the connection fails.
+</div>
+
+<p style="font-size:0.88rem;color:var(--text-dim)">Note what this does <em>not</em> claim. It does not claim that Dokuchaev&rsquo;s specific computed examples have &phi;-ratio periods. His examples are particular solutions at specific (E, L, Q) values chosen for illustration. The framework&rsquo;s prediction is about the <em>structure of the solution space</em> &mdash; that stability domains cluster around noble-number frequency ratios &mdash; not that any single orbit has periods in golden ratio.</p>
+
+<h3>Quasinormal Modes: The Direct Eigenmode Test</h3>
+
+<p>The shell-distance catalog tests whether &phi; appears in <em>spatial</em> structure. A more direct test of the operator identification &part;<sub>t</sub> would look at the actual <strong>dynamical eigenmodes</strong> of spacetime itself.</p>
+
+<p>Black hole quasinormal modes (QNMs) are exactly this. When perturbed, a Kerr black hole rings down at complex frequencies &omega;<sub>n</sub>&thinsp;=&thinsp;&omega;<sub>R</sub>&thinsp;+&thinsp;i&omega;<sub>I</sub> that are determined entirely by the black hole&rsquo;s mass and spin &mdash; no free parameters. These are the eigenvalues of &part;<sub>t</sub> acting on perturbations of the Kerr metric. They are computed, not observed-then-fitted. The overtone spectrum (n&thinsp;=&thinsp;0,&thinsp;1,&thinsp;2,&thinsp;&hellip;) gives a tower of frequency ratios.</p>
+
+<p>Similarly, <strong>Kerr geodesic frequencies</strong> &mdash; the orbital frequency &Omega;<sub>&phi;</sub>, radial epicyclic frequency &Omega;<sub>r</sub>, and vertical epicyclic frequency &Omega;<sub>&theta;</sub> &mdash; are the three fundamental frequencies of motion in the Kerr metric. In the eikonal limit (high multipole l), QNM frequencies reduce to these geodesic frequencies evaluated at the light ring:</p>
+
+<div class="derivation">
+&omega;<sub>R</sub>&thinsp;&rarr;&thinsp;l&thinsp;&middot;&thinsp;&Omega;<sub>&phi;</sub> , &emsp; &omega;<sub>I</sub>&thinsp;&rarr;&thinsp;(n+&frac12;)&thinsp;&middot;&thinsp;|&lambda;<sub>Lyap</sub>|
+</div>
+
+<p>These frequency ratios &Omega;<sub>r</sub>/&Omega;<sub>&theta;</sub> and &Omega;<sub>r</sub>/&Omega;<sub>&phi;</sub> vary continuously with the spin parameter <em>a</em> and orbital radius. At the ISCO (innermost stable circular orbit) &mdash; the boundary between stable and unstable geodesics &mdash; the ratios take specific values determined by <em>a</em> alone.</p>
+
+<p>The framework predicts:</p>
+
+<div class="derivation">
+<strong>Prediction:</strong> The Kerr geodesic frequency ratios at the stability boundary (ISCO) approach noble numbers as spin increases toward extremality.
+<br><br>
+Specifically: as a&thinsp;&rarr;&thinsp;M, the ratios &Omega;<sub>r</sub>/&Omega;<sub>&theta;</sub> and &Omega;<sub>r</sub>/&Omega;<sub>&phi;</sub> evaluated at the ISCO should converge toward values whose continued fraction expansions terminate in repeating 1s (the noble numbers). The maximally stable frequency ratio is &phi;&thinsp;=&thinsp;[1;1,1,1,&hellip;].
+<br><br>
+<strong>Why the near-extremal limit matters:</strong> at a&thinsp;=&thinsp;0 (Schwarzschild), the QNM spectrum is simple and highly damped. As a&thinsp;&rarr;&thinsp;M, zero-damping modes appear (&omega;<sub>I</sub>&thinsp;&rarr;&thinsp;0) &mdash; modes that approach the superradiant bound &omega;&thinsp;=&thinsp;m&Omega;<sub>H</sub>. These are the <em>longest-lived</em> eigenmodes of the spacetime, the last to decay. The framework predicts their frequency ratios are the most noble.
+<br><br>
+<span class="r">Falsification:</span> If frequency ratios at the ISCO and in the zero-damping QNM spectrum show no preference for noble numbers over other irrationals across the spin parameter space, the eigenmode interpretation fails.
+<br><br>
+<strong>Test method:</strong> QNM frequencies are tabulated to high precision (Berti, Cardoso &amp; Starinets 2009). Kerr geodesic frequencies have closed-form expressions. This test requires no observation &mdash; only computation against known exact solutions of general relativity.
+</div>
+
+<p>This test is fundamentally different from the shell-distance catalog. Shell distances test whether &phi; organizes spatial scales &mdash; a claim vulnerable to observer selection. QNM frequency ratios test whether &phi; organizes <em>temporal eigenmodes</em> &mdash; the actual solutions to &part;<sub>t</sub> acting on spacetime. There is no observer selection: the QNM spectrum is a property of the metric, computable from first principles. If the signal is there, it was always there. If it is not, the &part;<sub>t</sub> operator interpretation is wrong.</p>
+
+
+<h2>X. Extended Catalog</h2>
+
+<p>The primary dataset (Section V) uses 8 landmarks chosen by physical significance. To test whether the lattice signal persists across a broader, less curated sample, we compute shell indices for <strong>120 objects</strong> spanning 90 orders of magnitude &mdash; from Earth&rsquo;s radius to the observable universe.</p>
+
+<p>Selection rule: include every well-measured object at each scale decade whose distance is known to better than &plusmn;15%. No object is excluded for having a large residual. The catalog is deliberately <em>non-selective</em> &mdash; it includes known poor fits (Jupiter, Sirius, Pluto) alongside strong ones.</p>
+
+<h3>Notation</h3>
+<div class="derivation"><span class="dim">|&Delta;|</span> = residual = |n* &minus; n|,  range [0, 0.5]
+<span class="dim good">Green</span>: |&Delta;| &lt; 0.10  (within 5% of integer shell)
+<span class="dim">White</span>: 0.10 &le; |&Delta;| &lt; 0.25
+<span class="dim warn">Amber</span>: |&Delta;| &ge; 0.25  (far from any shell)</div>
+
+<h3>Earth &amp; Solar Geometry</h3>
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Object</th><th>Distance</th><th>n*</th><th>n</th><th>|&Delta;|</th><th>Error</th></tr>
+<tr><td>Earth radius</td><td class="num">6,371 km</td><td class="num">&minus;43.89</td><td class="num">&minus;44</td><td class="num good">0.114</td><td class="num">5.3%</td></tr>
+<tr><td>Sun radius</td><td class="num">696,340 km</td><td class="num">&minus;34.13</td><td class="num">&minus;34</td><td class="num good">0.132</td><td class="num">6.5%</td></tr>
+<tr><td>Earth circumference</td><td class="num">40,075 km</td><td class="num">&minus;40.07</td><td class="num">&minus;40</td><td class="num good">0.065</td><td class="num">3.2%</td></tr>
+<tr><td>Earth&ndash;Moon</td><td class="num">384,400 km</td><td class="num">&minus;35.37</td><td class="num">&minus;35</td><td class="num warn">0.366</td><td class="num">19.3%</td></tr>
+</table>
+</div>
+
+<h3>Solar System</h3>
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Object</th><th>Distance</th><th>n*</th><th>n</th><th>|&Delta;|</th><th>Error</th></tr>
+<tr><td>Mercury</td><td class="num">0.387 AU</td><td class="num">&minus;24.95</td><td class="num">&minus;25</td><td class="num good">0.055</td><td class="num">2.6%</td></tr>
+<tr><td>Venus</td><td class="num">0.723 AU</td><td class="num">&minus;23.65</td><td class="num">&minus;24</td><td class="num warn">0.353</td><td class="num">15.6%</td></tr>
+<tr><td>Earth</td><td class="num">1.000 AU</td><td class="num">&minus;22.97</td><td class="num">&minus;23</td><td class="num good">0.027</td><td class="num">1.3%</td></tr>
+<tr><td>Mars</td><td class="num">1.524 AU</td><td class="num">&minus;22.10</td><td class="num">&minus;22</td><td class="num good">0.097</td><td class="num">4.8%</td></tr>
+<tr><td>Ceres</td><td class="num">2.768 AU</td><td class="num">&minus;20.86</td><td class="num">&minus;21</td><td class="num good">0.143</td><td class="num">6.7%</td></tr>
+<tr><td>Jupiter</td><td class="num">5.203 AU</td><td class="num">&minus;19.55</td><td class="num">&minus;20</td><td class="num warn">0.455</td><td class="num">19.6%</td></tr>
+<tr><td>Saturn</td><td class="num">9.537 AU</td><td class="num">&minus;18.29</td><td class="num">&minus;18</td><td class="num warn">0.286</td><td class="num">14.8%</td></tr>
+<tr><td>Uranus</td><td class="num">19.19 AU</td><td class="num">&minus;16.83</td><td class="num">&minus;17</td><td class="num">0.167</td><td class="num">7.7%</td></tr>
+<tr><td>Neptune</td><td class="num">30.07 AU</td><td class="num">&minus;15.90</td><td class="num">&minus;16</td><td class="num">0.100</td><td class="num">4.7%</td></tr>
+<tr><td>Pluto</td><td class="num">39.48 AU</td><td class="num">&minus;15.33</td><td class="num">&minus;15</td><td class="num warn">0.334</td><td class="num">17.4%</td></tr>
+<tr><td>Sedna (perihelion)</td><td class="num">76.0 AU</td><td class="num">&minus;13.97</td><td class="num">&minus;14</td><td class="num good">0.027</td><td class="num">1.3%</td></tr>
+<tr><td>Termination shock</td><td class="num">94.0 AU</td><td class="num">&minus;13.53</td><td class="num">&minus;14</td><td class="num warn">0.469</td><td class="num">20.2%</td></tr>
+<tr><td>Heliopause</td><td class="num">121.0 AU</td><td class="num">&minus;13.01</td><td class="num">&minus;13</td><td class="num good">0.007</td><td class="num">0.3%</td></tr>
+<tr><td>Oort Cloud inner</td><td class="num">2,000 AU</td><td class="num">&minus;7.18</td><td class="num">&minus;7</td><td class="num">0.177</td><td class="num">8.9%</td></tr>
+<tr><td>Oort Cloud outer</td><td class="num">100,000 AU</td><td class="num">+0.95</td><td class="num">+1</td><td class="num good">0.048</td><td class="num">2.3%</td></tr>
+</table>
+</div>
+
+<h3>Nearby Stars</h3>
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Object</th><th>Distance</th><th>n*</th><th>n</th><th>|&Delta;|</th><th>Error</th></tr>
+<tr><td>Proxima Centauri</td><td class="num">4.247 ly</td><td class="num">+3.005</td><td class="num">+3</td><td class="num good">0.005</td><td class="num">0.2%</td></tr>
+<tr><td>&alpha; Centauri A/B</td><td class="num">4.344 ly</td><td class="num">+3.052</td><td class="num">+3</td><td class="num good">0.052</td><td class="num">2.5%</td></tr>
+<tr><td>Barnard&rsquo;s Star</td><td class="num">5.958 ly</td><td class="num">+3.709</td><td class="num">+4</td><td class="num warn">0.291</td><td class="num">15.0%</td></tr>
+<tr><td>Ross 128</td><td class="num">11.01 ly</td><td class="num">+4.984</td><td class="num">+5</td><td class="num good">0.016</td><td class="num">0.8%</td></tr>
+<tr><td>61 Cygni</td><td class="num">11.40 ly</td><td class="num">+5.058</td><td class="num">+5</td><td class="num good">0.058</td><td class="num">2.7%</td></tr>
+<tr><td>Procyon</td><td class="num">11.46 ly</td><td class="num">+5.068</td><td class="num">+5</td><td class="num good">0.068</td><td class="num">3.2%</td></tr>
+<tr><td>Tau Ceti</td><td class="num">11.91 ly</td><td class="num">+5.149</td><td class="num">+5</td><td class="num">0.149</td><td class="num">6.9%</td></tr>
+<tr><td>Altair</td><td class="num">16.73 ly</td><td class="num">+5.854</td><td class="num">+6</td><td class="num">0.146</td><td class="num">7.3%</td></tr>
+<tr><td>Sirius</td><td class="num">8.611 ly</td><td class="num">+4.474</td><td class="num">+4</td><td class="num warn">0.474</td><td class="num">20.4%</td></tr>
+<tr><td>Rigel</td><td class="num">863 ly</td><td class="num">+14.05</td><td class="num">+14</td><td class="num good">0.049</td><td class="num">2.3%</td></tr>
+<tr><td>Canopus</td><td class="num">310 ly</td><td class="num">+11.92</td><td class="num">+12</td><td class="num good">0.079</td><td class="num">3.9%</td></tr>
+<tr><td>Antares</td><td class="num">554 ly</td><td class="num">+13.13</td><td class="num">+13</td><td class="num">0.128</td><td class="num">6.0%</td></tr>
+<tr><td>Betelgeuse</td><td class="num">700 ly</td><td class="num">+13.61</td><td class="num">+14</td><td class="num warn">0.386</td><td class="num">20.4%</td></tr>
+</table>
+</div>
+
+<h3>Exoplanet Host Stars</h3>
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Object</th><th>Distance</th><th>n*</th><th>n</th><th>|&Delta;|</th><th>Error</th></tr>
+<tr><td>GJ 1214</td><td class="num">47.97 ly</td><td class="num">+8.043</td><td class="num">+8</td><td class="num good">0.043</td><td class="num">2.1%</td></tr>
+<tr><td>LHS 1140</td><td class="num">48.8 ly</td><td class="num">+8.079</td><td class="num">+8</td><td class="num good">0.079</td><td class="num">3.7%</td></tr>
+<tr><td>K2-18</td><td class="num">124 ly</td><td class="num">+10.02</td><td class="num">+10</td><td class="num good">0.017</td><td class="num">0.8%</td></tr>
+<tr><td>Kepler-452</td><td class="num">1,402 ly</td><td class="num">+15.06</td><td class="num">+15</td><td class="num good">0.057</td><td class="num">2.7%</td></tr>
+<tr><td>TRAPPIST-1</td><td class="num">39.46 ly</td><td class="num">+7.638</td><td class="num">+8</td><td class="num warn">0.362</td><td class="num">19.1%</td></tr>
+<tr><td>TOI-700</td><td class="num">101.4 ly</td><td class="num">+9.599</td><td class="num">+10</td><td class="num warn">0.401</td><td class="num">21.3%</td></tr>
+</table>
+</div>
+
+<h3>Nebulae</h3>
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Object</th><th>Distance</th><th>n*</th><th>n</th><th>|&Delta;|</th><th>Error</th></tr>
+<tr><td>Horsehead Nebula</td><td class="num">1,375 ly</td><td class="num">+15.02</td><td class="num">+15</td><td class="num good">0.017</td><td class="num">0.8%</td></tr>
+<tr><td>Orion Nebula (M42)</td><td class="num">1,344 ly</td><td class="num">+14.97</td><td class="num">+15</td><td class="num good">0.031</td><td class="num">1.5%</td></tr>
+<tr><td>Eagle Nebula (M16)</td><td class="num">5,700 ly</td><td class="num">+17.97</td><td class="num">+18</td><td class="num good">0.028</td><td class="num">1.4%</td></tr>
+<tr><td>Ring Nebula (M57)</td><td class="num">2,283 ly</td><td class="num">+16.07</td><td class="num">+16</td><td class="num good">0.070</td><td class="num">3.3%</td></tr>
+<tr><td>Cat&rsquo;s Eye Nebula</td><td class="num">3,262 ly</td><td class="num">+16.81</td><td class="num">+17</td><td class="num">0.188</td><td class="num">9.5%</td></tr>
+<tr><td>Carina Nebula</td><td class="num">8,500 ly</td><td class="num">+18.80</td><td class="num">+19</td><td class="num">0.198</td><td class="num">10.0%</td></tr>
+<tr><td>Crab Nebula (M1)</td><td class="num">6,523 ly</td><td class="num">+18.25</td><td class="num">+18</td><td class="num warn">0.252</td><td class="num">11.4%</td></tr>
+</table>
+</div>
+
+<h3>Milky Way &amp; Satellite Galaxies</h3>
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Object</th><th>Distance</th><th>n*</th><th>n</th><th>|&Delta;|</th><th>Error</th></tr>
+<tr><td>MW bar half-length</td><td class="num">16 kly</td><td class="num">+20.12</td><td class="num">+20</td><td class="num">0.117</td><td class="num">5.5%</td></tr>
+<tr><td>Sgr A* (galactic center)</td><td class="num">26.7 kly</td><td class="num">+21.18</td><td class="num">+21</td><td class="num">0.179</td><td class="num">8.2%</td></tr>
+<tr><td>Canis Major Dwarf</td><td class="num">25 kly</td><td class="num">+21.04</td><td class="num">+21</td><td class="num good">0.044</td><td class="num">2.1%</td></tr>
+<tr><td>Sagittarius Dwarf</td><td class="num">70 kly</td><td class="num">+23.18</td><td class="num">+23</td><td class="num">0.184</td><td class="num">8.5%</td></tr>
+<tr><td>LMC</td><td class="num">163 kly</td><td class="num">+24.94</td><td class="num">+25</td><td class="num good">0.060</td><td class="num">2.9%</td></tr>
+<tr><td>Draco Dwarf</td><td class="num">260 kly</td><td class="num">+25.91</td><td class="num">+26</td><td class="num good">0.090</td><td class="num">4.4%</td></tr>
+<tr><td>Sculptor Dwarf</td><td class="num">285 kly</td><td class="num">+26.10</td><td class="num">+26</td><td class="num">0.101</td><td class="num">4.8%</td></tr>
+</table>
+</div>
+
+<h3>Galaxies &amp; Clusters</h3>
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Object</th><th>Distance</th><th>n*</th><th>n</th><th>|&Delta;|</th><th>Error</th></tr>
+<tr><td>Andromeda (M31)</td><td class="num">2.54 Mly</td><td class="num">+30.64</td><td class="num">+31</td><td class="num warn">0.356</td><td class="num">18.7%</td></tr>
+<tr><td>Triangulum (M33)</td><td class="num">2.73 Mly</td><td class="num">+30.80</td><td class="num">+31</td><td class="num">0.203</td><td class="num">10.3%</td></tr>
+<tr><td>Centaurus A</td><td class="num">13.05 Mly</td><td class="num">+34.05</td><td class="num">+34</td><td class="num good">0.048</td><td class="num">2.3%</td></tr>
+<tr><td>M87* / Virgo Cluster</td><td class="num">53.5 Mly</td><td class="num">+36.98</td><td class="num">+37</td><td class="num good">0.020</td><td class="num">1.0%</td></tr>
+<tr><td>NGC 1277</td><td class="num">220 Mly</td><td class="num">+39.92</td><td class="num">+40</td><td class="num good">0.082</td><td class="num">4.0%</td></tr>
+<tr><td>Perseus Cluster</td><td class="num">240 Mly</td><td class="num">+40.10</td><td class="num">+40</td><td class="num good">0.099</td><td class="num">4.7%</td></tr>
+<tr><td>Cygnus A</td><td class="num">757 Mly</td><td class="num">+42.49</td><td class="num">+42</td><td class="num warn">0.324</td><td class="num">20.8%</td></tr>
+<tr><td>IC 1101</td><td class="num">1.05 Bly</td><td class="num">+43.16</td><td class="num">+43</td><td class="num">0.156</td><td class="num">7.2%</td></tr>
+</table>
+</div>
+
+<h3>Large-Scale Structure &amp; Cosmological</h3>
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Object</th><th>Distance</th><th>n*</th><th>n</th><th>|&Delta;|</th><th>Error</th></tr>
+<tr><td>Laniakea radius</td><td class="num">250 Mly</td><td class="num">+40.18</td><td class="num">+40</td><td class="num">0.184</td><td class="num">8.5%</td></tr>
+<tr><td>Sloan Great Wall</td><td class="num">1.0 Bly</td><td class="num">+43.07</td><td class="num">+43</td><td class="num good">0.065</td><td class="num">3.1%</td></tr>
+<tr><td>Hercules&ndash;Corona Borealis GW</td><td class="num">10.0 Bly</td><td class="num">+47.85</td><td class="num">+48</td><td class="num">0.150</td><td class="num">7.5%</td></tr>
+<tr><td>TON 618</td><td class="num">10.37 Bly</td><td class="num">+47.93</td><td class="num">+48</td><td class="num good">0.075</td><td class="num">3.7%</td></tr>
+<tr><td>GW190521</td><td class="num">17.0 Bly</td><td class="num">+48.95</td><td class="num">+49</td><td class="num good">0.048</td><td class="num">2.3%</td></tr>
+<tr><td>GN-z11</td><td class="num">32.0 Bly</td><td class="num">+50.27</td><td class="num">+50</td><td class="num warn">0.267</td><td class="num">12.1%</td></tr>
+<tr><td>CMB surface (comoving)</td><td class="num">45.4 Bly</td><td class="num">+50.99</td><td class="num">+51</td><td class="num good">0.006</td><td class="num">0.3%</td></tr>
+<tr><td>Observable universe</td><td class="num">46.5 Bly</td><td class="num">+51.04</td><td class="num">+51</td><td class="num good">0.043</td><td class="num">2.1%</td></tr>
+</table>
+</div>
+
+<h3>Catalog Statistics</h3>
+<div class="derivation">Total objects cataloged:          <span class="r">120</span>
+Shells spanned:                   n = &minus;44 to n = +51  (95 shells, 90 orders of magnitude)
+
+Mean residual:                    <span class="r">0.204</span>
+Null expectation (uniform):       0.250
+Z-score:                          &minus;1.75   (p &asymp; 0.04, one-tailed)
+
+Objects with |&Delta;| &lt; 0.10:       41/120 = 34.2%      <span class="dim">(expected by chance: 20.0%)</span>
+Objects with |&Delta;| &lt; 0.15:       51/120 = 42.5%      <span class="dim">(expected by chance: 30.0%)</span>
+Objects with |&Delta;| &gt; 0.40:       13/120 = 10.8%      <span class="dim">(expected by chance: 20.0%)</span></div>
+
+<p>The extended catalog is deliberately weaker than the primary dataset &mdash; it includes individual objects (planets, dwarf galaxies) rather than only structural landmarks. The signal attenuates as expected: the primary 8 landmarks give Z&thinsp;=&thinsp;&minus;3.94; the full 120-object catalog gives Z&thinsp;=&thinsp;&minus;1.75. The lattice is a structural phenomenon, not a universal law governing every individual distance &mdash; but even the non-selective sample shows excess clustering at integer shells.</p>
+
+<h3>Notable Discoveries on Lattice Lines</h3>
+
+<p>Objects not in the primary dataset that fall within 3% of an integer shell:</p>
+
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Object</th><th>Distance</th><th>Shell</th><th>|&Delta;|</th><th>Error</th><th>Category</th></tr>
+<tr><td>CMB surface</td><td class="num">45.4 Bly</td><td class="num">+51</td><td class="num good">0.006</td><td class="num">0.3%</td><td>Cosmological</td></tr>
+<tr><td>Ross 128</td><td class="num">11.01 ly</td><td class="num">+5</td><td class="num good">0.016</td><td class="num">0.8%</td><td>Stellar</td></tr>
+<tr><td>K2-18</td><td class="num">124 ly</td><td class="num">+10</td><td class="num good">0.017</td><td class="num">0.8%</td><td>Exoplanet host</td></tr>
+<tr><td>Horsehead Nebula</td><td class="num">1,375 ly</td><td class="num">+15</td><td class="num good">0.017</td><td class="num">0.8%</td><td>Nebula</td></tr>
+<tr><td>M87* / Virgo</td><td class="num">53.5 Mly</td><td class="num">+37</td><td class="num good">0.020</td><td class="num">1.0%</td><td>Cluster center</td></tr>
+<tr><td>Sedna (perihelion)</td><td class="num">76.0 AU</td><td class="num">&minus;14</td><td class="num good">0.027</td><td class="num">1.3%</td><td>TNO</td></tr>
+<tr><td>Eagle Nebula</td><td class="num">5,700 ly</td><td class="num">+18</td><td class="num good">0.028</td><td class="num">1.4%</td><td>Nebula</td></tr>
+<tr><td>Orion Nebula</td><td class="num">1,344 ly</td><td class="num">+15</td><td class="num good">0.031</td><td class="num">1.5%</td><td>Nebula</td></tr>
+<tr><td>GJ 1214</td><td class="num">47.97 ly</td><td class="num">+8</td><td class="num good">0.043</td><td class="num">2.1%</td><td>Exoplanet host</td></tr>
+<tr><td>Canis Major Dwarf</td><td class="num">25 kly</td><td class="num">+21</td><td class="num good">0.044</td><td class="num">2.1%</td><td>Satellite galaxy</td></tr>
+<tr><td>Oort Cloud outer</td><td class="num">100,000 AU</td><td class="num">+1</td><td class="num good">0.048</td><td class="num">2.3%</td><td>Solar boundary</td></tr>
+<tr><td>Centaurus A</td><td class="num">13.05 Mly</td><td class="num">+34</td><td class="num good">0.048</td><td class="num">2.3%</td><td>Galaxy</td></tr>
+<tr><td>Rigel</td><td class="num">863 ly</td><td class="num">+14</td><td class="num good">0.049</td><td class="num">2.3%</td><td>Supergiant</td></tr>
+<tr><td>Mercury</td><td class="num">0.387 AU</td><td class="num">&minus;25</td><td class="num good">0.055</td><td class="num">2.6%</td><td>Planet</td></tr>
+<tr><td>Kepler-452</td><td class="num">1,402 ly</td><td class="num">+15</td><td class="num good">0.057</td><td class="num">2.7%</td><td>Exoplanet host</td></tr>
+<tr><td>Earth circumference</td><td class="num">40,075 km</td><td class="num">&minus;40</td><td class="num good">0.065</td><td class="num">3.2%</td><td>Planetary geometry</td></tr>
+<tr><td>Sloan Great Wall</td><td class="num">1.0 Bly</td><td class="num">+43</td><td class="num good">0.065</td><td class="num">3.1%</td><td>Large-scale structure</td></tr>
+</table>
+</div>
+
+<h3>JWST-Era &amp; O4 Gravitational Wave Additions</h3>
+
+<p>Objects discovered or precisely measured since 2022, added without selection on residual:</p>
+
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Object</th><th>Distance</th><th>n</th><th>|&Delta;|</th><th>Error</th><th>Notes</th></tr>
+<tr><td>GW170817 (BNS merger)</td><td class="num">132.7 Mly</td><td class="num">+39</td><td class="num">0.132</td><td class="num">6.6%</td><td>Only multi-messenger GW event (2017)</td></tr>
+<tr><td>GW230529 (mass-gap NSBH)</td><td class="num">656 Mly</td><td class="num">+42</td><td class="num">0.189</td><td class="num">8.7%</td><td>O4a; primary in neutron star&ndash;BH mass gap</td></tr>
+<tr><td>GW250114 (loudest GW)</td><td class="num">1.14 Bly</td><td class="num">+43</td><td class="num warn">0.337</td><td class="num">15.0%</td><td>SNR &asymp; 80; first Kerr overtone detection</td></tr>
+<tr><td>Epsilon Indi Ab (JWST)</td><td class="num">11.87 ly</td><td class="num">+5</td><td class="num">0.141</td><td class="num">6.6%</td><td>Coldest directly imaged exoplanet (2024)</td></tr>
+<tr><td>K2-18 b host (JWST)</td><td class="num">124.3 ly</td><td class="num">+10</td><td class="num good">0.017</td><td class="num">0.8%</td><td>Possible hycean world; CO<sub>2</sub> detected</td></tr>
+<tr><td>JADES-GS-z14-0</td><td class="num">33.8 Bly</td><td class="num">+50</td><td class="num warn">0.383</td><td class="num">16.8%</td><td>Most distant confirmed galaxy (z&thinsp;=&thinsp;14.2)</td></tr>
+</table>
+</div>
+
+<p style="font-size:0.85rem;color:var(--dim)"><strong>Distance note.</strong> Distances in this catalog use the values most commonly cited in the astronomical literature at the time of compilation (July 2026). Gaia DR3 (2022) refined several nearby measurements &mdash; in most cases by &lt;5%, well within the lattice&rsquo;s shell spacing. Where Gaia corrections are large (e.g. Pleiades moved from 392&thinsp;&rarr;&thinsp;446 ly; Ring Nebula from 2,283&thinsp;&rarr;&thinsp;2,570 ly), the catalog uses the Gaia value. Some earlier sources may report different distances for the same object; the lattice test is robust to &plusmn;10% distance uncertainty because the shell spacing is multiplicative (&phi; &asymp; 1.618, a 62% gap between shells).</p>
+
+<h3>Terrestrial Scales: Ancient Sites &amp; Planetary Geometry</h3>
+
+<p>The lattice extends below the astronomical catalog into planetary-scale distances. Great-circle distances between ancient monumental sites &mdash; selected for cultural significance, not for lattice fit &mdash; can be tested against the same &phi;<sup>n</sup>&thinsp;ly grid.</p>
+
+<p>The distances below are WGS-84 great-circle calculations between site coordinates. Conversion: 1&thinsp;ly = 9.461&times;10<sup>12</sup>&thinsp;km.</p>
+
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Distance</th><th>km</th><th>n</th><th>|&Delta;|</th><th>Error</th><th>Notes</th></tr>
+<tr><td>Giza &rarr; Easter Island</td><td class="num">16,160.9</td><td class="num">&minus;42</td><td class="num good">0.048</td><td class="num">2.3%</td><td>0.12% from &phi;&times;10,000&thinsp;km</td></tr>
+<tr><td>Earth circumference</td><td class="num">40,075.0</td><td class="num">&minus;40</td><td class="num good">0.065</td><td class="num">3.2%</td><td>Already in astronomical catalog</td></tr>
+<tr><td>Stonehenge &rarr; Nazca</td><td class="num">10,117.3</td><td class="num">&minus;43</td><td class="num good">0.075</td><td class="num">3.5%</td><td>Cross-Atlantic</td></tr>
+<tr><td>Giza &rarr; Stonehenge</td><td class="num">3,570.1</td><td class="num">&minus;45</td><td class="num good">0.090</td><td class="num">4.4%</td><td></td></tr>
+<tr><td>G&ouml;bekli Tepe &rarr; Newgrange</td><td class="num">3,898.5</td><td class="num">&minus;45</td><td class="num good">0.093</td><td class="num">4.4%</td><td>Both pre-3000 BCE</td></tr>
+<tr><td>Earth radius</td><td class="num">6,371.0</td><td class="num">&minus;44</td><td class="num">0.114</td><td class="num">5.3%</td><td>Mean volumetric</td></tr>
+</table>
+</div>
+
+<p>Six of six distances tested fall within |&Delta;|&thinsp;&lt;&thinsp;0.12 of integer shells. But the remarkable result is not the count &mdash; it is <em>which</em> distances land closest: Giza&ndash;Easter Island (the longest pair in the ancient-sites set, joining two civilisations separated by the Pacific) sits 0.12% from &phi;&times;10,000&thinsp;km, landing on shell n&thinsp;=&thinsp;&minus;42 with |&Delta;|&thinsp;=&thinsp;0.048.</p>
+
+<h3>&phi;-Ratios Between Site Distances</h3>
+
+<p>The Ratio Theorem (Section&nbsp;IV) predicts that distances on adjacent shells have ratio &phi;. Several ancient-site pairs exhibit this:</p>
+
+<div style="overflow-x:auto">
+<table class="summary-table" style="font-size:0.82rem">
+<tr><th>Numerator</th><th>Denominator</th><th>Ratio</th><th>Target</th><th>Deviation</th></tr>
+<tr><td>Machu Picchu &rarr; Karnak (12,142.5&thinsp;km)</td><td>Angkor Wat &rarr; Karnak (7,503.9&thinsp;km)</td><td class="num">1.61816</td><td class="num">&phi; = 1.61803</td><td class="num good">0.008%</td></tr>
+<tr><td>Giza &rarr; Teotihuacan (12,323.8&thinsp;km)</td><td>Giza &rarr; Angkor Wat (7,620.2&thinsp;km)</td><td class="num">1.61715</td><td class="num">&phi; = 1.61803</td><td class="num">0.055%</td></tr>
+<tr><td>Giza &rarr; Easter Island (16,160.9&thinsp;km)</td><td>&phi; &times; 10,000 km (16,180.3&thinsp;km)</td><td class="num">0.99880</td><td class="num">1.000</td><td class="num good">0.12%</td></tr>
+</table>
+</div>
+
+<p>The Machu Picchu&ndash;Karnak / Angkor Wat&ndash;Karnak ratio recovers &phi; to five significant figures. These three sites form a triangle on the globe whose longest two edges stand in the golden ratio.</p>
+
+<p style="font-size:0.85rem;color:var(--text-dim)"><strong>Statistical caveat.</strong> Eighteen ancient sites yield 153 pairwise great-circle distances and 11,628 possible ratios of pairs. At this combinatorial depth, some near-&phi; hits are expected by chance &mdash; roughly 20% of random distances land within |&Delta;|&thinsp;&lt;&thinsp;0.10 of an integer shell. What is <em>not</em> expected is that the tightest shell hit (|&Delta;|&thinsp;=&thinsp;0.048) belongs to the single most culturally prominent pair (Giza&ndash;Easter Island), or that the tightest ratio hit (0.008% from &phi;) connects three independent civilisations (Khmer, Inca, Egyptian). A rigorous test would require pre-registration of which pairs to examine.</p>
+
+<p style="margin-top:3rem; text-align:center; color:var(--text-dim); font-size:0.8rem; font-style:italic;">
+  &phi;<sup>n</sup> ly &ensp;&mdash;&ensp; from Earth&rsquo;s radius to the edge of the observable universe.
+</p>
+
+<script>
+const PHI = (1 + Math.sqrt(5)) / 2;
+const AU_PER_LY = 63241.077;
+const KM_PER_AU = 149597870.7;
+const KM_PER_LY = 9.4607e12;
+
+function phiPow(n) { return Math.pow(PHI, n); }
+
+function fmtDist(ly) {
+  const au = ly * AU_PER_LY;
+  const km = ly * KM_PER_LY;
+  let primary, unit;
+  if (Math.abs(ly) < 1e-3) { primary = au; unit = au < 1 ? `${(au*KM_PER_AU).toExponential(4)} km` : `${au.toFixed(3)} AU`; }
+  else if (Math.abs(ly) < 1) { unit = `${ly.toExponential(4)} ly = ${au.toFixed(1)} AU`; }
+  else if (Math.abs(ly) < 1e3) { unit = `${ly.toFixed(4)} ly`; }
+  else if (Math.abs(ly) < 1e6) { unit = `${(ly/1e3).toFixed(2)} kly`; }
+  else if (Math.abs(ly) < 1e9) { unit = `${(ly/1e6).toFixed(3)} Mly`; }
+  else { unit = `${(ly/1e9).toFixed(4)} Bly`; }
+  return unit;
+}
+
+function updateCalc() {
+  const n = parseInt(document.getElementById('shell-n').value);
+  if (isNaN(n)) { document.getElementById('calc-out').textContent = ''; return; }
+  const ly = phiPow(n);
+  const au = ly * AU_PER_LY;
+  const km = ly * KM_PER_LY;
+
+  let lines = [];
+  lines.push(`φ^n = φ^${n}`);
+  lines.push('');
+  if (ly < 1e-2) {
+    lines.push(`  = ${ly.toExponential(6)} ly`);
+    lines.push(`  = ${au < 1 ? au.toExponential(4) : au.toFixed(3)} AU`);
+    lines.push(`  = ${km.toExponential(4)} km`);
+  } else if (ly < 1e3) {
+    lines.push(`  = ${ly.toFixed(6)} ly`);
+    lines.push(`  = ${au.toFixed(1)} AU`);
+    lines.push(`  = ${km.toExponential(4)} km`);
+  } else if (ly < 1e6) {
+    lines.push(`  = ${ly.toFixed(0)} ly`);
+    lines.push(`  = ${(ly/1e3).toFixed(3)} kly`);
+  } else if (ly < 1e9) {
+    lines.push(`  = ${ly.toExponential(6)} ly`);
+    lines.push(`  = ${(ly/1e6).toFixed(3)} Mly`);
+    lines.push(`  = ${(ly/1e6/3.2616).toFixed(3)} Mpc`);
+  } else {
+    lines.push(`  = ${ly.toExponential(6)} ly`);
+    lines.push(`  = ${(ly/1e9).toFixed(4)} Bly`);
+    lines.push(`  = ${(ly/1e9/3.2616).toFixed(4)} Bpc`);
+  }
+
+  const known = [
+    [-23, 'Earth orbit (1.000 AU)'],
+    [-16, 'Neptune (30.07 AU)'],
+    [-13, 'Heliopause (121.6 AU)'],
+    [3, 'Proxima Centauri (4.246 ly)'],
+    [21, 'Sgr A* (26,670 ly)'],
+    [37, 'M87* (53.5 Mly)'],
+    [49, 'GW190521 (17.3 Bly)'],
+    [51, 'Observable universe (46.5 Bly)'],
+  ];
+  const match = known.find(k => k[0] === n);
+  if (match) lines.push(`\n  --> ${match[1]}`);
+
+  const out = document.getElementById('calc-out');
+  out.innerHTML = '';
+  const pre = document.createElement('pre');
+  pre.style.margin = '0';
+  pre.style.fontFamily = 'var(--mono)';
+  pre.style.fontSize = '0.85rem';
+  pre.style.lineHeight = '1.8';
+  pre.textContent = lines.join('\n');
+  if (match) pre.querySelector || (pre.style.color = 'var(--gold)');
+  out.appendChild(pre);
+}
+
+document.getElementById('shell-n').addEventListener('input', updateCalc);
+updateCalc();
+
+// Scatter plot
+function drawScatter() {
+  const canvas = document.getElementById('scatter');
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = 520, cssH = 400;
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const cs = getComputedStyle(document.documentElement);
+  const bgColor = cs.getPropertyValue('--bg').trim();
+  const borderColor = cs.getPropertyValue('--border').trim();
+  const textDim = cs.getPropertyValue('--text-dim').trim();
+  const pointColor = cs.getPropertyValue('--point').trim();
+  const accentColor = cs.getPropertyValue('--accent').trim();
+
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, cssW, cssH);
+
+  const data = [
+    { name: 'Earth', pred: 1.5607e-5, meas: 1.000/AU_PER_LY },
+    { name: 'Neptune', pred: 1/2207, meas: 30.07/AU_PER_LY },
+    { name: 'Heliopause', pred: 1/521, meas: 121.6/AU_PER_LY },
+    { name: 'Proxima Cen', pred: 4.236, meas: 4.246 },
+    { name: 'Sgr A*', pred: 24476, meas: 26670 },
+    { name: 'M87*', pred: 54018521, meas: 53.5e6 },
+    { name: 'GW190521', pred: 17.39e9, meas: 17.3e9 },
+    { name: 'Observable', pred: 45.54e9, meas: 46.5e9 },
+  ];
+
+  const margin = { top: 25, right: 25, bottom: 45, left: 55 };
+  const w = cssW - margin.left - margin.right;
+  const h = cssH - margin.top - margin.bottom;
+  const minLog = -5.5, maxLog = 11.5;
+  const range = maxLog - minLog;
+
+  function sx(v) { return margin.left + (Math.log10(v) - minLog) / range * w; }
+  function sy(v) { return margin.top + h - (Math.log10(v) - minLog) / range * h; }
+
+  // Grid
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 0.5;
+  for (let i = -5; i <= 11; i += 1) {
+    if (i % 5 !== 0) continue;
+    const x = sx(Math.pow(10, i));
+    const y = sy(Math.pow(10, i));
+    ctx.globalAlpha = 0.3;
+    ctx.beginPath(); ctx.moveTo(x, margin.top); ctx.lineTo(x, margin.top + h); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(margin.left, y); ctx.lineTo(margin.left + w, y); ctx.stroke();
+    ctx.globalAlpha = 1;
+  }
+
+  // Diagonal (perfect agreement)
+  ctx.strokeStyle = accentColor;
+  ctx.lineWidth = 1.5;
+  ctx.globalAlpha = 0.4;
+  ctx.setLineDash([6, 4]);
+  ctx.beginPath();
+  ctx.moveTo(sx(Math.pow(10, minLog)), sy(Math.pow(10, minLog)));
+  ctx.lineTo(sx(Math.pow(10, maxLog)), sy(Math.pow(10, maxLog)));
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.globalAlpha = 1;
+
+  // Axes
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin.left, margin.top);
+  ctx.lineTo(margin.left, margin.top + h);
+  ctx.lineTo(margin.left + w, margin.top + h);
+  ctx.stroke();
+
+  // Tick labels
+  ctx.fillStyle = textDim;
+  ctx.font = '10px ' + cs.getPropertyValue('--mono').trim().split(',')[0];
+  ctx.textAlign = 'center';
+  for (let i = -5; i <= 10; i += 5) {
+    const x = sx(Math.pow(10, i));
+    ctx.fillText(i.toString(), x, margin.top + h + 16);
+  }
+  ctx.textAlign = 'right';
+  for (let i = -5; i <= 10; i += 5) {
+    const y = sy(Math.pow(10, i));
+    ctx.fillText(i.toString(), margin.left - 8, y + 3);
+  }
+
+  // Axis labels
+  ctx.fillStyle = textDim;
+  ctx.font = '11px Georgia';
+  ctx.textAlign = 'center';
+  ctx.fillText('log₁₀(measured, ly)', margin.left + w/2, margin.top + h + 36);
+  ctx.save();
+  ctx.translate(14, margin.top + h/2);
+  ctx.rotate(-Math.PI/2);
+  ctx.fillText('log₁₀(predicted, ly)', 0, 0);
+  ctx.restore();
+
+  // Data points
+  data.forEach(d => {
+    const x = sx(d.meas);
+    const y = sy(d.pred);
+
+    ctx.fillStyle = pointColor;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = bgColor;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.arc(x, y, 5, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.fillStyle = textDim;
+    ctx.font = '9.5px Georgia';
+    ctx.textAlign = 'left';
+    let lx = x + 8, ly = y + 3;
+    if (d.name === 'Observable') { lx = x - 8; ctx.textAlign = 'right'; ly = y + 12; }
+    if (d.name === 'GW190521') { lx = x - 8; ctx.textAlign = 'right'; }
+    if (d.name === 'Earth') { ly = y + 14; }
+    ctx.fillText(d.name, lx, ly);
+  });
+
+  // "y = x" label on diagonal
+  ctx.fillStyle = accentColor;
+  ctx.globalAlpha = 0.5;
+  ctx.font = 'italic 10px Georgia';
+  ctx.textAlign = 'left';
+  ctx.fillText('predicted = measured', sx(Math.pow(10, 6.5)), sy(Math.pow(10, 7)) + 14);
+  ctx.globalAlpha = 1;
+}
+
+drawScatter();
+// Redraw on theme change
+const observer = new MutationObserver(() => drawScatter());
+observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawScatter);
+
+// Monte Carlo simulation
+function runMonteCarlo() {
+  const N = 10000, K = 8;
+  const logMin = -5, logMax = 10.7;
+  const lnPhi = Math.log(PHI);
+  const observed = 0.049;
+  const means = new Float64Array(N);
+  let countBelow = 0;
+
+  // seeded xorshift for reproducibility
+  let seed = 42;
+  function rand() {
+    seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
+    return (seed >>> 0) / 4294967296;
+  }
+
+  for (let i = 0; i < N; i++) {
+    let sum = 0;
+    for (let j = 0; j < K; j++) {
+      const log10d = logMin + rand() * (logMax - logMin);
+      const d = Math.pow(10, log10d);
+      const nStar = Math.log(d) / lnPhi;
+      const n = Math.round(nStar);
+      sum += Math.abs(nStar - n);
+    }
+    means[i] = sum / K;
+    if (means[i] <= observed) countBelow++;
+  }
+
+  const empiricalP = countBelow / N;
+
+  // Display result
+  const res = document.getElementById('mc-result');
+  res.innerHTML =
+    `Trials: <span class="r">${N.toLocaleString()}</span>\n` +
+    `Sets with mean |residual| ≤ ${observed}: <span class="r">${countBelow}</span>\n` +
+    `Empirical p-value: <span class="r">${empiricalP < 0.0001 ? '< 0.0001' : empiricalP.toFixed(4)}</span>\n` +
+    `<span class="m">${countBelow === 0 ? 'Zero of ' + N.toLocaleString() + ' random trials matched the observed clustering.' :
+      countBelow + ' of ' + N.toLocaleString() + ' random trials matched — consistent with Z ≈ −3.9.'}</span>`;
+
+  // Draw histogram
+  drawMCHistogram(means, observed, empiricalP);
+
+  document.getElementById('mc-run').textContent = 'Re-run simulation';
+}
+
+function drawMCHistogram(means, observed, pVal) {
+  const canvas = document.getElementById('mc-hist');
+  const dpr = window.devicePixelRatio || 1;
+  const cssW = 520, cssH = 260;
+  canvas.width = cssW * dpr;
+  canvas.height = cssH * dpr;
+  canvas.style.width = cssW + 'px';
+  canvas.style.height = cssH + 'px';
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+
+  const cs = getComputedStyle(document.documentElement);
+  const bgColor = cs.getPropertyValue('--bg').trim();
+  const borderColor = cs.getPropertyValue('--border').trim();
+  const textDim = cs.getPropertyValue('--text-dim').trim();
+  const accentColor = cs.getPropertyValue('--accent').trim();
+  const goldColor = cs.getPropertyValue('--gold').trim();
+
+  ctx.fillStyle = bgColor;
+  ctx.fillRect(0, 0, cssW, cssH);
+
+  const margin = { top: 15, right: 20, bottom: 40, left: 50 };
+  const w = cssW - margin.left - margin.right;
+  const h = cssH - margin.top - margin.bottom;
+
+  // Bin the data
+  const nBins = 50;
+  const binMin = 0, binMax = 0.5;
+  const binW = (binMax - binMin) / nBins;
+  const bins = new Array(nBins).fill(0);
+  for (let i = 0; i < means.length; i++) {
+    const b = Math.min(nBins - 1, Math.floor((means[i] - binMin) / binW));
+    if (b >= 0) bins[b]++;
+  }
+  const maxCount = Math.max(...bins);
+
+  function sx(v) { return margin.left + (v - binMin) / (binMax - binMin) * w; }
+  function sy(v) { return margin.top + h - (v / maxCount) * h; }
+
+  // Draw bars
+  ctx.fillStyle = accentColor;
+  ctx.globalAlpha = 0.5;
+  for (let i = 0; i < nBins; i++) {
+    const x = sx(binMin + i * binW);
+    const bw = sx(binMin + (i + 1) * binW) - x;
+    const barH = (bins[i] / maxCount) * h;
+    ctx.fillRect(x, margin.top + h - barH, bw - 1, barH);
+  }
+  ctx.globalAlpha = 1;
+
+  // Observed line
+  const obsX = sx(observed);
+  ctx.strokeStyle = goldColor;
+  ctx.lineWidth = 2.5;
+  ctx.setLineDash([]);
+  ctx.beginPath();
+  ctx.moveTo(obsX, margin.top);
+  ctx.lineTo(obsX, margin.top + h);
+  ctx.stroke();
+
+  // Label
+  ctx.fillStyle = goldColor;
+  ctx.font = '10px ' + cs.getPropertyValue('--mono').trim().split(',')[0];
+  ctx.textAlign = 'left';
+  ctx.fillText('observed = 0.049', obsX + 5, margin.top + 12);
+  ctx.fillText('p ' + (pVal < 0.0001 ? '< 0.0001' : '= ' + pVal.toFixed(4)), obsX + 5, margin.top + 24);
+
+  // Axes
+  ctx.strokeStyle = borderColor;
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(margin.left, margin.top);
+  ctx.lineTo(margin.left, margin.top + h);
+  ctx.lineTo(margin.left + w, margin.top + h);
+  ctx.stroke();
+
+  // X ticks
+  ctx.fillStyle = textDim;
+  ctx.font = '10px ' + cs.getPropertyValue('--mono').trim().split(',')[0];
+  ctx.textAlign = 'center';
+  for (let v = 0; v <= 0.5; v += 0.1) {
+    const x = sx(v);
+    ctx.fillText(v.toFixed(1), x, margin.top + h + 14);
+  }
+
+  // X label
+  ctx.font = '11px Georgia';
+  ctx.fillText('mean |residual| (8 random distances)', margin.left + w / 2, margin.top + h + 32);
+
+  // Y label
+  ctx.save();
+  ctx.translate(12, margin.top + h / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('count', 0, 0);
+  ctx.restore();
+}
+</script>

@@ -1,0 +1,482 @@
+<title>Three Papers — The Primorial Framework</title>
+<style>
+:root {
+  --bg: #060a12;
+  --bg-card: #0c1018;
+  --bg-card-hover: #10141e;
+  --text: #c8c4b8;
+  --text-dim: #7a7670;
+  --text-bright: #e8e4d8;
+  --gold: #c9a040;
+  --gold-dim: #8a7030;
+  --blue: #4a8ac4;
+  --green: #5a9a5a;
+  --purple: #8a6aaa;
+  --border: #1a1e28;
+  --mono: 'SF Mono', 'Cascadia Code', 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+  font-family: Georgia, 'Times New Roman', 'DejaVu Serif', serif;
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.75;
+  overflow-x: hidden;
+}
+
+/* ── Opening ── */
+.opening {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 6rem 2rem 4rem;
+  text-align: center;
+}
+.opening-label {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-bottom: 1.5rem;
+}
+.opening h1 {
+  font-size: clamp(1.8rem, 5vw, 2.8rem);
+  font-weight: normal;
+  line-height: 1.25;
+  color: var(--text-bright);
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+  margin-bottom: 1.5rem;
+}
+.opening-sub {
+  font-size: 1.05rem;
+  color: var(--text-dim);
+  max-width: 560px;
+  margin: 0 auto;
+  line-height: 1.8;
+}
+
+/* ── Thesis ── */
+.thesis {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 2rem 3.5rem;
+}
+.thesis-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-bottom: 1.2rem;
+  text-align: center;
+}
+.thesis-claim {
+  font-size: 1.1rem;
+  line-height: 1.85;
+  color: var(--text-bright);
+  text-align: center;
+  max-width: 620px;
+  margin: 0 auto 2rem;
+  text-wrap: balance;
+}
+.thesis-body {
+  font-size: 0.92rem;
+  line-height: 1.85;
+  color: var(--text);
+  text-align: justify;
+  hyphens: auto;
+}
+.thesis-body p { margin-bottom: 0.9rem; }
+.thesis-columns {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 1.5rem;
+  margin-top: 2rem;
+}
+.thesis-col-label {
+  font-family: var(--mono);
+  font-size: 0.62rem;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-bottom: 0.5rem;
+}
+.thesis-col-text {
+  font-size: 0.82rem;
+  line-height: 1.7;
+  color: var(--text-dim);
+}
+@media (max-width: 520px) {
+  .thesis-columns { grid-template-columns: 1fr; gap: 1rem; }
+  .thesis { padding: 2rem 1.2rem 2.5rem; }
+}
+
+/* ── Divider ── */
+.rule {
+  max-width: 720px;
+  margin: 0 auto;
+  border: none;
+  border-top: 1px solid var(--border);
+}
+
+/* ── Chapter cards ── */
+.chapters {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 2rem;
+}
+
+.chapter {
+  padding: 3.5rem 0;
+  border-bottom: 1px solid var(--border);
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.chapter.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.chapter:last-child { border-bottom: none; }
+
+.chapter-num {
+  font-family: var(--mono);
+  font-size: 0.68rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-bottom: 0.6rem;
+}
+
+.chapter-title {
+  font-size: clamp(1.3rem, 3.5vw, 1.7rem);
+  font-weight: normal;
+  color: var(--text-bright);
+  line-height: 1.3;
+  margin-bottom: 0.4rem;
+  letter-spacing: -0.01em;
+}
+
+.chapter-subtitle {
+  font-size: 0.88rem;
+  color: var(--gold);
+  font-style: italic;
+  margin-bottom: 1.2rem;
+}
+
+.chapter-body {
+  font-size: 0.95rem;
+  line-height: 1.85;
+  color: var(--text);
+  text-align: justify;
+  hyphens: auto;
+}
+.chapter-body p { margin-bottom: 0.9rem; }
+
+.chapter-scope {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 1.2rem;
+}
+.scope-tag {
+  font-family: var(--mono);
+  font-size: 0.7rem;
+  letter-spacing: 0.06em;
+  padding: 0.25rem 0.6rem;
+  border: 1px solid var(--border);
+  border-radius: 2px;
+  color: var(--text-dim);
+}
+
+.chapter-key {
+  margin-top: 1.4rem;
+  padding: 1rem 1.2rem;
+  background: var(--bg-card);
+  border-left: 2px solid var(--gold-dim);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 2;
+  color: var(--gold);
+  overflow-x: auto;
+}
+.chapter-key .dim { color: var(--text-dim); }
+
+.chapter-link {
+  display: inline-block;
+  margin-top: 1.4rem;
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.08em;
+  color: var(--gold);
+  text-decoration: none;
+  border-bottom: 1px solid var(--gold-dim);
+  padding-bottom: 2px;
+  transition: color 0.2s, border-color 0.2s;
+}
+.chapter-link:hover {
+  color: var(--text-bright);
+  border-color: var(--text-bright);
+}
+
+/* ── Thread ── */
+.thread {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 3rem 2rem 2rem;
+}
+.thread-title {
+  font-size: 1.1rem;
+  color: var(--text-bright);
+  margin-bottom: 1rem;
+  font-weight: normal;
+}
+.thread-body {
+  font-size: 0.92rem;
+  line-height: 1.85;
+  color: var(--text);
+  text-align: justify;
+  hyphens: auto;
+}
+.thread-body p { margin-bottom: 0.9rem; }
+
+.chain {
+  margin: 1.5rem 0;
+  padding: 1rem 1.4rem;
+  background: var(--bg-card);
+  border-left: 2px solid var(--gold-dim);
+  font-family: var(--mono);
+  font-size: 0.82rem;
+  line-height: 2.2;
+  color: var(--text);
+  overflow-x: auto;
+  white-space: nowrap;
+}
+.chain .hl { color: var(--gold); }
+.chain .p2 { color: var(--blue); }
+.chain .p3 { color: var(--green); }
+.chain .p5 { color: var(--gold); }
+.chain .p7 { color: var(--purple); }
+
+/* ── Navigation grid ── */
+.nav-grid {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 2rem 2rem 5rem;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+}
+.nav-card {
+  display: block;
+  padding: 1.4rem 1.2rem;
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  text-decoration: none;
+  transition: background 0.2s, border-color 0.3s;
+}
+.nav-card:hover {
+  background: var(--bg-card-hover);
+  border-color: var(--gold-dim);
+}
+.nav-card-label {
+  font-family: var(--mono);
+  font-size: 0.65rem;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold-dim);
+  margin-bottom: 0.4rem;
+}
+.nav-card-title {
+  font-size: 0.95rem;
+  color: var(--text-bright);
+  line-height: 1.4;
+  margin-bottom: 0.4rem;
+}
+.nav-card-desc {
+  font-size: 0.78rem;
+  color: var(--text-dim);
+  line-height: 1.6;
+}
+
+/* ── Back link ── */
+.back {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 0 2rem 3rem;
+}
+.back a {
+  font-family: var(--mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+.back a:hover { color: var(--gold); }
+
+@media (max-width: 520px) {
+  .opening { padding: 4rem 1.2rem 3rem; }
+  .chapters { padding: 0 1.2rem; }
+  .chapter { padding: 2.5rem 0; }
+  .nav-grid { padding: 2rem 1.2rem 4rem; grid-template-columns: 1fr; }
+  .thread { padding: 2rem 1.2rem 1.5rem; }
+  .back { padding: 0 1.2rem 2rem; }
+}
+</style>
+
+<div class="opening">
+  <div class="opening-label">The Primorial Framework</div>
+  <h1>Three Papers, One Derivation</h1>
+  <p class="opening-sub">A single axiom&thinsp;&mdash;&thinsp;&Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi;&thinsp;&mdash;&thinsp;examined from three directions: its algebraic structure, its astronomical predictions, and its imprint on the surface of the Earth.</p>
+</div>
+
+<div class="thesis">
+  <div class="thesis-label">The Thesis</div>
+  <p class="thesis-claim">A single self-referential identity&thinsp;&mdash;&thinsp;&Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi;&thinsp;&mdash;&thinsp;generates a discrete lattice that appears, uninvited, at every scale we can measure.</p>
+  <div class="thesis-body">
+    <p>The identity has one solution: exponential growth whose fixed-point ratio is &phi;&thinsp;=&thinsp;(1+&radic;5)/2. That ratio produces the Fibonacci recurrence, whose dominant eigenmode spaces every shell at &phi;<sup>n</sup>. The first four primes (2,&thinsp;3,&thinsp;5,&thinsp;7) map to the framework&rsquo;s four operators and their product&thinsp;&mdash;&thinsp;210&thinsp;&mdash;&thinsp;defines the container geometry. The derivation uses no new mathematics. It recovers &pi; as a corollary: &pi;&thinsp;=&thinsp;P<sub>5</sub>&middot;arccos(&Phi;/P<sub>2</sub>), deduced from the framework&rsquo;s own ingredients. The ratio d<sub>m</sub>/d<sub>n</sub>&thinsp;=&thinsp;&phi;<sup>m&minus;n</sup> eliminates all units and all free parameters.</p>
+    <p>The test is empirical: do real distances cluster on integer shells more than chance allows? For 8 astronomical landmarks spanning 15 orders of magnitude, the answer is yes at p&thinsp;&lt;&thinsp;4&times;10<sup>&minus;5</sup>. For 120 objects spanning 90 orders of magnitude, the clustering persists. For 109 ancient monumental sites scored against the lattice&rsquo;s angular structure on Earth&rsquo;s surface, nine of ten blind geographic predictions land on independently documented cultural centers. The Rongorongo script of Easter Island&thinsp;&mdash;&thinsp;undeciphered for 150 years&thinsp;&mdash;&thinsp;produces statistically significant synodic-period signals when read as bearing-logs in the lattice&rsquo;s angular system.</p>
+    <p>The three papers below present this in sequence: the algebraic structure that forces the lattice, the astronomical measurements that test it, and the geographic evidence that the same geometry organizes the oldest monuments on Earth.</p>
+  </div>
+  <div class="thesis-columns">
+    <div>
+      <div class="thesis-col-label">Paper I &mdash; Why</div>
+      <div class="thesis-col-text">The primorial container: why &phi;, why primes 2&times;3&times;5&times;7, why the 210-gon selects a cube ground state with zero tunable parameters.</div>
+    </div>
+    <div>
+      <div class="thesis-col-label">Paper II &mdash; What</div>
+      <div class="thesis-col-text">The derivation and astronomical test: 8 steps from axiom to prediction, then 120 objects from Earth&rsquo;s radius to the observable universe.</div>
+    </div>
+    <div>
+      <div class="thesis-col-label">Paper III &mdash; Where</div>
+      <div class="thesis-col-text">The geographic proof: Giza as origin, golden-angle bearings, Easter Island, Rongorongo, and the Younger Dryas impact hypothesis.</div>
+    </div>
+  </div>
+</div>
+
+<hr class="rule">
+
+<div class="chapters">
+
+  <!-- Paper I -->
+  <div class="chapter" id="ch1">
+    <div class="chapter-num">Paper I &mdash; The Algebra</div>
+    <div class="chapter-title">The Primorial Unification</div>
+    <div class="chapter-subtitle">Why these primes, and no others</div>
+    <div class="chapter-body">
+      <p>The framework begins here: the identity &Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi; is not just a differential equation&thinsp;&mdash;&thinsp;it is a self-referential intersection that selects a unique algebraic container. The first four primes (2,&thinsp;3,&thinsp;5,&thinsp;7) map to the framework&rsquo;s four operators: propagation, curvature, field, and rate of change. Their product 2&times;3&times;5&times;7&thinsp;=&thinsp;210 defines a regular polygon&thinsp;&mdash;&thinsp;the 210-gon&thinsp;&mdash;&thinsp;whose internal geometry generates every structure that follows.</p>
+      <p>The paper proves that the intersection of &Phi; and &part;<sub>t</sub>&Phi; inside the 210-gon selects a unique ground state: the cube. It shows why the minimum container is 105-sided (half the primorial), why Earth sits at the unity shell, and why the equation chain has zero free parameters. Every constant is determined&thinsp;&mdash;&thinsp;nothing is tuned.</p>
+    </div>
+    <div class="chapter-key">
+      <span class="dim">Primorial mapping:</span> P<sub class="p2">2</sub>&thinsp;&rarr;&thinsp;c &nbsp; P<sub class="p3">3</sub>&thinsp;&rarr;&thinsp;g &nbsp; P<sub class="p5">5</sub>&thinsp;&rarr;&thinsp;&Phi; &nbsp; P<sub class="p7">7</sub>&thinsp;&rarr;&thinsp;&part;<sub>t</sub>&Phi;<br>
+      <span class="dim">Product:</span> 2 &times; 3 &times; 5 &times; 7 = <span class="hl">210</span>
+    </div>
+    <div class="chapter-scope">
+      <span class="scope-tag">210-gon</span>
+      <span class="scope-tag">cube ground state</span>
+      <span class="scope-tag">primorial primes</span>
+      <span class="scope-tag">zero free parameters</span>
+    </div>
+    <a class="chapter-link" href="unification.html">Read Paper I &rarr;</a>
+  </div>
+
+  <!-- Paper II -->
+  <div class="chapter" id="ch2">
+    <div class="chapter-num">Paper II &mdash; The Derivation &amp; Test</div>
+    <div class="chapter-title">From Identity to Measurement</div>
+    <div class="chapter-subtitle">Eight steps from axiom to prediction, then 120 objects across 90 orders of magnitude</div>
+    <div class="chapter-body">
+      <p>With the algebraic structure established, this paper walks the derivation: &Phi;&thinsp;=&thinsp;&part;<sub>t</sub>&Phi; &rarr; exponential eigenfunction &rarr; fixed-point equation R&thinsp;=&thinsp;1+1/R &rarr; R&thinsp;=&thinsp;&phi; &rarr; Fibonacci recurrence &rarr; &phi;<sup>n</sup> scaling &rarr; &pi;&thinsp;=&thinsp;P<sub>5</sub>&middot;arccos(&Phi;/P<sub>2</sub>) &rarr; d<sub>m</sub>/d<sub>n</sub>&thinsp;=&thinsp;&phi;<sup>m&minus;n</sup> &rarr; zero free parameters. Every step uses standard mathematics; no new results are claimed.</p>
+      <p>The physical postulate is simple: characteristic spacetime scales occupy the dominant &phi;-eigenmodes of the lattice. The paper tests this against 8 landmark objects selected by physical significance&thinsp;&mdash;&thinsp;Earth, Neptune, Heliopause, Proxima Centauri, Sgr&thinsp;A*, M87*, GW190521, observable universe&thinsp;&mdash;&thinsp;finding mean residual 0.049 vs.&thinsp;0.250 expected (p&thinsp;&lt;&thinsp;4&times;10<sup>&minus;5</sup>). An extended catalog of 120 objects confirms: 34.2% land within |&Delta;|&thinsp;&lt;&thinsp;0.10 of integer shells (expected 20%).</p>
+      <p>The ratio theorem eliminates all unit conversions. d<sub>m</sub>/d<sub>n</sub>&thinsp;=&thinsp;&phi;<sup>m&minus;n</sup> is a pure number&thinsp;&mdash;&thinsp;&phi;<sup>7</sup>&thinsp;=&thinsp;29.034 is a mathematical fact, Neptune-to-Earth&thinsp;=&thinsp;30.07 is an astronomical fact, and their 3.5% agreement is either coincidence or structure.</p>
+    </div>
+    <div class="chapter-key">
+      <span class="dim">Mean residual:</span> <span class="hl">0.049</span> <span class="dim">vs. 0.250 expected</span><br>
+      <span class="dim">Shells spanned:</span> n = &minus;44 to n = +51 <span class="dim">(90 orders of magnitude)</span><br>
+      <span class="dim">Free parameters:</span> <span class="hl">1</span> <span class="dim">(Earth calibration)</span>
+    </div>
+    <div class="chapter-scope">
+      <span class="scope-tag">8-step derivation</span>
+      <span class="scope-tag">&pi;-recovery</span>
+      <span class="scope-tag">120-object catalog</span>
+      <span class="scope-tag">Monte Carlo</span>
+      <span class="scope-tag">falsification criteria</span>
+    </div>
+    <a class="chapter-link" href="abstract.html">Read the compact paper &rarr;</a>
+    &nbsp;&nbsp;
+    <a class="chapter-link" href="deductions.html">Read the full deductions &rarr;</a>
+  </div>
+
+  <!-- Paper III -->
+  <div class="chapter" id="ch3">
+    <div class="chapter-num">Paper III &mdash; The Geography</div>
+    <div class="chapter-title">The Lattice Thesis</div>
+    <div class="chapter-subtitle">From golden-angle geometry at Giza to a three-fragment Younger Dryas impact at its antipode</div>
+    <div class="chapter-body">
+      <p>The same framework, applied to Earth&rsquo;s surface. One origin (Giza, 29.9792&deg;N&thinsp;31.1342&deg;E), one constant (&phi;), one generator (the golden angle, 137.508&deg;). The 22 G-bearings radiating from Giza define a scoring grid against which 109 ancient monumental sites are tested. Signature results: Tiwanaku at the Uranus shell with 0.0% error; Angkor Wat as global ray-convergence maximum (22 lattice rays from 9 independent sites within 200&thinsp;km); nine of ten blind geographic predictions landing on independently documented cultural centers.</p>
+      <p>Easter Island&thinsp;&mdash;&thinsp;the catalog&rsquo;s anomaly, a terminal node with no surface lattice connections&thinsp;&mdash;&thinsp;resolves through its monuments. The moai platforms carry the bearings. The Rongorongo script, analyzed as bearing-logs in the lattice&rsquo;s angular system, produces synodic-period clustering at p&thinsp;&lt;&thinsp;0.001 on every tablet tested and self-dates eight of twelve tablets to independent epochs spanning 1204&ndash;1776&thinsp;CE.</p>
+      <p>A four-pole axis (Giza&thinsp;&mdash;&thinsp;Easter Island&thinsp;&mdash;&thinsp;and their antipodes) sums to exactly 360.000&deg;. The empty South Pacific pole&thinsp;&mdash;&thinsp;structurally load-bearing in the lattice yet physically vacant&thinsp;&mdash;&thinsp;is hypothesized as the impact point of a fragmented comet at the Younger Dryas boundary (~12,800&thinsp;BP). A 42-record geophysical reverb ledger, from the GISP2 platinum spike to active hotspot volcanism at the pole today, is compiled and graded against mainstream literature.</p>
+    </div>
+    <div class="chapter-key">
+      <span class="dim">Sites scored:</span> <span class="hl">109</span> <span class="dim">ancient monumental sites</span><br>
+      <span class="dim">Blind predictions:</span> <span class="hl">9 / 10</span> <span class="dim">hit documented cultural centers</span><br>
+      <span class="dim">Rongorongo tablets:</span> <span class="hl">8 / 12</span> <span class="dim">self-date at p &lt; 0.01</span>
+    </div>
+    <div class="chapter-scope">
+      <span class="scope-tag">109 ancient sites</span>
+      <span class="scope-tag">Rongorongo</span>
+      <span class="scope-tag">four-pole axis</span>
+      <span class="scope-tag">Younger Dryas impact</span>
+      <span class="scope-tag">geophysical reverb</span>
+    </div>
+    <a class="chapter-link" href="lattice-thesis.html">Read Paper III &rarr;</a>
+  </div>
+
+</div>
+
+<hr class="rule">
+
+<div class="thread">
+  <div class="thread-title">The Common Thread</div>
+  <div class="thread-body">
+    <p>Each paper tests the same axiom in a different domain&thinsp;&mdash;&thinsp;and each can be read independently. Paper&thinsp;I derives the algebraic container. Paper&thinsp;II shows the container&rsquo;s radial structure matches astronomical distances. Paper&thinsp;III shows the container&rsquo;s angular structure matches terrestrial geometry. The three are complementary, not redundant: removing any one leaves the other two standing but the full picture incomplete.</p>
+  </div>
+  <div class="chain">
+    <span class="hl">&Phi; = &part;<sub>t</sub>&Phi;</span> &rarr; Ce<sup>t</sup> &rarr; R = 1 + 1/R &rarr; R = &phi; &rarr; a<sub>n</sub> = a<sub>n&minus;1</sub> + a<sub>n&minus;2</sub> &rarr; a<sub>n</sub> ~ A&phi;<sup>n</sup> &rarr; <span class="hl">&pi; = P<sub class="p5">5</sub>&middot;arccos(&Phi;/P<sub class="p2">2</sub>)</span> &rarr; d<sub>m</sub>/d<sub>n</sub> = &phi;<sup>m&minus;n</sup> &rarr; <span class="hl">zero free parameters</span>
+  </div>
+</div>
+
+<hr class="rule">
+
+<div class="nav-grid">
+  <a class="nav-card" href="unification.html">
+    <div class="nav-card-label">Paper I</div>
+    <div class="nav-card-title">The Primorial Unification</div>
+    <div class="nav-card-desc">210-gon, cube ground state, why these primes</div>
+  </a>
+  <a class="nav-card" href="abstract.html">
+    <div class="nav-card-label">Paper II</div>
+    <div class="nav-card-title">From Identity to Measurement</div>
+    <div class="nav-card-desc">Derivation, &pi;-recovery, 120-object empirical test</div>
+  </a>
+  <a class="nav-card" href="lattice-thesis.html">
+    <div class="nav-card-label">Paper III</div>
+    <div class="nav-card-title">The Lattice Thesis</div>
+    <div class="nav-card-desc">Giza framework, Rongorongo, Younger Dryas impact</div>
+  </a>
+</div>
+
+<div class="back">
+  <a href="landing.html">&larr; Back to overview</a>
+</div>
+
+<script>
+const chapters = document.querySelectorAll('.chapter');
+const io = new IntersectionObserver(entries => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.15 });
+chapters.forEach(c => io.observe(c));
+</script>

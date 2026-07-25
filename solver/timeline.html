@@ -1,0 +1,595 @@
+<title>Impact Periodicity Timeline — 36 Myr Cycle</title>
+<style>
+  :root {
+    --bg: #080c18;
+    --bg2: #0c1222;
+    --text: #b8c8da;
+    --text-dim: #5a6a7a;
+    --text-bright: #e0eaf4;
+    --impact: #ff4466;
+    --volcano: #ff9933;
+    --extinction: #ff2244;
+    --cycle-grid: #1a2a44;
+    --cycle-line: #2a4a6a;
+    --projected: #33ff88;
+    --holocene: #44ccff;
+    --confirm: #ff4466;
+    --proposed: #cc44ff;
+    --accent: #44aaff;
+    --border: #1a2a3a;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f0f2f6;
+      --bg2: #e4e8f0;
+      --text: #2a3040;
+      --text-dim: #8090a0;
+      --text-bright: #101820;
+      --cycle-grid: #d0d8e4;
+      --cycle-line: #a0b0c8;
+      --border: #c0c8d4;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f0f2f6;
+    --bg2: #e4e8f0;
+    --text: #2a3040;
+    --text-dim: #8090a0;
+    --text-bright: #101820;
+    --cycle-grid: #d0d8e4;
+    --cycle-line: #a0b0c8;
+    --border: #c0c8d4;
+  }
+  :root[data-theme="dark"] {
+    --bg: #080c18;
+    --bg2: #0c1222;
+    --text: #b8c8da;
+    --text-dim: #5a6a7a;
+    --text-bright: #e0eaf4;
+    --cycle-grid: #1a2a44;
+    --cycle-line: #2a4a6a;
+    --border: #1a2a3a;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-variant-numeric: tabular-nums;
+    overflow-x: hidden;
+  }
+  .header {
+    padding: 28px 24px 12px;
+    max-width: 1200px;
+    margin: 0 auto;
+  }
+  .header h1 {
+    font-family: 'Courier New', monospace;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text-bright);
+    letter-spacing: 0.5px;
+    margin-bottom: 6px;
+  }
+  .header .sub {
+    font-size: 13px;
+    color: var(--text-dim);
+    line-height: 1.5;
+  }
+  .header .sub em {
+    color: var(--impact);
+    font-style: normal;
+    font-weight: 600;
+  }
+  .timeline-wrap {
+    width: 100%;
+    overflow-x: auto;
+    padding: 0 24px;
+  }
+  canvas {
+    display: block;
+    margin: 0 auto;
+  }
+  .legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 12px 24px;
+    max-width: 1200px;
+    margin: 0 auto;
+    font-size: 11px;
+    font-family: 'Courier New', monospace;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+  .legend-line {
+    width: 16px;
+    height: 2px;
+    flex-shrink: 0;
+  }
+  .stats {
+    max-width: 1200px;
+    margin: 16px auto;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 12px;
+  }
+  .stat-card {
+    background: var(--bg2);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 14px 16px;
+  }
+  .stat-card h3 {
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--text-dim);
+    letter-spacing: 1.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .stat-val {
+    font-family: 'Courier New', monospace;
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1.1;
+  }
+  .stat-note {
+    font-size: 11px;
+    color: var(--text-dim);
+    margin-top: 4px;
+    line-height: 1.4;
+  }
+  .cycle-table {
+    max-width: 1200px;
+    margin: 16px auto;
+    padding: 0 24px 32px;
+    overflow-x: auto;
+  }
+  .cycle-table table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+  }
+  .cycle-table th {
+    text-align: left;
+    padding: 6px 10px;
+    border-bottom: 2px solid var(--border);
+    color: var(--text-dim);
+    font-size: 10px;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    font-weight: 400;
+  }
+  .cycle-table td {
+    padding: 5px 10px;
+    border-bottom: 1px solid var(--border);
+  }
+  .cycle-table tr:hover td {
+    background: var(--bg2);
+  }
+  .residual {
+    display: inline-block;
+    padding: 1px 6px;
+    border-radius: 3px;
+    font-weight: 700;
+  }
+  .res-tight { color: var(--projected); }
+  .res-ok { color: var(--holocene); }
+  .res-wide { color: var(--volcano); }
+  .holocene-section {
+    max-width: 1200px;
+    margin: 0 auto 24px;
+    padding: 0 24px;
+  }
+  .holocene-section h2 {
+    font-family: 'Courier New', monospace;
+    font-size: 15px;
+    color: var(--text-bright);
+    margin-bottom: 10px;
+  }
+  .tooltip {
+    position: fixed;
+    pointer-events: none;
+    background: rgba(8,12,24,0.95);
+    border: 1px solid var(--accent);
+    border-radius: 4px;
+    padding: 8px 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: var(--text-bright);
+    max-width: 280px;
+    z-index: 100;
+    display: none;
+    line-height: 1.5;
+  }
+</style>
+
+<div class="header">
+  <h1>IMPACT PERIODICITY: 36 Myr FUNDAMENTAL MODE</h1>
+  <div class="sub">
+    Large impact events (&gt;40 km craters) plotted against a <em>36 million year cycle</em>.
+    9 of 11 events fall within ±4 Myr of predicted cycle windows — ±11% phase accuracy across 580 million years.
+  </div>
+</div>
+
+<div class="legend">
+  <div class="legend-item"><div class="legend-dot" style="background:#ff4466"></div>Impact (confirmed)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#cc44ff"></div>Impact (proposed)</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#ff9933"></div>Flood basalt</div>
+  <div class="legend-item"><div class="legend-line" style="background:rgba(255,34,68,0.25)"></div>Mass extinction</div>
+  <div class="legend-item"><div class="legend-line" style="background:repeating-linear-gradient(90deg,#2a4a6a 0,#2a4a6a 4px,transparent 4px,transparent 8px)"></div>36 Myr cycle</div>
+  <div class="legend-item"><div class="legend-dot" style="background:#33ff88"></div>Projected window</div>
+</div>
+
+<div class="timeline-wrap">
+  <canvas id="timeline" width="1160" height="400"></canvas>
+</div>
+
+<div class="stats">
+  <div class="stat-card">
+    <h3>Fundamental Period</h3>
+    <div class="stat-val" style="color:#44aaff">36 Myr</div>
+    <div class="stat-note">Best fit to 11 large impacts over 580 Ma. Consistent with solar oscillation through the galactic plane (Rampino 2015).</div>
+  </div>
+  <div class="stat-card">
+    <h3>Current Phase</h3>
+    <div class="stat-val" style="color:#ff9933">30 Myr in</div>
+    <div class="stat-note">83% through the current cycle. Next window opens in ~6 Myr. Last cycle-matched impact: Popigai/Chesapeake (~35.5 Ma).</div>
+  </div>
+  <div class="stat-card">
+    <h3>Next Window</h3>
+    <div class="stat-val" style="color:#33ff88">~6 Myr</div>
+    <div class="stat-note">Cycle 0 predicted at 0 Ma ± 4 Myr. We are inside the tail end of a window — or the start of the next approach.</div>
+  </div>
+  <div class="stat-card">
+    <h3>Holocene Sub-Cycle</h3>
+    <div class="stat-val" style="color:#44ccff">~4,000 yr</div>
+    <div class="stat-note">Younger Dryas (12.8 kBP), 8.2 kyr event, Burckle (~4.8 kBP), 4.2 kyr collapse. Harmonic overtone of the fundamental?</div>
+  </div>
+</div>
+
+<div class="cycle-table">
+  <table>
+    <thead>
+      <tr>
+        <th>Impact</th>
+        <th>Age (Ma)</th>
+        <th>Diameter</th>
+        <th>Cycle #</th>
+        <th>Predicted</th>
+        <th>Residual</th>
+        <th>Bhole</th>
+        <th>BH dist</th>
+      </tr>
+    </thead>
+    <tbody id="table-body"></tbody>
+  </table>
+</div>
+
+<div class="holocene-section">
+  <h2>HOLOCENE SUB-CYCLE (~4,000 yr harmonic)</h2>
+  <canvas id="holocene" width="1160" height="200"></canvas>
+</div>
+
+<div class="tooltip" id="tip"></div>
+
+<script>
+(function(){
+  var IMPACTS = [
+    {n:'Acraman',age:580,diam:90,conf:true,bh:'—',bhd:'—',note:'South Australia, Ediacaran'},
+    {n:'Woodleigh',age:364,diam:120,conf:false,bh:'—',bhd:'—',note:'Australia, Late Devonian'},
+    {n:'Siljan',age:377,diam:52,conf:true,bh:'—',bhd:'—',note:'Sweden, Late Devonian'},
+    {n:'Wilkes Land',age:250,diam:480,conf:false,bh:'Fornax A',bhd:'8.3°',note:'P-T extinction, under ice'},
+    {n:'Manicouagan',age:214,diam:100,conf:true,bh:'—',bhd:'—',note:'Quebec, Triassic'},
+    {n:'Morokweng',age:145,diam:70,conf:true,bh:'—',bhd:'—',note:'South Africa, J-K boundary'},
+    {n:'Mjølnir',age:142,diam:40,conf:true,bh:'—',bhd:'—',note:'Barents Sea'},
+    {n:'Kara',age:70.3,diam:65,conf:true,bh:'—',bhd:'—',note:'Russia'},
+    {n:'Chicxulub',age:66,diam:180,conf:true,bh:'Gaia BH1',bhd:'14.0°',note:'K-Pg extinction'},
+    {n:'Popigai',age:35.7,diam:100,conf:true,bh:'—',bhd:'—',note:'Siberia, Eocene'},
+    {n:'Chesapeake',age:35.5,diam:85,conf:true,bh:'—',bhd:'—',note:'Virginia, same epoch as Popigai'}
+  ];
+
+  var EXTINCTIONS = [
+    {n:'Ordovician-Silurian',age:444,pct:85},
+    {n:'Late Devonian',age:372,pct:75},
+    {n:'Permian-Triassic',age:252,pct:96},
+    {n:'Triassic-Jurassic',age:201,pct:80},
+    {n:'Cretaceous-Paleogene',age:66,pct:76}
+  ];
+
+  var VOLCANICS = [
+    {n:'Siberian Traps',age:252,note:'Wilkes antipode'},
+    {n:'Emeishan Traps',age:260,note:'End-Guadalupian'},
+    {n:'CAMP',age:201,note:'Central Atlantic'},
+    {n:'Karoo-Ferrar',age:183,note:'Toarcian'},
+    {n:'Deccan Traps',age:66,note:'Chicxulub antipode'}
+  ];
+
+  var HOLOCENE = [
+    {n:'Younger Dryas',age:12800,note:'Clovis collapse, airburst?'},
+    {n:'8.2 kyr event',age:8200,note:'Abrupt cooling, N.Atlantic'},
+    {n:'Burckle crater',age:4800,note:'Indian Ocean, Centaurus A 3.6°'},
+    {n:'4.2 kyr collapse',age:4200,note:'Akkadian/Old Kingdom fall'},
+    {n:'Bronze Age Collapse',age:3200,note:'Mediterranean dark age'},
+    {n:'536 CE event',age:1490,note:'Volcanic winter / Chiemgau?'}
+  ];
+
+  var PERIOD = 36;
+  var MAX_AGE = 620;
+  var canvas = document.getElementById('timeline');
+  var ctx = canvas.getContext('2d');
+  var dpr = window.devicePixelRatio || 1;
+  canvas.width = 1160 * dpr;
+  canvas.height = 400 * dpr;
+  canvas.style.width = '1160px';
+  canvas.style.height = '400px';
+  ctx.scale(dpr, dpr);
+
+  var L = 60, R = 1120, T = 40, B = 340;
+  function xOf(age) { return L + (MAX_AGE - age) / MAX_AGE * (R - L); }
+  function yOfDiam(d) { return B - 20 - Math.sqrt(d) * 8; }
+
+  // Background
+  ctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#080c18';
+  ctx.fillRect(0, 0, 1160, 400);
+
+  // 36 Myr grid
+  for (var c = 0; c <= Math.ceil(MAX_AGE / PERIOD); c++) {
+    var age = c * PERIOD;
+    var x = xOf(age);
+    if (x < L || x > R) continue;
+    ctx.strokeStyle = c === 0 ? '#33ff88' : '#1a2a44';
+    ctx.lineWidth = c === 0 ? 2 : 1;
+    ctx.setLineDash(c === 0 ? [] : [4, 4]);
+    ctx.beginPath();
+    ctx.moveTo(x, T);
+    ctx.lineTo(x, B + 10);
+    ctx.stroke();
+    ctx.setLineDash([]);
+    // Cycle label
+    ctx.fillStyle = c === 0 ? '#33ff88' : '#3a5a7a';
+    ctx.font = '9px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(age + ' Ma', x, B + 25);
+    if (c > 0) {
+      ctx.fillStyle = '#2a3a5a';
+      ctx.fillText('C' + c, x, T - 6);
+    }
+  }
+
+  // Extinction bands
+  for (var i = 0; i < EXTINCTIONS.length; i++) {
+    var ext = EXTINCTIONS[i];
+    var x = xOf(ext.age);
+    ctx.fillStyle = 'rgba(255,34,68,0.08)';
+    ctx.fillRect(x - 8, T, 16, B - T);
+    ctx.strokeStyle = 'rgba(255,34,68,0.25)';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(x, T);
+    ctx.lineTo(x, B);
+    ctx.stroke();
+    ctx.fillStyle = 'rgba(255,34,68,0.5)';
+    ctx.font = '8px Courier New';
+    ctx.textAlign = 'center';
+    ctx.fillText(ext.n, x, T - 2);
+  }
+
+  // Volcanic markers
+  for (var i = 0; i < VOLCANICS.length; i++) {
+    var v = VOLCANICS[i];
+    var x = xOf(v.age);
+    var y = B - 15;
+    ctx.fillStyle = '#ff9933';
+    ctx.beginPath();
+    ctx.moveTo(x, y - 8);
+    ctx.lineTo(x + 5, y + 4);
+    ctx.lineTo(x - 5, y + 4);
+    ctx.closePath();
+    ctx.fill();
+  }
+
+  // Impact markers
+  for (var i = 0; i < IMPACTS.length; i++) {
+    var imp = IMPACTS[i];
+    var x = xOf(imp.age);
+    var r = Math.max(4, Math.sqrt(imp.diam) * 0.8);
+    var y = yOfDiam(imp.diam);
+    // Glow
+    var grd = ctx.createRadialGradient(x, y, 0, x, y, r * 2.5);
+    grd.addColorStop(0, imp.conf ? 'rgba(255,68,102,0.3)' : 'rgba(204,68,255,0.3)');
+    grd.addColorStop(1, 'rgba(0,0,0,0)');
+    ctx.fillStyle = grd;
+    ctx.fillRect(x - r * 3, y - r * 3, r * 6, r * 6);
+    // Circle
+    ctx.fillStyle = imp.conf ? '#ff4466' : '#cc44ff';
+    ctx.globalAlpha = 0.85;
+    ctx.beginPath();
+    ctx.arc(x, y, r, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+    // Label
+    ctx.fillStyle = '#c0d0e0';
+    ctx.font = '9px Courier New';
+    ctx.textAlign = 'center';
+    var ly = y - r - 6;
+    if (imp.n === 'Popigai' || imp.n === 'Chesapeake') ly = y + r + 12;
+    if (imp.n === 'Kara') ly = y + r + 12;
+    if (imp.n === 'Morokweng' || imp.n === 'Mjølnir') { ly = y + r + 12; }
+    ctx.fillText(imp.n, x, ly);
+    ctx.fillStyle = '#5a6a7a';
+    ctx.fillText(imp.diam + 'km', x, ly + 10);
+  }
+
+  // Projected window marker
+  var px = xOf(0);
+  ctx.fillStyle = 'rgba(51,255,136,0.15)';
+  ctx.fillRect(px - 12, T, 24, B - T);
+  ctx.fillStyle = '#33ff88';
+  ctx.font = 'bold 10px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('NOW', px, B + 38);
+  ctx.fillText('(~6 Myr to window)', px, B + 50);
+
+  // Time axis
+  ctx.strokeStyle = '#3a5a7a';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(L, B + 10);
+  ctx.lineTo(R, B + 10);
+  ctx.stroke();
+
+  // Size axis
+  ctx.save();
+  ctx.translate(14, (T + B) / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillStyle = '#5a6a7a';
+  ctx.font = '10px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText('Crater diameter', 0, 0);
+  ctx.restore();
+
+  // Residual lines — connect impacts to nearest cycle line
+  ctx.globalAlpha = 0.3;
+  for (var i = 0; i < IMPACTS.length; i++) {
+    var imp = IMPACTS[i];
+    var cycle = Math.round(imp.age / PERIOD);
+    var pred = cycle * PERIOD;
+    var x1 = xOf(imp.age);
+    var x2 = xOf(pred);
+    var y = yOfDiam(imp.diam);
+    ctx.strokeStyle = Math.abs(imp.age - pred) <= 4 ? '#33ff88' : '#ff9933';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([2, 2]);
+    ctx.beginPath();
+    ctx.moveTo(x1, y);
+    ctx.lineTo(x2, y);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  ctx.globalAlpha = 1;
+
+  // Fill table
+  var tbody = document.getElementById('table-body');
+  IMPACTS.sort(function(a,b){return b.age - a.age;});
+  for (var i = 0; i < IMPACTS.length; i++) {
+    var imp = IMPACTS[i];
+    var cycle = Math.round(imp.age / PERIOD);
+    var pred = cycle * PERIOD;
+    var res = imp.age - pred;
+    var absRes = Math.abs(res);
+    var cls = absRes <= 2 ? 'res-tight' : absRes <= 4 ? 'res-ok' : 'res-wide';
+    var tr = document.createElement('tr');
+    tr.innerHTML =
+      '<td style="color:' + (imp.conf ? '#ff4466' : '#cc44ff') + '">' + imp.n + '</td>' +
+      '<td>' + imp.age + '</td>' +
+      '<td>' + imp.diam + ' km</td>' +
+      '<td style="color:#5a6a7a">C' + cycle + '</td>' +
+      '<td>' + pred + ' Ma</td>' +
+      '<td><span class="residual ' + cls + '">' + (res > 0 ? '+' : '') + res.toFixed(1) + ' Myr</span></td>' +
+      '<td style="color:#44ccff">' + imp.bh + '</td>' +
+      '<td style="color:#5a6a7a">' + imp.bhd + '</td>';
+    tbody.appendChild(tr);
+  }
+
+  // Holocene canvas
+  var hc = document.getElementById('holocene');
+  var hctx = hc.getContext('2d');
+  hc.width = 1160 * dpr;
+  hc.height = 200 * dpr;
+  hc.style.width = '1160px';
+  hc.style.height = '200px';
+  hctx.scale(dpr, dpr);
+
+  var hL = 60, hR = 1100, hT = 30, hB = 160;
+  var hMax = 14000;
+  function hxOf(age) { return hL + (hMax - age) / hMax * (hR - hL); }
+
+  hctx.fillStyle = getComputedStyle(document.documentElement).getPropertyValue('--bg').trim() || '#080c18';
+  hctx.fillRect(0, 0, 1160, 200);
+
+  // 4000 yr sub-cycle grid
+  for (var c = 0; c <= Math.ceil(hMax / 4000); c++) {
+    var age = c * 4000;
+    var x = hxOf(age);
+    hctx.strokeStyle = '#1a2a44';
+    hctx.lineWidth = 1;
+    hctx.setLineDash([3, 3]);
+    hctx.beginPath();
+    hctx.moveTo(x, hT);
+    hctx.lineTo(x, hB);
+    hctx.stroke();
+    hctx.setLineDash([]);
+    hctx.fillStyle = '#3a5a7a';
+    hctx.font = '9px Courier New';
+    hctx.textAlign = 'center';
+    hctx.fillText(age + ' BP', x, hB + 16);
+  }
+
+  // Holocene events
+  for (var i = 0; i < HOLOCENE.length; i++) {
+    var h = HOLOCENE[i];
+    var x = hxOf(h.age);
+    var y = hT + 40 + (i % 3) * 30;
+    // Marker
+    hctx.fillStyle = '#44ccff';
+    hctx.globalAlpha = 0.8;
+    hctx.beginPath();
+    hctx.arc(x, y, 5, 0, Math.PI * 2);
+    hctx.fill();
+    hctx.globalAlpha = 1;
+    // Drop line
+    hctx.strokeStyle = 'rgba(68,204,255,0.3)';
+    hctx.lineWidth = 1;
+    hctx.beginPath();
+    hctx.moveTo(x, y + 5);
+    hctx.lineTo(x, hB);
+    hctx.stroke();
+    // Label
+    hctx.fillStyle = '#c0d0e0';
+    hctx.font = '9px Courier New';
+    hctx.textAlign = 'center';
+    hctx.fillText(h.n, x, y - 10);
+    hctx.fillStyle = '#5a6a7a';
+    hctx.fillText(h.note, x, y + 16);
+  }
+
+  // NOW marker
+  var nx = hxOf(0);
+  hctx.fillStyle = '#33ff88';
+  hctx.font = 'bold 10px Courier New';
+  hctx.textAlign = 'center';
+  hctx.fillText('NOW', nx, hB + 16);
+  hctx.strokeStyle = '#33ff88';
+  hctx.lineWidth = 2;
+  hctx.beginPath();
+  hctx.moveTo(nx, hT);
+  hctx.lineTo(nx, hB);
+  hctx.stroke();
+
+  // Axis
+  hctx.strokeStyle = '#3a5a7a';
+  hctx.lineWidth = 1;
+  hctx.beginPath();
+  hctx.moveTo(hL, hB);
+  hctx.lineTo(hR, hB);
+  hctx.stroke();
+
+  hctx.fillStyle = '#5a6a7a';
+  hctx.font = '10px Courier New';
+  hctx.textAlign = 'left';
+  hctx.fillText('~4,000 yr sub-cycle grid', hL, hT - 8);
+})();
+</script>

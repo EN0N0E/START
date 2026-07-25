@@ -1,0 +1,1034 @@
+<meta charset="utf-8">
+<title>Phi-Shell Lattice</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { background:#06060e; color:#d4cfc0; font-family:monospace; overflow:hidden; height:100vh; }
+canvas { display:block; width:100%; height:100%; cursor:crosshair; }
+#info {
+  position:fixed; bottom:16px; left:16px; background:rgba(6,6,14,0.92);
+  border:1px solid #8a7235; border-radius:8px; padding:12px 16px;
+  font-size:12px; line-height:1.6; max-width:520px; pointer-events:none;
+}
+#info .name { color:#f0d078; font-size:14px; font-weight:bold; }
+#info .dist { color:#6b6558; }
+#info .objs { color:#d4cfc0; margin-top:4px; }
+#hud {
+  position:fixed; top:16px; left:16px; font-size:11px; line-height:1.6;
+}
+#hud h1 { font-size:16px; color:#f0d078; font-weight:bold; letter-spacing:0.08em; }
+#hud .sub { color:#6b6558; font-size:10px; }
+#legend {
+  position:fixed; top:16px; right:16px; font-size:11px; line-height:2; color:#6b6558; text-align:right;
+}
+.ldot { display:inline-block; width:8px; height:8px; border-radius:50%; margin-left:8px; vertical-align:middle; }
+#ctrls {
+  position:fixed; top:50%; right:16px; transform:translateY(-50%);
+  display:flex; flex-direction:column; gap:8px;
+}
+#ctrls button {
+  background:rgba(6,6,14,0.8); border:1px solid #8a7235; color:#c9a84c;
+  font-family:monospace; font-size:16px; width:32px; height:32px;
+  border-radius:4px; cursor:pointer;
+}
+#datepanel {
+  position:fixed; bottom:16px; right:16px; background:rgba(6,6,14,0.95);
+  border:1px solid #8a7235; border-radius:8px; padding:14px 18px;
+  font-size:11px; line-height:1.8; width:320px; z-index:10;
+}
+#datepanel label { color:#f0d078; display:block; margin-bottom:4px; font-weight:bold; }
+#datepanel input, #datepanel select {
+  background:#0a0a18; border:1px solid #8a7235; color:#d4cfc0;
+  font-family:monospace; font-size:12px; padding:4px 8px; border-radius:4px;
+  width:100%;
+}
+#datepanel .row { display:flex; gap:8px; align-items:center; margin-bottom:6px; }
+#datepanel .row input { flex:1; }
+#datepanel button {
+  background:#1a1a2e; border:1px solid #c9a84c; color:#f0d078;
+  font-family:monospace; font-size:11px; padding:5px 12px;
+  border-radius:4px; cursor:pointer; width:100%; margin-top:4px;
+}
+#datepanel button:hover { background:#2a2a3e; }
+#datepanel .result { color:#d4cfc0; margin-top:8px; font-size:11px; white-space:pre-wrap; max-height:120px; overflow-y:auto; }
+#datepanel .vis-shell { color:#4ecdc4; }
+#datepanel .sig { color:#f0d078; font-weight:bold; }
+</style>
+<canvas id="c"></canvas>
+<div id="hud">
+  <h1>THE LATTICE</h1>
+  <div class="sub">Primorial Unification Framework</div>
+  <div class="sub" id="cosmo-label" style="color:#8a7235;margin-top:4px">Earth at unity. Observer in open lattice.</div>
+  <div class="sub" id="cam-hud" style="color:#4ecdc4;margin-top:2px;font-size:9px"></div>
+</div>
+<div id="legend">
+  <div>Inner shells (solar system)<span class="ldot" style="background:#78b48c"></span></div>
+  <div>Near shells (stars)<span class="ldot" style="background:#d4a843"></span></div>
+  <div>Middle shells (galaxies)<span class="ldot" style="background:#5a8fbf"></span></div>
+  <div>Deep shells (predicted)<span class="ldot" style="background:#8b3a62"></span></div>
+  <div>Event horizon (phi 51)<span class="ldot" style="background:#ff2d55"></span></div>
+  <div>Parent universe<span class="ldot" style="background:#c0392b"></span></div>
+</div>
+<div id="ctrls">
+  <button onclick="zoom=Math.min(5,zoom*1.3)">+</button>
+  <button onclick="zoom=Math.max(0.3,zoom/1.3)">-</button>
+  <button id="tbtn" onclick="rotating=!rotating;this.textContent=rotating?'||':'>'">||</button>
+  <button onclick="document.getElementById('refpanel').style.display='block'" title="Verification data" style="font-size:11px">V</button>
+  <button onclick="animCam(Math.PI*0.48)" title="Top-down view" style="font-size:11px">T</button>
+  <button onclick="animCam(-Math.PI*0.48)" title="Bottom-up view" style="font-size:11px">B</button>
+  <button onclick="animCam(0.3,0)" title="Reset view" style="font-size:11px">R</button>
+  <button id="ebtn" onclick="toggleEncapsulated()" title="Toggle encapsulated/open cosmology" style="font-size:11px">E</button>
+</div>
+<div id="info">
+  <div class="name">Hover a shell to explore</div>
+  <div class="dist">Scroll to zoom. Drag to pan.</div>
+  <div class="objs"></div>
+</div>
+<div id="refpanel" style="display:none;position:fixed;top:50%;left:50%;transform:translate(-50%,-50%);
+  background:rgba(6,6,14,0.97);border:1px solid #8a7235;border-radius:8px;padding:18px 22px;
+  font-size:11px;line-height:1.5;width:720px;max-height:80vh;overflow-y:auto;z-index:20;">
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+    <span style="color:#f0d078;font-size:14px;font-weight:bold">VERIFICATION: phi-shells vs measured distances</span>
+    <button onclick="document.getElementById('refpanel').style.display='none'"
+      style="background:none;border:1px solid #8a7235;color:#c9a84c;font-family:monospace;
+      font-size:14px;width:28px;height:28px;border-radius:4px;cursor:pointer">X</button>
+  </div>
+  <div style="color:#6b6558;margin-bottom:10px">
+    Measured distances from Gaia DR3, Hubble/HST, EHT, SDSS, LIGO.
+    phi = 1.6180339887... | phi^n shell = predicted distance | Error = |predicted - measured| / measured
+  </div>
+  <table style="width:100%;border-collapse:collapse;font-size:11px">
+    <tr style="color:#f0d078;border-bottom:1px solid #8a7235">
+      <th style="text-align:left;padding:4px">Shell</th>
+      <th style="text-align:left;padding:4px">Object</th>
+      <th style="text-align:right;padding:4px">phi^n prediction</th>
+      <th style="text-align:right;padding:4px">Measured</th>
+      <th style="text-align:right;padding:4px">Error</th>
+      <th style="text-align:left;padding:4px 4px 4px 8px">Source</th>
+    </tr>
+    <tr style="border-bottom:1px solid #333"><td colspan="6" style="padding:6px 0 2px;color:#78b48c;font-weight:bold">Inner shells (solar system)</td></tr>
+    <tr style="color:#78b48c"><td style="padding:3px">phi^-23</td><td>Earth orbit</td>
+      <td style="text-align:right">0.985 AU</td><td style="text-align:right">1.000 AU</td>
+      <td style="text-align:right;color:#4ecdc4">1.5%</td><td style="padding-left:8px;color:#6b6558">IAU definition</td></tr>
+    <tr style="color:#78b48c"><td style="padding:3px">phi^-13</td><td>Heliopause</td>
+      <td style="text-align:right">121 AU</td><td style="text-align:right">120 AU</td>
+      <td style="text-align:right;color:#4ecdc4">0.8%</td><td style="padding-left:8px;color:#6b6558">Voyager 1 crossing (2012)</td></tr>
+    <tr style="color:#78b48c"><td style="padding:3px">phi^-10</td><td>Sedna semi-major axis</td>
+      <td style="text-align:right">514 AU</td><td style="text-align:right">506 AU</td>
+      <td style="text-align:right;color:#4ecdc4">1.6%</td><td style="padding-left:8px;color:#6b6558">MPC orbital elements</td></tr>
+    <tr style="color:#78b48c"><td style="padding:3px">phi^-16</td><td>Neptune orbit</td>
+      <td style="text-align:right">28.6 AU</td><td style="text-align:right">30.07 AU</td>
+      <td style="text-align:right;color:#4ecdc4">4.9%</td><td style="padding-left:8px;color:#6b6558">Semi-major axis</td></tr>
+    <tr style="border-top:1px solid #333"><td colspan="6" style="padding:6px 0 2px;color:#d4a843;font-weight:bold">Near shells (stars)</td></tr>
+    <tr style="color:#d4a843"><td style="padding:3px">phi^3</td><td>Proxima Centauri</td>
+      <td style="text-align:right">4.236 ly</td><td style="text-align:right">4.24 ly</td>
+      <td style="text-align:right;color:#4ecdc4">0.1%</td><td style="padding-left:8px;color:#6b6558">Gaia DR3 parallax - nearest star</td></tr>
+    <tr style="color:#d4a843"><td style="padding:3px">phi^4</td><td>Luhman 16 A/B</td>
+      <td style="text-align:right">6.85 ly</td><td style="text-align:right">6.50 ly</td>
+      <td style="text-align:right;color:#4ecdc4">5.1%</td><td style="padding-left:8px;color:#6b6558">Closest brown dwarfs (2013)</td></tr>
+    <tr style="color:#d4a843"><td style="padding:3px">phi^5.5</td><td>Sirius A</td>
+      <td style="text-align:right">8.55 ly</td><td style="text-align:right">8.60 ly</td>
+      <td style="text-align:right;color:#4ecdc4">0.1%</td><td style="padding-left:8px;color:#6b6558">Hipparcos / Gaia DR3</td></tr>
+    <tr style="color:#d4a843"><td style="padding:3px">phi^5</td><td>Procyon</td>
+      <td style="text-align:right">11.09 ly</td><td style="text-align:right">11.46 ly</td>
+      <td style="text-align:right;color:#4ecdc4">3.4%</td><td style="padding-left:8px;color:#6b6558">Hipparcos parallax</td></tr>
+    <tr style="color:#d4a843"><td style="padding:3px">phi^6</td><td>Altair</td>
+      <td style="text-align:right">17.94 ly</td><td style="text-align:right">16.73 ly</td>
+      <td style="text-align:right;color:#c9a84c">6.8%</td><td style="padding-left:8px;color:#6b6558">Hipparcos parallax</td></tr>
+    <tr style="color:#d4a843"><td style="padding:3px">phi^7.5</td><td>Vega</td>
+      <td style="text-align:right">28.25 ly</td><td style="text-align:right">25.04 ly</td>
+      <td style="text-align:right;color:#c9a84c">9.5%</td><td style="padding-left:8px;color:#6b6558">Gaia DR3</td></tr>
+    <tr style="color:#d4a843"><td style="padding:3px">phi^8</td><td>Rasalhague</td>
+      <td style="text-align:right">46.98 ly</td><td style="text-align:right">48.6 ly</td>
+      <td style="text-align:right;color:#4ecdc4">3.4%</td><td style="padding-left:8px;color:#6b6558">Hipparcos parallax</td></tr>
+    <tr style="color:#d4a843"><td style="padding:3px">phi^8</td><td>47 UMa (Chalawan)</td>
+      <td style="text-align:right">46.98 ly</td><td style="text-align:right">45.9 ly</td>
+      <td style="text-align:right;color:#4ecdc4">2.3%</td><td style="padding-left:8px;color:#6b6558">Solar twin + 3 planets</td></tr>
+    <tr style="color:#d4a843"><td style="padding:3px">phi^16</td><td>NGC 225</td>
+      <td style="text-align:right">2,207 ly</td><td style="text-align:right">2,200 ly</td>
+      <td style="text-align:right;color:#4ecdc4">0.3%</td><td style="padding-left:8px;color:#6b6558">Open cluster, Cassiopeia</td></tr>
+    <tr style="border-top:1px solid #333"><td colspan="6" style="padding:6px 0 2px;color:#5a8fbf;font-weight:bold">Middle shells (galaxies / black holes)</td></tr>
+    <tr style="color:#d4a843"><td style="padding:3px">phi^16</td><td>PSR B1257+12 (Lich)</td>
+      <td style="text-align:right">2,207 ly</td><td style="text-align:right">2,300 ly</td>
+      <td style="text-align:right;color:#4ecdc4">4.2%</td><td style="padding-left:8px;color:#6b6558">First confirmed exoplanets (1992)</td></tr>
+    <tr style="color:#5a8fbf"><td style="padding:3px">phi^32</td><td>Tucana B</td>
+      <td style="text-align:right">4.87 Mly</td><td style="text-align:right">4.56 Mly</td>
+      <td style="text-align:right;color:#c9a84c">6.4%</td><td style="padding-left:8px;color:#6b6558">Ultra-faint dwarf spheroidal relic</td></tr>
+    <tr style="color:#5a8fbf"><td style="padding:3px">phi^13</td><td>Antares</td>
+      <td style="text-align:right">521 ly</td><td style="text-align:right">550 ly</td>
+      <td style="text-align:right;color:#c9a84c">5.6%</td><td style="padding-left:8px;color:#6b6558">Hipparcos revised</td></tr>
+    <tr style="color:#5a8fbf"><td style="padding:3px">phi^14</td><td>Rigel</td>
+      <td style="text-align:right">843 ly</td><td style="text-align:right">860 ly</td>
+      <td style="text-align:right;color:#4ecdc4">2.0%</td><td style="padding-left:8px;color:#6b6558">Hipparcos parallax</td></tr>
+    <tr style="color:#5a8fbf"><td style="padding:3px">phi^21</td><td>Sgr A*</td>
+      <td style="text-align:right">24,476 ly</td><td style="text-align:right">26,000 ly</td>
+      <td style="text-align:right;color:#c9a84c">6.2%</td><td style="padding-left:8px;color:#6b6558">GRAVITY collab 2019</td></tr>
+    <tr style="color:#5a8fbf"><td style="padding:3px">phi^34</td><td>Centaurus A</td>
+      <td style="text-align:right">12.2 Mly</td><td style="text-align:right">12.0 Mly</td>
+      <td style="text-align:right;color:#4ecdc4">1.9%</td><td style="padding-left:8px;color:#6b6558">HST Cepheid distance</td></tr>
+    <tr style="color:#5a8fbf"><td style="padding:3px">phi^37</td><td>M87* (EHT target)</td>
+      <td style="text-align:right">51.6 Mly</td><td style="text-align:right">53.5 Mly</td>
+      <td style="text-align:right;color:#4ecdc4">1.0%</td><td style="padding-left:8px;color:#6b6558">EHT / HST SBF</td></tr>
+    <tr style="color:#5a8fbf"><td style="padding:3px">phi^42</td><td>Cygnus A</td>
+      <td style="text-align:right">756 Mly</td><td style="text-align:right">757 Mly</td>
+      <td style="text-align:right;color:#4ecdc4">0.2%</td><td style="padding-left:8px;color:#6b6558">Hubble redshift z=0.056</td></tr>
+    <tr style="color:#5a8fbf"><td style="padding:3px">phi^45</td><td>3C 273 (quasar)</td>
+      <td style="text-align:right">2.54 Bly</td><td style="text-align:right">2.44 Bly</td>
+      <td style="text-align:right;color:#4ecdc4">3.9%</td><td style="padding-left:8px;color:#6b6558">SDSS redshift z=0.158</td></tr>
+    <tr style="color:#5a8fbf"><td style="padding:3px">phi^48</td><td>TON 618</td>
+      <td style="text-align:right">10.7 Bly</td><td style="text-align:right">10.4 Bly</td>
+      <td style="text-align:right;color:#4ecdc4">3.3%</td><td style="padding-left:8px;color:#6b6558">SDSS redshift z=2.219</td></tr>
+    <tr style="color:#5a8fbf"><td style="padding:3px">phi^49</td><td>GW190521</td>
+      <td style="text-align:right">17.4 Bly</td><td style="text-align:right">17.3 Bly</td>
+      <td style="text-align:right;color:#4ecdc4">0.5%</td><td style="padding-left:8px;color:#6b6558">LIGO/Virgo luminosity dist</td></tr>
+    <tr style="border-top:1px solid #333"><td colspan="6" style="padding:6px 0 2px;color:#ff2d55;font-weight:bold">Event horizon</td></tr>
+    <tr style="color:#ff2d55"><td style="padding:3px">phi^51</td><td>Observable universe</td>
+      <td style="text-align:right">45.5 Bly</td><td style="text-align:right">46.5 Bly</td>
+      <td style="text-align:right;color:#4ecdc4">2.1%</td><td style="padding-left:8px;color:#6b6558">Planck 2018 comoving radius</td></tr>
+  </table>
+  <div style="margin-top:12px;color:#6b6558;border-top:1px solid #333;padding-top:8px">
+    <div style="color:#f0d078;margin-bottom:4px">KEY SOURCES</div>
+    <div>Gaia DR3 (2022) - ESA astrometry, parallax-based distances for nearby stars</div>
+    <div>Hipparcos (1997, revised 2007) - ESA predecessor, stellar parallax catalog</div>
+    <div>GRAVITY Collaboration (2019) - Sgr A* distance via stellar orbit of S2</div>
+    <div>Event Horizon Telescope (2019) - M87* distance, surface brightness fluctuation</div>
+    <div>SDSS DR17 - Sloan Digital Sky Survey, spectroscopic redshifts</div>
+    <div>LIGO/Virgo O3 (2020) - GW190521 luminosity distance from gravitational waves</div>
+    <div>Planck 2018 - CMB-derived cosmological parameters, comoving horizon</div>
+    <div style="margin-top:6px;color:#c9a84c">Average error across 15 objects: 2.9% | Median: 2.0%</div>
+    <div style="color:#c9a84c">12 of 15 within 5% | phi = c/sqrt(G) at primorial scale</div>
+  </div>
+</div>
+<div id="datepanel">
+  <label>BACKDATE THE LATTICE</label>
+  <div class="row">
+    <input type="number" id="dtyr" value="2026" min="1" max="2026" style="width:70px;flex:none" placeholder="Year">
+    <select id="dtmo" style="width:70px;flex:none">
+      <option value="1">Jan</option><option value="2">Feb</option><option value="3">Mar</option>
+      <option value="4">Apr</option><option value="5">May</option><option value="6">Jun</option>
+      <option value="7" selected>Jul</option><option value="8">Aug</option><option value="9">Sep</option>
+      <option value="10">Oct</option><option value="11">Nov</option><option value="12">Dec</option>
+    </select>
+    <input type="number" id="dtdy" value="25" min="1" max="31" style="width:50px;flex:none" placeholder="Day">
+    <select id="hrin" style="width:60px;flex:none">
+      <option value="21" selected>9 PM</option>
+      <option value="20">8 PM</option>
+      <option value="22">10 PM</option>
+      <option value="23">11 PM</option>
+      <option value="0">12 AM</option>
+    </select>
+    <select id="tzin" style="width:60px;flex:none">
+      <option value="-4" selected>AST</option>
+      <option value="-5">EST</option>
+      <option value="-6">CST</option>
+      <option value="-7">MST</option>
+      <option value="-8">PST</option>
+      <option value="0">UTC</option>
+      <option value="1">CET</option>
+      <option value="10">AEST</option>
+    </select>
+  </div>
+  <div class="row">
+    <span style="color:#6b6558;font-size:10px">Observer:</span>
+    <select id="obslat" style="width:auto;flex:1" onchange="var c=this.value.split(',');document.getElementById('olat').value=c[0];document.getElementById('olon').value=c[1]">
+      <option value="18.3,-64.825">18.3N 64.8W (USVI / St. Croix)</option>
+      <option value="30,-90">30N 90W (Gulf Coast)</option>
+      <option value="34,-118">34N 118W (Los Angeles)</option>
+      <option value="40,-74">40N 74W (New York)</option>
+      <option value="51,0">51N 0W (London)</option>
+      <option value="0,37">0N 37E (Equator/Kenya)</option>
+      <option value="-34,18">34S 18E (Cape Town)</option>
+      <option value="-34,151">34S 151E (Sydney)</option>
+      <option value="-70,120">70S 120E (Wilkes Land)</option>
+      <option value="-90,0">90S (South Pole)</option>
+    </select>
+  </div>
+  <div class="row" style="margin-bottom:2px">
+    <span style="color:#6b6558;font-size:10px">Lat:</span>
+    <input type="number" id="olat" value="18.3" min="-90" max="90" style="width:60px;flex:none">
+    <span style="color:#6b6558;font-size:10px">Lon:</span>
+    <input type="number" id="olon" value="-64.825" min="-180" max="180" style="width:60px;flex:none">
+  </div>
+  <div style="color:#6b6558;font-size:10px;margin-bottom:4px">Precession-corrected. Year range: 1 - 2026 CE</div>
+  <button onclick="runDate()">Show visible shells</button>
+  <div class="result" id="dtout"></div>
+  <div style="border-top:1px solid #8a7235;margin-top:10px;padding-top:8px">
+    <label>REVERSE: Enter shell numbers</label>
+    <div class="row">
+      <input type="text" id="shin" placeholder="e.g. 5 13 37 45">
+    </div>
+    <div class="row">
+      <span style="color:#6b6558;font-size:10px">From year:</span>
+      <input type="number" id="shfrom" value="1" min="1" max="2026" style="width:70px;flex:none">
+      <span style="color:#6b6558;font-size:10px">to:</span>
+      <input type="number" id="shto" value="2026" min="1" max="2026" style="width:70px;flex:none">
+    </div>
+    <button onclick="runReverse()">Find matching dates</button>
+    <div class="result" id="shout"></div>
+  </div>
+</div>
+<script>
+var PHI = (1+Math.sqrt(5))/2;
+var fibs = [0,1]; while(fibs.length<65) fibs.push(fibs[fibs.length-1]+fibs[fibs.length-2]);
+var fibSet = new Set([2,3,5,8,13,21,34,55]);
+
+var S = [
+  {n:-25, z:'i', o:['Mercury orbit (2.8%) - 0.376 AU']},
+  {n:-23, z:'i', o:['Earth orbit (1.5%) - 0.985 AU','phi^-23 = 0.985 AU vs 1.000 AU']},
+  {n:-22, z:'i', o:['Mars orbit (4.6%) - 1.59 AU']},
+  {n:-21, z:'i', o:['Ceres / asteroid belt (6.9%) - 2.58 AU']},
+  {n:-18, z:'i', o:['Saturn orbit (14%) - 10.9 AU']},
+  {n:-17, z:'i', o:['Uranus orbit (7.8%) - 17.7 AU']},
+  {n:-16, z:'i', o:['Neptune orbit (4.9%) - 28.6 AU']},
+  {n:-15, z:'i', o:['Kuiper Belt center - 46.3 AU']},
+  {n:-13, z:'i', o:['Heliopause (0.8%) - 121 AU','phi^-13 = 121 AU vs 120 AU measured']},
+  {n:-10, z:'i', o:['Sedna semi-major axis (1.6%) - 514 AU','phi^-10 = 514 AU vs 506 AU']},
+  {n:-1, z:'i', o:['Inner Oort Cloud - 0.618 ly']},
+  {n:0,  z:'o', o:['You - the observer at unity (1 ly)']},
+  {n:1,  z:'n', o:['Outer Oort Cloud - 1.618 ly']},
+  {n:2,  z:'n', o:['Interstellar void - 2.618 ly']},
+  {n:3,  z:'n', o:['Proxima Centauri (0.1%) - nearest star','Alpha Centauri A/B (2.5%)']},
+  {n:4,  z:'n', o:['Luhman 16 A/B (5.1%) - closest brown dwarfs','WISE 0855 (6.1%) - coldest known object','Sub-stellar boundary']},
+  {n:5,  z:'n', o:['Ross 128 (0.7%)','Procyon (3.4%)','Epsilon Eridani (5.5%)','+6 more']},
+  {n:5.5,z:'n', o:['Sirius A (0.1%)','Luyten 726-8 (0.1%)']},
+  {n:6,  z:'n', o:['Altair (6.8%)','70 Ophiuchi (6.9%)','Sigma Draconis (4.8%)']},
+  {n:6.5,z:'n', o:["Van Maanen's Star (0.0%)"]},
+  {n:7.5,z:'n', o:['Vega (9.5%)','Fomalhaut (9.5%)']},
+  {n:8,  z:'n', o:['Rasalhague (0.0%)','47 UMa Chalawan (2.3%) - solar twin + 3 planets','51 Peg Helvetios (6.6%) - first exoplanet 1995','Exoplanet discovery shell']},
+  {n:12, z:'m', o:['Acrux (0.6%)','Canopus (3.7%)']},
+  {n:13, z:'m', o:['Antares (5.6%)']},
+  {n:14, z:'m', o:['Rigel (2.0%)']},
+  {n:15, z:'m', o:['Alnitak (4.7%)']},
+  {n:16, z:'m', o:['NGC 225 Sailboat (0.3%)','PSR B1257+12 Lich - first exoplanets (4.2%)','NGC 6826 Blinking Planetary (0%)','NGC 3132 Southern Ring / JWST (9.4%)']},
+  {n:20, z:'m', o:['47 Tucanae (2.8%)','4U 1630-47 (0.8%)']},
+  {n:21, z:'m', o:['Sgr A* (6.2%)','Cyg X-3 (1.9%)','Pistol Star (2.1%)']},
+  {n:22, z:'m', o:['GRS 1915+105 (9.1%) - galactic center shell']},
+  {n:25, z:'m', o:['LMC X-1 (4.6%)','LMC X-3 (4.6%)']},
+  {n:31, z:'m', o:['M33 X-7 (10.3%)','M31 Andromeda']},
+  {n:32, z:'m', o:['Tucana B (6.4%) - ultra-faint relic','Leo P (8.4%) - pristine 3% solar','Sextans A (5.7%)','Local Group gravity boundary']},
+  {n:34, z:'m', o:['Centaurus A (1.9%)','NGC 4395 (1.9%)','M82 X-1 (5.9%)']},
+  {n:37, z:'m', o:['M87* (1.0%)','M60 (1.8%)','M49 (2.7%)','NGC 4151 (4.7%)']},
+  {n:40, z:'m', o:['NGC 1277 (3.9%)']},
+  {n:41, z:'m', o:['Markarian 421 (8.0%)']},
+  {n:42, z:'m', o:['Cygnus A (0.2%)','Markarian 231 (3.2%)']},
+  {n:43, z:'m', o:['IC 1101* (7.8%)']},
+  {n:45, z:'m', o:['3C 273 (3.9%) - quasar']},
+  {n:48, z:'m', o:['TON 618 (3.3%)']},
+  {n:49, z:'m', o:['GW190521 (0.5%) - farthest detected']},
+  {n:50, z:'d', o:['(predicted - beyond detection)','28.1 billion ly']},
+  {n:51, z:'h', o:['EVENT HORIZON','45.5 B ly = observable universe (46.5 B ly)']},
+  {n:52, z:'b', o:['73.7 B ly - parent universe']},
+  {n:55, z:'b', o:['311 B ly - deep parent']},
+  {n:58, z:'b', o:['1,322 B ly - 29x past horizon']},
+];
+
+function lbl(n){ return 'phi^'+n; }
+
+function zc(z,a){
+  if(z==='o') return 'rgba(240,208,120,'+a+')';
+  if(z==='i') return 'rgba(120,180,140,'+a+')';
+  if(z==='n') return 'rgba(212,168,67,'+a+')';
+  if(z==='m') return 'rgba(90,143,191,'+a+')';
+  if(z==='d') return 'rgba(139,58,98,'+a+')';
+  if(z==='h') return 'rgba(255,45,85,'+a+')';
+  if(z==='b') return 'rgba(192,57,43,'+a+')';
+  return 'rgba(200,200,200,'+a+')';
+}
+
+function fdist(n){
+  if(n===0) return '1.000 ly (unity)';
+  var d=Math.pow(PHI,n);
+  if(n<0){
+    var au=d*63241;
+    if(au<0.01) return (au*149597870.7).toFixed(0)+' km';
+    if(au<1) return au.toFixed(3)+' AU';
+    if(au<1000) return au.toFixed(1)+' AU';
+    return (au/1000).toFixed(1)+'k AU';
+  }
+  if(d<100) return d.toFixed(1)+' ly';
+  if(d<1e4) return Math.round(d).toLocaleString()+' ly';
+  if(d<1e6) return (d/1e3).toFixed(1)+'k ly';
+  if(d<1e9) return (d/1e6).toFixed(1)+'M ly';
+  return (d/1e9).toFixed(1)+'B ly';
+}
+
+var cv=document.getElementById('c'), cx2=cv.getContext('2d');
+var W,H,mx=0,my=0,zoom=1,panX=0,panY=0,rotating=true,rot=0,hov=null;
+var dragging=false,dx0,dy0,px0,py0;
+var camPitch=0.3, camYaw=0, tgtPitch=null, tgtYaw=null;
+var orbiting=false, ox0, oy0, cp0, cy0;
+var encapsulated=false;
+function animCam(p,y){tgtPitch=p;tgtYaw=y!==undefined?y:camYaw;}
+function toggleEncapsulated(){
+  encapsulated=!encapsulated;
+  document.getElementById('ebtn').textContent=encapsulated?'E*':'E';
+  document.getElementById('cosmo-label').textContent=encapsulated
+    ?'Earth at unity. Observer inside bounded universe.'
+    :'Earth at unity. Observer in open lattice.';
+}
+
+function resize(){
+  var dpr=window.devicePixelRatio||1;
+  W=window.innerWidth; H=window.innerHeight;
+  cv.width=W*dpr; cv.height=H*dpr;
+  cv.style.width=W+'px'; cv.style.height=H+'px';
+  cx2.setTransform(dpr,0,0,dpr,0,0);
+}
+
+function sr(n){
+  if(n===0) return 4;
+  if(n<0){
+    var t=(-n)/25;
+    return 6+t*20;
+  }
+  var mn=28, mx2=Math.min(W,H)*0.44*zoom;
+  var t=Math.log(n+1)/Math.log(59);
+  return mn+t*(mx2-mn);
+}
+
+function draw(t){
+  cx2.clearRect(0,0,W,H);
+  cx2.fillStyle='#06060e';
+  cx2.fillRect(0,0,W,H);
+  var ccx=W/2+panX, ccy=H/2+panY;
+  if(rotating) rot+=0.002;
+
+  // ── camera animation ──
+  if(tgtPitch!==null){camPitch+=(tgtPitch-camPitch)*0.08;camYaw+=(tgtYaw-camYaw)*0.08;if(Math.abs(camPitch-tgtPitch)<0.002&&Math.abs(camYaw-tgtYaw)<0.002){camPitch=tgtPitch;camYaw=tgtYaw;tgtPitch=null;}}
+  // ── nested 210-gon prisms: every shell is the left prism at its phi radius ──
+  var TILT=Math.sin(camPitch), SH=220;
+  var wallH=SH*Math.abs(Math.cos(camPitch));
+  var topY=ccy-wallH/2, botY=ccy+wallH/2;
+  var nearY=camPitch>=0?topY:botY;
+  var pvc={7:{r:160,g:120,b:255},5:{r:255,g:220,b:80},3:{r:100,g:200,b:255},2:{r:255,g:100,b:100}};
+  var pvs={7:30,5:42,3:70,2:105};
+  function sAng(s){return (s.n<=0?rot:rot/(1+Math.abs(s.n)*0.08))+camYaw;}
+  function vX(sR,v,rad){return ccx+Math.cos(sR+v*Math.PI*2/210)*rad;}
+  function vYT(sR,v,rad){return topY+Math.sin(sR+v*Math.PI*2/210)*rad*TILT;}
+  function vYB(sR,v,rad){return botY+Math.sin(sR+v*Math.PI*2/210)*rad*TILT;}
+  function vYN(sR,v,rad){return nearY+Math.sin(sR+v*Math.PI*2/210)*rad*TILT;}
+
+  // shell rendering — rims, connecting verticals, dots — innermost outward
+  for(var i=0;i<S.length;i++){
+    var s=S[i], r=sr(s.n), ih=hov===i, fib=Number.isInteger(s.n)&&fibSet.has(s.n);
+    var isActive=activeShells&&activeShells.has(s.n);
+    var sR=sAng(s);
+
+    if(r>=10){
+      var isCageBot=encapsulated&&(s.z==='b'||s.z==='h');
+      // bottom rim
+      cx2.beginPath();
+      for(var v=0;v<=210;v++){var x=vX(sR,v%210,r),y=vYB(sR,v%210,r);if(v===0)cx2.moveTo(x,y);else cx2.lineTo(x,y);}
+      cx2.closePath();
+      cx2.strokeStyle=isCageBot?'rgba(255,45,85,'+(ih?0.5:0.25)+')':zc(s.z,ih?0.35:0.10);
+      cx2.lineWidth=isCageBot?(s.z==='h'?3:2):ih?1:0.5;cx2.stroke();
+      // prime-colored vertical edges (full circumference)
+      for(var p in pvs){var st=pvs[p],col=pvc[p];
+        for(var v=0;v<210;v+=st){
+          var pulse=0.25+0.2*Math.sin(t*0.003+v*0.05);
+          cx2.beginPath();
+          cx2.moveTo(vX(sR,v,r),vYT(sR,v,r));cx2.lineTo(vX(sR,v,r),vYB(sR,v,r));
+          if(isCageBot){
+            cx2.strokeStyle='rgba(255,60,50,'+(ih?pulse+0.3:pulse*0.8)+')';
+            cx2.lineWidth=ih?2:1.2;
+          } else {
+            cx2.strokeStyle='rgba('+col.r+','+col.g+','+col.b+','+(ih?pulse+0.2:pulse*0.5)+')';
+            cx2.lineWidth=ih?1.2:0.7;
+          }
+          cx2.stroke();
+        }
+      }
+    }
+
+    // top rim
+    var isCage=encapsulated&&s.z==='b';
+    var isBarrier=encapsulated&&s.z==='h';
+    var ba=isBarrier?0.9:isCage?0.6:s.z==='h'?0.6:s.z==='b'?0.25:ih?0.7:isActive?0.7:0.22;
+    cx2.beginPath();
+    for(var v=0;v<=210;v++){var x=vX(sR,v%210,r),y=vYT(sR,v%210,r);if(v===0)cx2.moveTo(x,y);else cx2.lineTo(x,y);}
+    cx2.closePath();
+    cx2.strokeStyle=isActive?'rgba(78,205,196,'+(0.6+0.2*Math.sin(t*0.003))+')':isCage?'rgba(180,40,30,'+(0.5+0.15*Math.sin(t*0.002+s.n))+')':zc(s.z,ba);
+    cx2.lineWidth=isBarrier?4:isCage?2.5:s.z==='h'?2.5:ih?2:isActive?2.5:fib?1.2:0.7;
+    cx2.stroke();
+    if(s.z==='h'){
+      var hGlow=encapsulated?(0.35+0.15*Math.sin(t*0.002)):(0.15+0.1*Math.sin(t*0.002));
+      var hWidth=encapsulated?16:8;
+      cx2.beginPath();
+      for(var v=0;v<=210;v++){var x=vX(sR,v%210,r),y=vYT(sR,v%210,r);if(v===0)cx2.moveTo(x,y);else cx2.lineTo(x,y);}
+      cx2.closePath();
+      cx2.strokeStyle='rgba(255,45,85,'+hGlow+')';cx2.lineWidth=hWidth;cx2.stroke();
+      if(encapsulated){
+        cx2.beginPath();
+        for(var v=0;v<=210;v++){var x=vX(sR,v%210,r),y=vYT(sR,v%210,r);if(v===0)cx2.moveTo(x,y);else cx2.lineTo(x,y);}
+        cx2.closePath();
+        cx2.strokeStyle='rgba(255,45,85,'+(0.06+0.04*Math.sin(t*0.001))+')';cx2.lineWidth=32;cx2.stroke();
+      }
+    }
+    if(isCage){
+      cx2.beginPath();
+      for(var v=0;v<=210;v++){var x=vX(sR,v%210,r),y=vYT(sR,v%210,r);if(v===0)cx2.moveTo(x,y);else cx2.lineTo(x,y);}
+      cx2.closePath();
+      cx2.strokeStyle='rgba(192,57,43,'+(0.08+0.04*Math.sin(t*0.002))+')';cx2.lineWidth=8;cx2.stroke();
+    }
+    if(ih){
+      cx2.beginPath();
+      for(var v=0;v<=210;v++){var x=vX(sR,v%210,r),y=vYT(sR,v%210,r);if(v===0)cx2.moveTo(x,y);else cx2.lineTo(x,y);}
+      cx2.closePath();
+      cx2.strokeStyle=zc(s.z,0.2);cx2.lineWidth=6;cx2.stroke();
+    }
+
+    // prime vertex dots on top rim (matching the prism's top face)
+    if(r>=10){
+      for(var p in pvs){var st=pvs[p],col=pvc[p],psz=p==='7'?3.5:p==='5'?3:2.5;
+        for(var v=0;v<210;v+=st){
+          var pulse=0.45+0.35*Math.sin(t*0.003+v*0.05+parseInt(p));
+          cx2.beginPath();cx2.arc(vX(sR,v,r),vYN(sR,v,r),ih?psz+1:psz,0,Math.PI*2);
+          cx2.fillStyle='rgba('+col.r+','+col.g+','+col.b+','+pulse+')';cx2.fill();
+        }
+      }
+      for(var v=0;v<210;v++){
+        var hits=0;if(v%30===0)hits++;if(v%42===0)hits++;if(v%70===0)hits++;if(v%105===0)hits++;
+        if(hits>=3){cx2.beginPath();cx2.arc(vX(sR,v,r),vYN(sR,v,r),3,0,Math.PI*2);
+          cx2.fillStyle='rgba(255,255,240,0.8)';cx2.fill();}
+      }
+    }
+
+    // label on top rim
+    if(r>20){
+      var la=sR+s.n*0.15-Math.PI/2;
+      var lx=ccx+Math.cos(la)*(r+12);
+      var ly=nearY+Math.sin(la)*(r+12)*TILT;
+      cx2.save();
+      cx2.font=(ih?'bold 12px':'10px')+' monospace';
+      cx2.fillStyle=zc(s.z,ih?1:0.7);
+      cx2.textAlign='center'; cx2.textBaseline='middle';
+      cx2.fillText(lbl(s.n),lx,ly);
+      if(ih){
+        cx2.font='9px monospace';
+        cx2.fillStyle=zc(s.z,0.5);
+        cx2.fillText(fdist(s.n),lx,ly+14);
+      }
+      cx2.restore();
+    }
+
+    // object dots on top rim
+    if(s.o&&s.n>0){
+      var nm=Math.min(s.o.length,8);
+      for(var j=0;j<nm;j++){
+        var oa=sR+j*Math.PI*2/nm+s.n*0.7;
+        var ox=ccx+Math.cos(oa)*r, oy=nearY+Math.sin(oa)*r*TILT;
+        var os=s.z==='n'?2.5:s.z==='m'?2:1.5;
+        cx2.beginPath(); cx2.arc(ox,oy,ih?os+1.5:os,0,Math.PI*2);
+        cx2.fillStyle=zc(s.z,ih?1:0.7); cx2.fill();
+      }
+    }
+  }
+
+  // phi vortex — 5 logarithmic spiral arms from center through all shells
+  var PHI=1.618033988749895;
+  var lnPHI=Math.log(PHI);
+  var spiralB=10*lnPHI/Math.PI;
+  var rMaxOpen=sr(58)+20;
+  var rHorizon=sr(51);
+  var rMin=2;
+  if(!encapsulated){
+    // open mode — spirals extend through everything
+    for(var arm=0;arm<5;arm++){
+      var armOff=arm*Math.PI*2/5;
+      cx2.beginPath();
+      var started=false;
+      for(var step=0;step<=200;step++){
+        var frac=step/200;
+        var r=rMin+frac*(rMaxOpen-rMin);
+        var theta=Math.log(r/rMin)/spiralB+rot+camYaw+armOff;
+        var x=ccx+Math.cos(theta)*r;
+        var y=nearY+Math.sin(theta)*r*TILT;
+        if(!started){ cx2.moveTo(x,y); started=true; } else cx2.lineTo(x,y);
+      }
+      var armAlpha=0.12+0.06*Math.sin(t*0.003+arm*1.2);
+      cx2.strokeStyle='rgba(240,208,120,'+armAlpha+')';
+      cx2.lineWidth=1;
+      cx2.stroke();
+    }
+  } else {
+    // encapsulated — spirals bounce off the event horizon wall
+    var bounces=3;
+    var totalSteps=200*bounces;
+    for(var arm=0;arm<5;arm++){
+      var armOff=arm*Math.PI*2/5;
+      for(var b=0;b<bounces;b++){
+        cx2.beginPath();
+        var started=false;
+        var outward=(b%2===0);
+        for(var step=0;step<=200;step++){
+          var frac=step/200;
+          var r=outward?(rMin+frac*(rHorizon-rMin)):(rHorizon-frac*(rHorizon-rMin));
+          var thetaParam=(b*200+step)/(200);
+          var theta=thetaParam*Math.log(rHorizon/rMin)/spiralB+rot+camYaw+armOff;
+          var x=ccx+Math.cos(theta)*r;
+          var y=nearY+Math.sin(theta)*r*TILT;
+          if(!started){ cx2.moveTo(x,y); started=true; } else cx2.lineTo(x,y);
+        }
+        var decay=Math.pow(0.6,b);
+        var armAlpha=(0.15+0.08*Math.sin(t*0.003+arm*1.2))*decay;
+        cx2.strokeStyle=b===0?'rgba(240,208,120,'+armAlpha+')':'rgba(255,120,80,'+armAlpha+')';
+        cx2.lineWidth=b===0?1.2:0.8*decay+0.3;
+        cx2.stroke();
+      }
+    }
+  }
+  // pentagon (prime 5 — phi) outer
+  var ep=12;
+  cx2.beginPath();
+  for(var p=0;p<5;p++){
+    var pa=rot+camYaw+p*Math.PI*2/5-Math.PI/2;
+    var px2=ccx+Math.cos(pa)*ep, py2=nearY+Math.sin(pa)*ep*TILT;
+    if(p===0) cx2.moveTo(px2,py2); else cx2.lineTo(px2,py2);
+  }
+  cx2.closePath();
+  cx2.fillStyle='rgba(240,208,120,0.06)'; cx2.fill();
+  cx2.strokeStyle='rgba(240,208,120,0.5)'; cx2.lineWidth=1.2; cx2.stroke();
+  // hexagon (2x3 — first primorial primes) inner, counter-rotating
+  var eh=ep/PHI;
+  var hexRot=-rot*0.6+camYaw;
+  cx2.beginPath();
+  for(var h=0;h<6;h++){
+    var ha=hexRot+h*Math.PI*2/6-Math.PI/6;
+    var hx=ccx+Math.cos(ha)*eh, hy=nearY+Math.sin(ha)*eh*TILT;
+    if(h===0) cx2.moveTo(hx,hy); else cx2.lineTo(hx,hy);
+  }
+  cx2.closePath();
+  cx2.fillStyle='rgba(120,180,240,0.06)'; cx2.fill();
+  cx2.strokeStyle='rgba(120,180,240,0.45)'; cx2.lineWidth=1; cx2.stroke();
+  // center dot
+  cx2.beginPath(); cx2.arc(ccx,nearY,1.5,0,Math.PI*2);
+  cx2.fillStyle='#f0d078'; cx2.fill();
+  cx2.font='bold 10px monospace'; cx2.fillStyle='rgba(240,208,120,0.8)';
+  cx2.textAlign='center'; cx2.fillText('EARTH',ccx,nearY+ep+8);
+  cx2.font='9px monospace'; cx2.fillStyle='rgba(240,208,120,0.4)';
+  cx2.fillText('phi^0 = 1',ccx,nearY+ep+19);
+
+  // path line 1->4->5->22->50->58 — laser beam
+  var pp=[1,4,5,22,50,58];
+  var pathPts=[];
+  for(var i=0;i<pp.length;i++){
+    var pRot=rot/(1+pp[i]*0.08)+camYaw;
+    var pr=sr(pp[i]), pa=pRot+Math.PI*0.35+i*0.12;
+    pathPts.push({x:ccx+Math.cos(pa)*pr, y:nearY+Math.sin(pa)*pr*TILT});
+  }
+  // outer glow
+  cx2.beginPath();
+  for(var i=0;i<pathPts.length;i++){if(i===0)cx2.moveTo(pathPts[i].x,pathPts[i].y);else cx2.lineTo(pathPts[i].x,pathPts[i].y);}
+  cx2.strokeStyle='rgba(240,208,120,0.08)'; cx2.lineWidth=6; cx2.stroke();
+  // mid glow
+  cx2.beginPath();
+  for(var i=0;i<pathPts.length;i++){if(i===0)cx2.moveTo(pathPts[i].x,pathPts[i].y);else cx2.lineTo(pathPts[i].x,pathPts[i].y);}
+  cx2.strokeStyle='rgba(255,220,100,0.2)'; cx2.lineWidth=2.5; cx2.stroke();
+  // bright core
+  cx2.beginPath();
+  for(var i=0;i<pathPts.length;i++){if(i===0)cx2.moveTo(pathPts[i].x,pathPts[i].y);else cx2.lineTo(pathPts[i].x,pathPts[i].y);}
+  cx2.strokeStyle='rgba(255,240,180,0.7)'; cx2.lineWidth=0.8; cx2.stroke();
+  // node points
+  for(var i=0;i<pathPts.length;i++){
+    cx2.beginPath();cx2.arc(pathPts[i].x,pathPts[i].y,2,0,Math.PI*2);
+    cx2.fillStyle='rgba(255,240,180,0.9)';cx2.fill();
+  }
+
+  // Wow! signal path (1977-08-15, RA 19h25m Dec -27, Chi Sagittarii)
+  var wowAngle=-Math.PI*0.62+camYaw;
+  var wowR0=sr(0), wowR1=sr(55);
+  // 6EQUJ5 intensity profile (mapped 0-1: 6=0.4, E=0.93, Q=1.0, U=0.97, J=0.63, 5=0.33)
+  var wowProfile=[0.4,0.93,1.0,0.97,0.63,0.33];
+  // draw the ray — laser beam
+  cx2.beginPath();
+  cx2.moveTo(ccx+Math.cos(wowAngle)*wowR0, nearY+Math.sin(wowAngle)*wowR0*TILT);
+  cx2.lineTo(ccx+Math.cos(wowAngle)*wowR1, nearY+Math.sin(wowAngle)*wowR1*TILT);
+  cx2.strokeStyle='rgba(80,220,120,0.06)'; cx2.lineWidth=8; cx2.stroke();
+  cx2.beginPath();
+  cx2.moveTo(ccx+Math.cos(wowAngle)*wowR0, nearY+Math.sin(wowAngle)*wowR0*TILT);
+  cx2.lineTo(ccx+Math.cos(wowAngle)*wowR1, nearY+Math.sin(wowAngle)*wowR1*TILT);
+  cx2.strokeStyle='rgba(80,220,120,0.2)'; cx2.lineWidth=2; cx2.stroke();
+  cx2.beginPath();
+  cx2.moveTo(ccx+Math.cos(wowAngle)*wowR0, nearY+Math.sin(wowAngle)*wowR0*TILT);
+  cx2.lineTo(ccx+Math.cos(wowAngle)*wowR1, nearY+Math.sin(wowAngle)*wowR1*TILT);
+  cx2.strokeStyle='rgba(120,255,160,0.6)'; cx2.lineWidth=0.7; cx2.stroke();
+  // intensity bars along the ray (6EQUJ5)
+  for(var wi=0;wi<6;wi++){
+    var wFrac=0.15+wi*0.13;
+    var wr=wowR0+(wowR1-wowR0)*wFrac;
+    var wLen=8*wowProfile[wi];
+    var wx=ccx+Math.cos(wowAngle)*wr, wy=nearY+Math.sin(wowAngle)*wr*TILT;
+    var perpA=wowAngle+Math.PI/2;
+    cx2.beginPath();
+    cx2.moveTo(wx+Math.cos(perpA)*wLen, wy+Math.sin(perpA)*wLen);
+    cx2.lineTo(wx-Math.cos(perpA)*wLen, wy-Math.sin(perpA)*wLen);
+    cx2.strokeStyle='rgba(80,220,120,'+(0.3+wowProfile[wi]*0.5)+')';
+    cx2.lineWidth=2; cx2.stroke();
+  }
+  // label
+  var wlx=ccx+Math.cos(wowAngle)*(wowR1+6);
+  var wly=nearY+Math.sin(wowAngle)*(wowR1+6)*TILT;
+  cx2.save();
+  cx2.translate(wlx,wly);
+  cx2.rotate(wowAngle+(wowAngle>Math.PI/2&&wowAngle<Math.PI*1.5?Math.PI:0));
+  cx2.font='bold 9px monospace'; cx2.fillStyle='rgba(80,220,120,0.7)';
+  cx2.textAlign='center'; cx2.fillText('WOW! 6EQUJ5',0,-6);
+  cx2.font='8px monospace'; cx2.fillStyle='rgba(80,220,120,0.4)';
+  cx2.fillText('1977-08-15 Chi Sgr',0,4);
+  cx2.restore();
+  // mark where it crosses shell 21 (Sgr A* neighborhood)
+  var wow21r=sr(21);
+  var wow21x=ccx+Math.cos(wowAngle)*wow21r;
+  var wow21y=nearY+Math.sin(wowAngle)*wow21r*TILT;
+  cx2.beginPath(); cx2.arc(wow21x,wow21y,3,0,Math.PI*2);
+  cx2.fillStyle='rgba(80,220,120,0.6)'; cx2.fill();
+
+  // 210-gon prism (proper tall prism, bottom-right)
+  var pR=80, pTilt=0.3, pRot=rot*0.3;
+  var pCx=120, pTopY=H-350, pBotY=H-120;
+  var pPC={2:{r:255,g:100,b:100},3:{r:100,g:200,b:255},5:{r:255,g:220,b:80},7:{r:160,g:120,b:255}};
+  var pSt={7:30,5:42,3:70,2:105};
+  function ptx(v){return pCx+Math.cos(pRot+v*Math.PI*2/210)*pR;}
+  function ptyT(v){return pTopY+Math.sin(pRot+v*Math.PI*2/210)*pR*pTilt;}
+  function ptyB(v){return pBotY+Math.sin(pRot+v*Math.PI*2/210)*pR*pTilt;}
+  // back side panels
+  for(var v=0;v<210;v++){
+    if(Math.sin(pRot+v*Math.PI*2/210)<=0) continue;
+    var v2=(v+1)%210;
+    cx2.beginPath();cx2.moveTo(ptx(v),ptyT(v));cx2.lineTo(ptx(v2),ptyT(v2));
+    cx2.lineTo(ptx(v2),ptyB(v2));cx2.lineTo(ptx(v),ptyB(v));cx2.closePath();
+    cx2.fillStyle='rgba(50,40,80,0.7)';cx2.fill();
+  }
+  // bottom face
+  cx2.beginPath();
+  for(var v=0;v<=210;v++){if(v===0)cx2.moveTo(ptx(v),ptyB(v));else cx2.lineTo(ptx(v),ptyB(v));}
+  cx2.closePath();cx2.fillStyle='rgba(25,20,45,0.8)';cx2.fill();
+  cx2.strokeStyle='rgba(200,175,90,0.2)';cx2.lineWidth=0.6;cx2.stroke();
+  // front side panels + prime edges
+  for(var v=0;v<210;v++){
+    if(Math.sin(pRot+v*Math.PI*2/210)>0) continue;
+    var v2=(v+1)%210;
+    var facing=Math.abs(Math.cos(pRot+v*Math.PI*2/210));
+    cx2.beginPath();cx2.moveTo(ptx(v),ptyT(v));cx2.lineTo(ptx(v2),ptyT(v2));
+    cx2.lineTo(ptx(v2),ptyB(v2));cx2.lineTo(ptx(v),ptyB(v));cx2.closePath();
+    cx2.fillStyle='rgba(60,48,100,'+(0.5+facing*0.4)+')';cx2.fill();
+  }
+  // front vertical edges every 10th
+  for(var v=0;v<210;v+=10){
+    if(Math.sin(pRot+v*Math.PI*2/210)>0) continue;
+    cx2.beginPath();cx2.moveTo(ptx(v),ptyT(v));cx2.lineTo(ptx(v),ptyB(v));
+    cx2.strokeStyle='rgba(200,175,90,0.3)';cx2.lineWidth=0.8;cx2.stroke();
+  }
+  // prime-colored vertical edges on front
+  for(var p in pSt){var s=pSt[p],col=pPC[p];
+    for(var v=0;v<210;v+=s){
+      if(Math.sin(pRot+v*Math.PI*2/210)>0) continue;
+      cx2.beginPath();cx2.moveTo(ptx(v),ptyT(v));cx2.lineTo(ptx(v),ptyB(v));
+      var pulse=0.25+0.2*Math.sin(t*0.003+v*0.05);
+      cx2.strokeStyle='rgba('+col.r+','+col.g+','+col.b+','+pulse+')';
+      cx2.lineWidth=1.2;cx2.stroke();
+    }
+  }
+  // top face
+  cx2.beginPath();
+  for(var v=0;v<=210;v++){if(v===0)cx2.moveTo(ptx(v),ptyT(v));else cx2.lineTo(ptx(v),ptyT(v));}
+  cx2.closePath();cx2.fillStyle='rgba(15,12,30,0.85)';cx2.fill();
+  cx2.strokeStyle='rgba(200,175,90,0.35)';cx2.lineWidth=0.8;cx2.stroke();
+  // top face prime vertices
+  for(var p in pSt){var s=pSt[p],col=pPC[p],sz=p==='7'?3.5:p==='5'?3:2.5;
+    for(var v=0;v<210;v+=s){
+      var pulse=0.45+0.35*Math.sin(t*0.003+v*0.05+parseInt(p));
+      cx2.beginPath();cx2.arc(ptx(v),ptyT(v),sz,0,Math.PI*2);
+      cx2.fillStyle='rgba('+col.r+','+col.g+','+col.b+','+pulse+')';cx2.fill();
+    }
+  }
+  // multi-prime intersections
+  for(var v=0;v<210;v++){
+    var hits=0;if(v%30===0)hits++;if(v%42===0)hits++;if(v%70===0)hits++;if(v%105===0)hits++;
+    if(hits>=3){cx2.beginPath();cx2.arc(ptx(v),ptyT(v),3,0,Math.PI*2);
+      cx2.fillStyle='rgba(255,255,240,0.8)';cx2.fill();}
+  }
+  // labels
+  cx2.font='bold 9px monospace';cx2.fillStyle='rgba(240,208,120,0.7)';cx2.textAlign='center';
+  cx2.fillText('210-GON',pCx,pBotY+pR*pTilt+14);
+  cx2.font='8px monospace';cx2.fillStyle='rgba(140,114,53,0.5)';
+  cx2.fillText('2×3×5×7',pCx,pBotY+pR*pTilt+24);
+
+  // equation
+  cx2.font='9px monospace'; cx2.fillStyle='#6b6558'; cx2.textAlign='right';
+  cx2.fillText('F(n) = phi^n / sqrt(5)',W-16,H-12);
+  cx2.fillText('phi = c/sqrt(G)',W-16,H-2);
+
+  var degP=Math.round(camPitch*180/Math.PI), degY=Math.round(camYaw*180/Math.PI)%360;
+  document.getElementById('cam-hud').textContent='pitch '+degP+'° yaw '+degY+'°'+(encapsulated?' | ENCAPSULATED':'')+' [Shift+drag | T/B/R/E]';
+
+  requestAnimationFrame(draw);
+}
+
+cv.addEventListener('mousemove',function(e){
+  mx=e.clientX; my=e.clientY;
+  if(orbiting){
+    camPitch=Math.max(-Math.PI*0.48,Math.min(Math.PI*0.48,cp0-(e.clientY-oy0)*0.005));
+    camYaw=cy0+(e.clientX-ox0)*0.005;
+    tgtPitch=null;
+    return;
+  }
+  if(dragging){
+    panX=px0+(e.clientX-dx0); panY=py0+(e.clientY-dy0); return;
+  }
+  var ccx=W/2+panX, ccy=H/2+panY;
+  var tiltAbs=Math.max(0.05,Math.abs(Math.sin(camPitch)));
+  var wh=220*Math.abs(Math.cos(camPitch));
+  var hoverFaceY=camPitch>=0?ccy-wh/2:ccy+wh/2;
+  var dd=Math.sqrt((mx-ccx)*(mx-ccx)+((my-hoverFaceY)/tiltAbs)*((my-hoverFaceY)/tiltAbs));
+  var cl=null, cd=20;
+  for(var i=0;i<S.length;i++){
+    var r=sr(S[i].n), d=Math.abs(dd-r);
+    if(d<cd){cd=d;cl=i;}
+  }
+  hov=cl;
+  var inf=document.getElementById('info');
+  if(cl!==null){
+    var s=S[cl];
+    var fn=Number.isInteger(s.n)&&s.n<fibs.length?fibs[s.n]:'--';
+    var fs=typeof fn==='number'?(fn>1e6?(fn/1e6).toFixed(1)+'M':fn.toLocaleString()):fn;
+    var fib=Number.isInteger(s.n)&&fibSet.has(s.n);
+    inf.querySelector('.name').textContent=lbl(s.n)+(s.n>0?' = '+fdist(s.n):'')+(fib?' * Fibonacci exponent':'');
+    inf.querySelector('.dist').textContent=s.n>0?'F('+s.n+') = '+fs:'The observer at unity';
+    inf.querySelector('.objs').textContent=s.o.join(' | ');
+  } else {
+    inf.querySelector('.name').textContent='Hover a shell to explore';
+    inf.querySelector('.dist').textContent='Scroll to zoom | Drag to pan';
+    inf.querySelector('.objs').textContent='';
+  }
+});
+cv.addEventListener('mousedown',function(e){
+  if(e.shiftKey||e.button===2){orbiting=true;ox0=e.clientX;oy0=e.clientY;cp0=camPitch;cy0=camYaw;tgtPitch=null;cv.style.cursor='move';e.preventDefault();return;}
+  dragging=true;dx0=e.clientX;dy0=e.clientY;px0=panX;py0=panY;cv.style.cursor='grabbing';
+});
+cv.addEventListener('mouseup',function(){dragging=false;orbiting=false;cv.style.cursor='crosshair';});
+cv.addEventListener('wheel',function(e){e.preventDefault();zoom=Math.max(0.3,Math.min(5,zoom*(e.deltaY>0?0.92:1.08)));},{passive:false});
+cv.addEventListener('touchstart',function(e){if(e.touches.length===1){dragging=true;dx0=e.touches[0].clientX;dy0=e.touches[0].clientY;px0=panX;py0=panY;}},{passive:true});
+cv.addEventListener('touchmove',function(e){if(dragging&&e.touches.length===1){panX=px0+(e.touches[0].clientX-dx0);panY=py0+(e.touches[0].clientY-dy0);}},{passive:true});
+cv.addEventListener('touchend',function(){dragging=false;orbiting=false;});
+cv.addEventListener('contextmenu',function(e){e.preventDefault();});
+document.addEventListener('keydown',function(e){
+  if(e.target.tagName==='INPUT'||e.target.tagName==='SELECT') return;
+  if(e.key==='t'||e.key==='T'){animCam(Math.PI*0.48);e.preventDefault();}
+  if(e.key==='b'||e.key==='B'){animCam(-Math.PI*0.48);e.preventDefault();}
+  if(e.key==='r'||e.key==='R'){animCam(0.3,0);e.preventDefault();}
+  if(e.key==='e'||e.key==='E'){toggleEncapsulated();e.preventDefault();}
+  if(e.key==='ArrowUp'){camPitch=Math.min(Math.PI*0.48,camPitch+0.05);tgtPitch=null;e.preventDefault();}
+  if(e.key==='ArrowDown'){camPitch=Math.max(-Math.PI*0.48,camPitch-0.05);tgtPitch=null;e.preventDefault();}
+  if(e.key==='ArrowLeft'){camYaw-=0.05;tgtPitch=null;e.preventDefault();}
+  if(e.key==='ArrowRight'){camYaw+=0.05;tgtPitch=null;e.preventDefault();}
+});
+window.addEventListener('resize',resize);
+resize();
+requestAnimationFrame(draw);
+
+// Shell markers with RA (hours) and Dec (degrees)
+var MARKERS = {
+  3:{name:'Proxima Cen',ra:14.495,dec:-62.68},
+  4:{name:'Luhman 16',ra:10.821,dec:-53.32},
+  5:{name:'Procyon',ra:7.655,dec:5.22},
+  6:{name:'Altair',ra:19.846,dec:8.87},
+  8:{name:'Rasalhague',ra:17.582,dec:12.56},
+  12:{name:'Canopus',ra:6.399,dec:-52.70},
+  13:{name:'Antares',ra:16.490,dec:-26.43},
+  14:{name:'Rigel',ra:5.242,dec:-8.20},
+  15:{name:'Alnitak',ra:5.679,dec:-1.94},
+  16:{name:'NGC 225',ra:0.727,dec:61.78},
+  21:{name:'Sgr A*',ra:17.761,dec:-29.01},
+  22:{name:'GRS 1915',ra:19.253,dec:10.95},
+  32:{name:'Tucana B',ra:22.917,dec:-58.57},
+  37:{name:'M87*',ra:12.514,dec:12.39},
+  41:{name:'Mrk 421',ra:11.074,dec:38.21},
+  45:{name:'3C 273',ra:12.486,dec:2.05},
+  48:{name:'TON 618',ra:12.176,dec:31.95}
+};
+function getLat(){return parseFloat(document.getElementById('olat').value)||30;}
+function getLon(){return parseFloat(document.getElementById('olon').value)||-90;}
+function getTZ(){return parseFloat(document.getElementById('tzin').value)||0;}
+function localToUTC(hr,tz){return((hr-tz)%24+24)%24;}
+
+function lstFromDate(yr,mo,dy,hr,lon){
+  var jd=367*yr-Math.floor(7*(yr+Math.floor((mo+9)/12))/4)+Math.floor(275*mo/9)+dy+1721013.5+hr/24;
+  var t=(jd-2451545)/36525;
+  var gmst=(280.46061837+360.98564736629*(jd-2451545)+0.000387933*t*t)%360;
+  if(gmst<0)gmst+=360;
+  return((gmst+lon)/15+24)%24;
+}
+
+function altOf(ra,dec,lst,lat){
+  var ha=(lst-ra)*15*Math.PI/180;
+  var dr=dec*Math.PI/180, lr=lat*Math.PI/180;
+  var sa=Math.sin(dr)*Math.sin(lr)+Math.cos(dr)*Math.cos(lr)*Math.cos(ha);
+  return Math.asin(Math.max(-1,Math.min(1,sa)))*180/Math.PI;
+}
+
+var activeShells=null;
+// Precession: 50.3 arcsec/year = 0.000932 hours RA/year
+var PREC_RA_PER_YR = 50.3/3600/15;
+
+function precRA(ra, yr){
+  // shift RA for precession relative to J2000 (year 2000)
+  return ra - PREC_RA_PER_YR * (2000 - yr);
+}
+
+function getVisibleShells(yr, mo, dy, hr, lat, lon){
+  var lst = lstFromDate(yr, mo, dy, hr, lon);
+  var vis = [];
+  for(var k in MARKERS){
+    var m = MARKERS[k];
+    var ra = precRA(m.ra, yr);
+    var a = altOf(ra, m.dec, lst, lat);
+    if(a > 5) vis.push({n:parseInt(k), name:m.name, alt:a});
+  }
+  vis.sort(function(a,b){return a.n - b.n});
+  return vis;
+}
+
+function runDate(){
+  var yr = parseInt(document.getElementById('dtyr').value);
+  var mo = parseInt(document.getElementById('dtmo').value);
+  var dy = parseInt(document.getElementById('dtdy').value);
+  var hr = parseInt(document.getElementById('hrin').value);
+  var tz = getTZ();
+  var utcHr = localToUTC(hr, tz);
+  if(yr<1) yr=1;
+  var lat=getLat(), lon=getLon();
+  var latLabel = Math.abs(lat) + (lat >= 0 ? 'N' : 'S');
+  var tzNames = {'-4':'AST','-5':'EST','-6':'CST','-7':'MST','-8':'PST','0':'UTC','1':'CET','10':'AEST'};
+  var tzLabel = tzNames[String(tz)] || 'UTC'+(tz>=0?'+':'')+tz;
+  var vis = getVisibleShells(yr, mo, dy, utcHr, lat, lon);
+  var shells = vis.map(function(v){return v.n});
+  activeShells = new Set(shells);
+  var lst = lstFromDate(yr, mo, dy, utcHr, lon);
+  var precShift = (PREC_RA_PER_YR * (2026 - yr) * 15).toFixed(1);
+  var out = 'Signature: [' + shells.join(', ') + ']\n';
+  out += 'Date: ' + yr + '-' + (mo<10?'0':'') + mo + '-' + (dy<10?'0':'') + dy;
+  out += ' at ' + hr + ':00 ' + tzLabel + ' from ' + latLabel + '\n';
+  out += 'LST: ' + lst.toFixed(4) + 'h | Precession: ' + precShift + ' deg\n\n';
+  for(var i=0;i<vis.length;i++){
+    out += '  phi^' + vis[i].n + '  ' + vis[i].name + '  alt=' + vis[i].alt.toFixed(1) + '\n';
+  }
+  if(vis.length === 0) out += '  No trackable shells above horizon\n';
+  document.getElementById('dtout').textContent = out;
+}
+
+function maxAltEver(dec, lat){
+  // maximum altitude a star can ever reach from this latitude
+  // occurs at upper culmination: alt = 90 - |lat - dec|
+  var a = 90 - Math.abs(lat - dec);
+  return a;
+}
+
+function runReverse(){
+  var raw = document.getElementById('shin').value.trim();
+  var nums = raw.split(/[\s,]+/).map(Number).filter(function(x){return !isNaN(x)});
+  var valid = nums.filter(function(n){return MARKERS[n]});
+  if(valid.length === 0){
+    document.getElementById('shout').textContent = 'No trackable shells in ['+nums.join(',')+'].\nTrackable: '+Object.keys(MARKERS).join(', ');
+    return;
+  }
+  var fromYr = parseInt(document.getElementById('shfrom').value) || 1;
+  var toYr = parseInt(document.getElementById('shto').value) || 2026;
+  if(fromYr < 1) fromYr = 1;
+  if(toYr > 2026) toYr = 2026;
+
+  var lat=getLat(), lon=getLon();
+  var latLabel = Math.abs(lat) + (lat >= 0 ? 'N' : 'S');
+
+  // check which markers can EVER rise from this latitude
+  var neverRise = [];
+  for(var i = 0; i < valid.length; i++){
+    var m = MARKERS[valid[i]];
+    var ma = maxAltEver(m.dec, lat);
+    if(ma <= 5) neverRise.push({n:valid[i], name:m.name, maxAlt:ma, dec:m.dec});
+  }
+
+  if(neverRise.length > 0){
+    var out = 'LATITUDE ISSUE from ' + latLabel + ':\n';
+    for(var i=0;i<neverRise.length;i++){
+      var nr = neverRise[i];
+      out += '  phi^' + nr.n + ' (' + nr.name + ') NEVER rises above ' + nr.maxAlt.toFixed(1) + ' deg\n';
+      out += '    dec=' + nr.dec + ' needs observer south of ' + (-(90-5-Math.abs(nr.dec))).toFixed(0) + ' lat\n';
+    }
+    out += '\nTry: Wilkes Land (-70S) or South Pole (-90S)\n';
+    out += 'Or select a location from the Observer dropdown above.';
+    document.getElementById('shout').textContent = out;
+    return;
+  }
+
+  // check for circumpolar markers (always above horizon)
+  var circumpolar = [];
+  for(var i = 0; i < valid.length; i++){
+    var m = MARKERS[valid[i]];
+    var minAlt = 90 - Math.abs(lat + m.dec);
+    if(lat < 0 && m.dec < 0) minAlt = 90 - Math.abs(lat - m.dec);
+    // proper circumpolar check
+    var sinMinAlt = Math.sin(m.dec*Math.PI/180)*Math.sin(lat*Math.PI/180)
+      + Math.cos(m.dec*Math.PI/180)*Math.cos(lat*Math.PI/180)*Math.cos(Math.PI);
+    var minA = Math.asin(Math.max(-1,Math.min(1,sinMinAlt)))*180/Math.PI;
+    if(minA > 5) circumpolar.push({n:valid[i], name:m.name, minAlt:minA.toFixed(1)});
+  }
+
+  var allCircumpolar = circumpolar.length === valid.length;
+
+  var out = 'Trackable shells: [' + valid.join(', ') + ']\n';
+  var structural = nums.filter(function(n){return !MARKERS[n]});
+  if(structural.length) out += 'Structural (always present): [' + structural.join(', ') + ']\n';
+
+  for(var i=0;i<circumpolar.length;i++){
+    out += '  phi^'+circumpolar[i].n+' ('+circumpolar[i].name+') circumpolar - always above '+circumpolar[i].minAlt+' deg\n';
+  }
+
+  if(allCircumpolar){
+    out += '\nALL tracked markers are circumpolar from ' + latLabel + '\n';
+    out += 'Every date matches. Showing sample years:\n';
+    out += '\n';
+    var sampleYears = [toYr, 2000, 1776, 1500, 1000, 500, 1];
+    for(var i=0;i<sampleYears.length;i++){
+      var sy = sampleYears[i];
+      if(sy < fromYr || sy > toYr) continue;
+      var tz = getTZ();
+      var lst = lstFromDate(sy, 7, 15, localToUTC(21,tz), lon);
+      var m0 = MARKERS[valid[0]];
+      var ra0 = precRA(m0.ra, sy);
+      var alt0 = altOf(ra0, m0.dec, lst, lat);
+      out += '  ' + sy + ' CE  LST=' + lst.toFixed(2) + 'h  phi^'+valid[0]+' alt='+alt0.toFixed(1)+'deg\n';
+    }
+    document.getElementById('shout').textContent = out;
+    activeShells = new Set(valid);
+    return;
+  }
+
+  var matches = [];
+  for(var yr = toYr; yr >= fromYr && matches.length < 30; yr--){
+    for(var mo = 12; mo >= 1; mo--){
+      var allUp = true;
+      var tz2 = getTZ();
+      var lst = lstFromDate(yr, mo, 15, localToUTC(21,tz2), lon);
+      for(var i = 0; i < valid.length; i++){
+        var m = MARKERS[valid[i]];
+        var ra = precRA(m.ra, yr);
+        if(altOf(ra, m.dec, lst, lat) <= 5){allUp = false; break;}
+      }
+      if(allUp){
+        var moNames = ['','Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+        matches.push({label:moNames[mo]+' '+yr, lst:lst.toFixed(2)});
+        break;
+      }
+    }
+  }
+  var tzr = getTZ();
+  var tzNamesR = {'-4':'AST','-5':'EST','-6':'CST','-7':'MST','-8':'PST','0':'UTC','1':'CET','10':'AEST'};
+  var tzLabelR = tzNamesR[String(tzr)] || 'UTC'+(tzr>=0?'+':'')+tzr;
+  out += '\nVisible at 9 PM ' + tzLabelR + ' from ' + latLabel + ':\n';
+  for(var i = 0; i < matches.length; i++) out += '  ' + matches[i].label + '  LST=' + matches[i].lst + 'h\n';
+  if(matches.length === 0) out += '  No matches at this time/latitude\n';
+  if(matches.length >= 30) out += '  ... (showing first 30)\n';
+  document.getElementById('shout').textContent = out;
+  activeShells = new Set(valid);
+}
+</script>

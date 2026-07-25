@@ -1,0 +1,2428 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<title>Lattice Globe — Four Poles</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<style>
+  html,body{margin:0;padding:0;height:100%;background:#060a12;overflow:hidden;font-family:'Courier New',monospace}
+  #globe{position:absolute;inset:0}
+  #sidebar{position:absolute;top:0;right:0;width:270px;height:100%;overflow-y:auto;background:rgba(8,14,24,0.92);border-left:1px solid #1a3050;padding:12px;box-sizing:border-box;color:#a0c0d8;font-size:11px;z-index:10}
+  #sidebar h1{font-size:14px;color:#ffaa00;letter-spacing:2px;margin:0 0 2px 0}
+  #sidebar .sub{font-size:9px;color:#557799;margin-bottom:10px}
+  #sidebar h2{font-size:10px;color:#88ccff;letter-spacing:1px;margin:12px 0 4px 0;border-bottom:1px solid #1a3050;padding-bottom:2px}
+  .row{display:flex;align-items:center;gap:6px;padding:2px 0}
+  .row label{cursor:pointer}
+  .sw{display:inline-block;width:10px;height:10px;border-radius:2px;flex:none}
+  table{width:100%;border-collapse:collapse;font-size:9px}
+  td{padding:1px 2px;color:#88aabb}
+  td.v{text-align:right;color:#cde}
+  .gold{color:#ffd700}
+  #tip{position:absolute;pointer-events:none;background:rgba(10,20,35,0.95);border:1px solid #2a5080;color:#cfe8ff;font-size:11px;padding:3px 7px;border-radius:3px;display:none;z-index:20;font-family:'Courier New',monospace}
+  a{color:#88ccff}
+  .vbtn{background:#122438;border:1px solid #2a5080;color:#a8d0f0;font-family:inherit;font-size:10px;padding:3px 8px;border-radius:3px;cursor:pointer}
+  .vbtn:hover{background:#1a3450}
+  #err{position:absolute;left:10px;bottom:8px;color:#ff6666;font-size:10px;z-index:15}
+
+  #impact-panel{margin-top:4px;padding:8px;background:rgba(80,20,20,0.25);border:1px solid #502020;border-radius:4px}
+  .sim-ctrls{display:flex;gap:4px;margin-bottom:4px;flex-wrap:wrap}
+  .sim-btn{background:#1a0c0c;border:1px solid #502020;color:#ff8866;font-family:inherit;font-size:10px;padding:3px 8px;border-radius:3px;cursor:pointer}
+  .sim-btn:hover{background:#281414}
+  .sim-btn.on{background:#351515;border-color:#ff4444;color:#ff4444}
+  #sim-clock{font-size:20px;color:#ff4444;font-weight:bold;text-align:center;margin:2px 0;font-family:'Courier New',monospace;letter-spacing:2px}
+  #sim-label{font-size:7px;color:#664433;text-align:center;margin-bottom:3px}
+  #sim-bar-wrap{width:100%;height:3px;background:#120808;border-radius:2px;overflow:hidden;margin:2px 0 4px}
+  #sim-bar-fill{height:100%;width:0%;background:linear-gradient(90deg,#ff2222,#ff8833)}
+  #sim-log{max-height:140px;overflow-y:auto;font-size:8px;line-height:1.5}
+  .sev{padding:1px 0;border-bottom:1px solid rgba(80,20,20,0.15);color:#886655}
+  .sev.imp{color:#ff4444;font-weight:bold}
+  .sev.brch{color:#ff8800}
+  .sev .st{color:#aa3333;font-weight:bold;margin-right:4px;display:inline-block;min-width:34px}
+  .sev.refl{color:#44ccff}
+  .sev.sei{color:#6699ff}
+  #sim-log{max-height:180px}
+
+  /* HUD panel — left side, collapsible */
+  #hud{position:absolute;top:0;left:0;width:340px;height:100%;overflow-y:auto;
+    background:rgba(6,10,18,0.94);border-right:1px solid #1a3050;
+    padding:16px 18px;box-sizing:border-box;color:#8eaabb;font-size:11px;
+    z-index:10;transition:transform 0.3s ease;line-height:1.55}
+  #hud.collapsed{transform:translateX(-340px)}
+  #hud-toggle{position:absolute;top:10px;left:10px;z-index:12;width:32px;height:32px;
+    background:rgba(8,14,24,0.85);border:1px solid #1a3050;border-radius:4px;
+    color:#88ccff;font-size:16px;cursor:pointer;display:flex;align-items:center;
+    justify-content:center;transition:left 0.3s ease;font-family:inherit}
+  #hud-toggle.open{left:350px}
+  #hud h1{font-size:13px;color:#ffaa00;letter-spacing:2px;margin:0 0 4px;text-transform:uppercase}
+  #hud .axiom{font-size:18px;color:#ffd700;text-align:center;margin:8px 0 4px;letter-spacing:1px;font-weight:bold}
+  #hud .sub-axiom{font-size:9px;color:#557799;text-align:center;margin-bottom:12px}
+  #hud .derivation{background:rgba(20,35,55,0.5);border:1px solid #1a3050;border-radius:4px;
+    padding:8px 10px;margin:0 0 14px;font-size:10px;color:#6a8fa8;line-height:1.6}
+  #hud .derivation strong{color:#88ccff}
+  #hud .thesis{color:#a0c8dd;font-size:10.5px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid #1a3050}
+  #hud section{margin-bottom:2px}
+  #hud section .sec-head{display:flex;align-items:center;gap:6px;cursor:pointer;
+    padding:5px 0;border-bottom:1px solid rgba(26,48,80,0.4);user-select:none}
+  #hud section .sec-head:hover{color:#88ccff}
+  #hud section .sec-head .arrow{font-size:8px;color:#557799;transition:transform 0.2s;flex:none;width:10px}
+  #hud section .sec-head .arrow.open{transform:rotate(90deg)}
+  #hud section .sec-head .dot{width:8px;height:8px;border-radius:2px;flex:none}
+  #hud section .sec-head .sec-title{font-size:10px;color:#88ccff;letter-spacing:0.5px;text-transform:uppercase}
+  #hud section .sec-body{display:none;padding:6px 0 8px 16px;font-size:10px;color:#7a9aaa;line-height:1.6}
+  #hud section .sec-body.open{display:block}
+  #hud section .sec-body em{color:#ccddee;font-style:normal}
+  #hud section .sec-body .num{color:#ffdd44;font-weight:bold}
+  #hud .papers{margin-top:14px;padding-top:10px;border-top:1px solid #1a3050;font-size:9px;color:#557799}
+  #hud .papers a{color:#6699bb;text-decoration:none}
+  #hud .papers a:hover{color:#88ccff;text-decoration:underline}
+
+  /* click-to-inspect overlay */
+  #inspect{position:absolute;bottom:14px;left:50%;transform:translateX(-50%);
+    max-width:520px;width:90%;background:rgba(8,14,24,0.96);border:1px solid #2a5080;
+    border-radius:6px;padding:10px 14px;color:#cfe8ff;font-size:11px;z-index:18;
+    display:none;font-family:'Courier New',monospace;box-shadow:0 4px 20px rgba(0,0,0,0.5)}
+  #inspect .insp-close{position:absolute;top:6px;right:10px;cursor:pointer;color:#557799;font-size:14px}
+  #inspect .insp-close:hover{color:#ff6666}
+  #inspect .insp-name{font-size:13px;color:#ffaa00;font-weight:bold;margin-bottom:4px;padding-right:20px}
+  #inspect .insp-type{font-size:9px;color:#4aeaaa;text-transform:uppercase;letter-spacing:1px;margin-bottom:6px}
+  #inspect .insp-body{font-size:10px;color:#8eaabb;line-height:1.6}
+  #inspect .insp-body span.val{color:#ffdd44}
+  #inspect .insp-body span.lbl{color:#557799}
+</style>
+</head>
+<body>
+<div id="globe"></div>
+<div id="tip"></div>
+<div id="err"></div>
+<button id="hud-toggle" class="open" title="Toggle thesis panel">&#9776;</button>
+<div id="hud">
+  <h1>Primorial Unification</h1>
+  <div class="axiom">&Phi; &equiv; &part;<sub>t</sub>&Phi;</div>
+  <div class="sub-axiom">The field is its own rate of change &mdash; one axiom, zero free parameters</div>
+
+  <div class="derivation">
+    <strong>2 &rarr; c</strong> (propagation) &nbsp; <strong>3 &rarr; g</strong> (curvature) &nbsp; <strong>5 &rarr; &Phi;</strong> (field) &nbsp; <strong>7 &rarr; &part;<sub>t</sub>&Phi;</strong> (self-reference)<br>
+    Container: <strong>2&times;3&times;5&times;7 = 210-gon</strong> &nbsp;&rarr;&nbsp; &pi; = P<sub>5</sub>&middot;arccos(&Phi;/P<sub>2</sub>)
+  </div>
+
+  <div class="thesis">
+    This globe renders the spatial predictions of the framework. Every ring, bearing, and marker below follows from the axiom above &mdash; nothing is fit to data. The question is whether ancient sites, astronomical objects, and geological features cluster on these lines by chance.
+  </div>
+
+  <section data-layers="poles,axis,rods">
+    <div class="sec-head">
+      <span class="arrow open">&#9654;</span>
+      <span class="dot" style="background:#ffaa00"></span>
+      <span class="sec-title">The Four-Pole Axis</span>
+    </div>
+    <div class="sec-body open">
+      Giza and Easter Island sit on one great circle, separated by <em>145.34&deg;</em>. Their antipodes (South Pacific, Indus Valley) complete a four-pole system. The cross-angle is <em>34.66&deg;</em> &mdash; within 1.4&deg; of &phi;-shell n=5 (33.27&deg;). This single great circle is the framework&rsquo;s equator; everything else is measured from it.
+    </div>
+  </section>
+
+  <section data-layers="shells">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#4aeaaa"></span>
+      <span class="sec-title">&phi;-Shells</span>
+    </div>
+    <div class="sec-body">
+      Concentric rings at <em>3&middot;&phi;<sup>n</sup></em> degrees from each pole (n = &minus;1 to 6). This is the framework&rsquo;s distance quantisation: sites should cluster at shell boundaries, not uniformly. The base angle 3&deg; is not arbitrary &mdash; it is the primorial residue of 210/70.
+    </div>
+  </section>
+
+  <section data-layers="gbear">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#666688"></span>
+      <span class="sec-title">Golden-Angle Bearings</span>
+    </div>
+    <div class="sec-body">
+      <em>22 great circles</em> from Giza at bearings G<sub>n</sub> = (n&middot;137.508&deg;) mod 360. The golden angle 137.508&deg; = 360/&phi;<sup>2</sup> is the angular quantum. Combined with &phi;-shells, these define a coordinate grid with no free parameters. Of <span class="num">109</span> ancient sites tested, the majority fall within 3&deg; of a G-bearing.
+    </div>
+  </section>
+
+  <section data-layers="sites,maya">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#66ff99"></span>
+      <span class="sec-title">Ancient Sites</span>
+    </div>
+    <div class="sec-body">
+      <span class="num">109</span> sites across six continents &mdash; Gobekli Tepe, Angkor Wat, Teotihuacan, Nazca, and others &mdash; plotted against the shell+bearing grid. Dual G-bearing hits (within 5&deg; of a Giza line AND an EI line) appear gold. The Chich&eacute;n Itz&aacute; Maya wheel shows the 20-day Tzolk&rsquo;in cycle also follows golden-angle spacing.
+    </div>
+  </section>
+
+  <section data-layers="bhproj">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#cc44ff"></span>
+      <span class="sec-title">Black Hole Projections</span>
+    </div>
+    <div class="sec-body">
+      Each known black hole has a distance (convertible to a &phi;-shell) and a sky position (convertible to a G-bearing from Giza). Projecting shell&cap;bearing onto the globe yields a surface point. <span class="num">4 confirmations</span> land within 500 km of major sites (M31&rarr;Giza, Markarian 231&rarr;Derinkuyu, QSO J0313&rarr;Nile, V4641 Sgr&rarr;Easter Island). <span class="num">16 predictions</span> mark where un-surveyed BH projections fall.
+    </div>
+  </section>
+
+  <section data-layers="bhpaths">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#ffdd44"></span>
+      <span class="sec-title">Sky Paths &amp; Orion Belt</span>
+    </div>
+    <div class="sec-body">
+      Great circles from Giza toward Markarian 231, M31, and QSO J0313 &mdash; extended across the globe, they pass through additional ancient sites (Derinkuyu, Teotihuac&aacute;n, Luxor). The <em>Orion Belt</em> stars (Alnitak, Alnilam, Mintaka) projected onto the surface trace a line parallel to the Nile &mdash; matching the Giza&ndash;Orion correlation at framework-derived coordinates.
+    </div>
+  </section>
+
+  <section data-layers="catalog">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#66aaff"></span>
+      <span class="sec-title">Full Sky Catalog (k-sorted)</span>
+    </div>
+    <div class="sec-body">
+      <span class="num">76</span> astronomical objects (black holes, stars, radio sources) classified by divisor index <em>k</em>. Distance to each object divided by k yields a Fibonacci number within measured error. Colour encodes k-value: <span style="color:#ff4444">k=62</span> (RITO), <span style="color:#ffdd44">k=9</span>, <span style="color:#66aaff">k=3</span>, <span style="color:#44ff88">k=11</span>, etc. Squares = radio sources, large spheres = black holes, small = stars.
+    </div>
+  </section>
+
+  <section data-layers="moai">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#FF4444"></span>
+      <span class="sec-title">Moai Facing Bearings</span>
+    </div>
+    <div class="sec-body">
+      Six ahu platforms on Easter Island. <em>Ahu Akivi</em>&rsquo;s 7 moai face 262&deg; (seaward) &mdash; the reverse bearing 75.7&deg; points to Giza (16,161 km). <em>Ahu Vinapu</em> faces 45&deg; &mdash; bearing to Stonehenge is 44.6&deg; (0.4&deg; error). <em>Ahu Tahai</em> faces 90&deg; toward Mohenjo-daro. Red lines = sea-facing, cyan = inland. Dashed extensions show the full great-circle path to each target.
+    </div>
+  </section>
+
+  <section data-layers="counter">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#4aeaaa"></span>
+      <span class="sec-title">Counter Lattice (EI Antipole)</span>
+    </div>
+    <div class="sec-body">
+      The same &phi;-shell + golden-angle grid, centred on Easter Island instead of Giza. Sites that fall on <em>both</em> grids simultaneously (dual-hit, shown as gold octahedra) cannot be explained by either grid alone &mdash; they require the four-pole geometry. The Giza&ndash;EI axis great circle and the 22 EI G-bearings are drawn in teal.
+    </div>
+  </section>
+
+  <section data-layers="parallels">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#ff8844"></span>
+      <span class="sec-title">Bearing Parallels</span>
+    </div>
+    <div class="sec-body">
+      Sites sharing the same G-bearing from Giza are connected &mdash; they sit on the same golden-angle corridor. Gold lines = combined error &lt;3&deg;, orange = &lt;6&deg;. Red arcs connect Easter Island ahu platforms to distant sites their moai face toward. If today&rsquo;s Tzolk&rsquo;in bearing from Chich&eacute;n Itz&aacute; aligns with a G-line, a red octahedron marks the resonance.
+    </div>
+  </section>
+
+  <section data-layers="impact,antipodal">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#ff4444"></span>
+      <span class="sec-title">Impact &amp; Geophysics</span>
+    </div>
+    <div class="sec-body">
+      The Younger Dryas impact hypothesis: fragments arriving from the Fornax A corridor (~12,800 ya) produce antipodal shockwave focusing. Impact craters and antipodal volcanic features align on framework bearings. The simulation models shallow-water tsunami propagation from the impact site through Drake Passage.
+    </div>
+  </section>
+
+  <section data-layers="trajectory,nodes">
+    <div class="sec-head">
+      <span class="arrow">&#9654;</span>
+      <span class="dot" style="background:#cc44ff"></span>
+      <span class="sec-title">Convergence &amp; Trajectory</span>
+    </div>
+    <div class="sec-body">
+      Convergence nodes are eigenmode intersections &mdash; points where multiple shell+bearing lines cross. The Fornax A trajectory (purple) traces the infall corridor from 62 Mly. These layers show the framework&rsquo;s predictions for geologically significant points not yet surveyed.
+    </div>
+  </section>
+
+  <div class="papers">
+    <strong style="color:#88ccff">Papers</strong><br>
+    <a href="unification.html">I. Unification</a> &mdash; algebra (the why)<br>
+    <a href="deductions.html">II. Deductions</a> &mdash; astronomy (the what)<br>
+    <a href="lattice-thesis.html">III. Lattice Thesis</a> &mdash; geography (the where)<br>
+    <a href="synopsis.html">Synopsis of all three</a>
+  </div>
+</div>
+<div id="inspect">
+  <span class="insp-close" id="insp-close">&times;</span>
+  <div class="insp-name" id="insp-name"></div>
+  <div class="insp-type" id="insp-type"></div>
+  <div class="insp-body" id="insp-body"></div>
+</div>
+<div id="sidebar">
+  <h1>LATTICE GLOBE</h1>
+  <div class="sub" id="modehint">INSIDE VIEW &middot; drag to look around &middot; scroll = zoom (FOV) &middot; antipodes are directly behind you &middot; <a href="lattice.html">flat map</a></div>
+  <h2>VIEW</h2>
+  <div class="row"><button id="btn-mode" class="vbtn">Switch to OUTSIDE view</button></div>
+  <div class="row">
+    <button class="vbtn look" data-lat="29.9792" data-lng="31.1342">Giza</button>
+    <button class="vbtn look" data-lat="-27.1127" data-lng="-109.3497">EI</button>
+    <button class="vbtn look" data-lat="-29.9792" data-lng="-148.8658">SPac</button>
+    <button class="vbtn look" data-lat="27.1127" data-lng="70.6503">Indus</button>
+  </div>
+  <div class="row" style="margin-top:2px">
+    <button class="vbtn look" data-lat="-32.18" data-lng="-113.36" data-fov="65">Sgr A*</button>
+    <button class="vbtn look" data-lat="-72.9" data-lng="95.4" data-fov="55">Fornax</button>
+    <button class="vbtn look" data-lat="0" data-lng="0" data-fov="110">Null Is.</button>
+  </div>
+  <div class="row" style="margin-top:2px">
+    <button class="vbtn look" data-lat="-30" data-lng="-140" data-fov="70">Node &alpha;</button>
+    <button class="vbtn look" data-lat="30" data-lng="40" data-fov="70">Node &beta;</button>
+    <button id="btn-lattice" class="vbtn" style="color:#44ddff;border-color:#225577">Lattice only</button>
+  </div>
+
+  <h2>LAYERS</h2>
+  <div class="row"><input type="checkbox" id="ly-poles" checked><span class="sw" style="background:#ffaa00"></span><label for="ly-poles">Poles</label></div>
+  <div class="row"><input type="checkbox" id="ly-shells" checked><span class="sw" style="background:#4aeaaa"></span><label for="ly-shells">&phi;-shells (all four poles)</label></div>
+  <div class="row"><input type="checkbox" id="ly-axis" checked><span class="sw" style="background:#ffffff"></span><label for="ly-axis">Axis ring (EI&middot;Giza&middot;Indus&middot;SPac)</label></div>
+  <div class="row"><input type="checkbox" id="ly-rods" checked><span class="sw" style="background:#ffddaa"></span><label for="ly-rods">Center rods (the X, 34.66&deg;)</label></div>
+  <div class="row"><input type="checkbox" id="ly-ribs-g"><span class="sw" style="background:#88aaff"></span><label for="ly-ribs-g">Ribs Giza&rarr;Site&rarr;SPac</label></div>
+  <div class="row"><input type="checkbox" id="ly-ribs-e"><span class="sw" style="background:#ffaa44"></span><label for="ly-ribs-e">Ribs EI&rarr;Site&rarr;Pakistan</label></div>
+  <div class="row"><input type="checkbox" id="ly-solstice"><span class="sw" style="background:#ffe14a"></span><label for="ly-solstice">Solstice sunsets (G7/G10)</label></div>
+  <div class="row"><input type="checkbox" id="ly-sites" checked><span class="sw" style="background:#66ff99"></span><label for="ly-sites">Sites (hover for names)</label></div>
+  <div class="row"><input type="checkbox" id="ly-maya" checked><span class="sw" style="background:#44cc88"></span><label for="ly-maya">Maya wheel (Chichen Itza)</label></div>
+  <div class="row"><input type="checkbox" id="ly-gbear" checked><span class="sw" style="background:#666688"></span><label for="ly-gbear">All 22 G-bearings from Giza</label></div>
+  <div class="row"><input type="checkbox" id="ly-grat" checked><span class="sw" style="background:#334455"></span><label for="ly-grat">Graticule</label></div>
+  <div class="row"><input type="checkbox" id="ly-impact"><span class="sw" style="background:#ff4444"></span><label for="ly-impact">Impact simulation</label></div>
+  <div class="row"><input type="checkbox" id="ly-roads"><span class="sw" style="background:#ffd700"></span><label for="ly-roads">Sailing roads (EI five-fan)</label></div>
+    <div class="row"><input type="checkbox" id="ly-compass"><span class="sw" style="background:#ffcc44"></span><label for="ly-compass">Compass Rose (8-dir cycle)</label></div>
+<div class="row"><input type="checkbox" id="ly-reverb"><span class="sw" style="background:#44dddd"></span><label for="ly-reverb">Active geophysics (reverb)</label></div>
+<div class="row"><input type="checkbox" id="ly-antipodal"><span class="sw" style="background:#ff4466"></span><label for="ly-antipodal">Antipodal impacts</label></div>
+<div class="row"><input type="checkbox" id="ly-trajectory"><span class="sw" style="background:#cc44ff"></span><label for="ly-trajectory">Fornax A trajectory</label></div>
+<div class="row"><input type="checkbox" id="ly-nodes"><span class="sw" style="background:#ff2288"></span><label for="ly-nodes">Convergence nodes (eigenmodes)</label></div>
+
+  <h2>ASTRONOMICAL</h2>
+  <div class="row"><input type="checkbox" id="ly-bhproj"><span class="sw" style="background:#cc44ff"></span><label for="ly-bhproj">BH projections (shell+bearing)</label></div>
+  <div class="row"><input type="checkbox" id="ly-bhpaths"><span class="sw" style="background:#ffdd44"></span><label for="ly-bhpaths">BH sky paths + Orion Belt</label></div>
+  <div class="row"><input type="checkbox" id="ly-catalog"><span class="sw" style="background:#66aaff"></span><label for="ly-catalog">Full sky catalog (k-sorted)</label></div>
+  <div class="row"><input type="checkbox" id="ly-moai"><span class="sw" style="background:#FF4444"></span><label for="ly-moai">Moai facing bearings</label></div>
+  <div class="row"><input type="checkbox" id="ly-counter"><span class="sw" style="background:#4aeaaa"></span><label for="ly-counter">Counter Lattice (EI Antipole)</label></div>
+  <div class="row"><input type="checkbox" id="ly-parallels"><span class="sw" style="background:#ff8844"></span><label for="ly-parallels">Bearing parallels (cross-site)</label></div>
+
+  <h2>THE AXIS (one great circle)</h2>
+  <table>
+    <tr><td>Easter Island &rarr; Giza</td><td class="v">145.339&deg;</td></tr>
+    <tr><td>Giza &rarr; Indus pole</td><td class="v">34.661&deg;</td></tr>
+    <tr><td>Indus &rarr; SPac pole</td><td class="v">145.339&deg;</td></tr>
+    <tr><td>SPac &rarr; Easter Island</td><td class="v">34.661&deg;</td></tr>
+    <tr><td>Offset &asymp; shell n=5</td><td class="v">33.27&deg; (err 1.39&deg;)</td></tr>
+  </table>
+
+  <h2>FIVE SAILING ROADS (from EI)</h2>
+  <table>
+    <tr><td><span style="color:#ff7043">G7 242.6&deg;</span> Dec sunset</td><td class="v">New Zealand 2.5&deg;</td></tr>
+    <tr><td><span style="color:#66ccff">G15 262.6&deg;</span> axis road</td><td class="v">Rapa Iti&middot;Tonga&middot;Fiji</td></tr>
+    <tr><td><span style="color:#ffd700">G2 275.0&deg;</span> Akivi road</td><td class="v">Nan Madol 0.0&deg;</td></tr>
+    <tr><td><span style="color:#ffe14a">G10 295.1&deg;</span> Jun sunset</td><td class="v">Kiritimati&middot;Marquesas</td></tr>
+    <tr><td><span style="color:#cc88ff">G18 315.1&deg;</span></td><td class="v">Hawaii 3.6&deg;</td></tr>
+  </table>
+
+  <h2>MAYA TODAY</h2>
+  <table id="maya-tbl"></table>
+
+  <h2>LEGEND</h2>
+  <table>
+    <tr><td><span class="sw" style="background:#ffaa00"></span> Giza</td><td><span class="sw" style="background:#4aeaaa"></span> Easter Island</td></tr>
+    <tr><td><span class="sw" style="background:#88aaff"></span> SPac antipode</td><td><span class="sw" style="background:#ffaa44"></span> Indus antipode</td></tr>
+    <tr><td><span class="sw" style="background:#ccddff"></span> Geographic N/S poles</td><td><span class="sw" style="background:#ff4466"></span> Impact craters</td></tr>
+    <tr><td><span class="sw" style="background:#ffd700"></span> Gold rib = dual G-hit &lt;3&deg;</td><td><span class="sw" style="background:#ff7043"></span> Dec / <span class="sw" style="background:#ffe14a"></span> Jun sunset</td></tr>
+  </table>
+
+  <h2 style="color:#ff6644;border-color:#401515">IMPACT SIMULATION</h2>
+  <div id="impact-panel">
+    <div class="sim-ctrls">
+      <button id="sim-play" class="sim-btn">&#9654; Play</button>
+      <button id="sim-reset" class="sim-btn">&#8634;</button>
+      <button id="sim-speed" class="sim-btn">1&times;</button>
+    </div>
+    <div style="display:flex;gap:10px;margin:4px 0;font-size:8px;color:#cc8866">
+      <label style="cursor:pointer"><input type="checkbox" id="sim-ei" checked style="margin-right:3px">Easter Island</label>
+      <label style="cursor:pointer"><input type="checkbox" id="sim-chx" checked style="margin-right:3px">Chicxulub (Mayan)</label>
+    </div>
+    <div id="sim-clock">00:00</div>
+    <div id="sim-label">hours after first fragment</div>
+    <div id="sim-bar-wrap"><div id="sim-bar-fill"></div></div>
+    <div id="sim-log"><div class="sev" style="color:#664433">Press &#9654; to begin</div></div>
+    <div style="font-size:7px;color:#443322;margin-top:4px">3 fragments &middot; 30 min apart &middot; open ocean 750 km/h &middot; seismic ~4 km/s<br><span style="color:#ffaa33">&#9632;</span> Drake&rarr;Atlantic <span style="color:#ff8844">&#9632;</span> Magellan&rarr;Plata <span style="color:#44ddaa">&#9632;</span> Southern sweep&rarr;Gulf <span style="color:#ff8800">&#9632;</span> CentAm breaches <span style="color:#44ccff">&#9632;</span> Andes backwash</div>
+  </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/build/three.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+<script>
+window.addEventListener('error',function(e){document.getElementById('err').textContent='JS: '+e.message;});
+
+const PHI=(1+Math.sqrt(5))/2, GA=137.508, D2R=Math.PI/180;
+
+const GIZA={lat:29.9792,lng:31.1342}, EI={lat:-27.1127,lng:-109.3497};
+const SPAC={lat:-29.9792,lng:-148.8658}, INDUS={lat:27.1127,lng:70.6503};
+const CI={lat:20.683,lng:-88.569};
+const NPOLE={lat:90,lng:0}, SPOLE={lat:-90,lng:0};
+
+const POLES=[
+  {p:GIZA,color:0xffaa00,name:'Giza'},
+  {p:EI,color:0x4aeaaa,name:'Easter Island'},
+  {p:SPAC,color:0x88aaff,name:'Giza Antipode (S Pacific)'},
+  {p:INDUS,color:0xffaa44,name:'EI Antipode (Indus)'}
+];
+
+const SITES=[
+ ['Gobekli Tepe',37.223,38.922],['Angkor Wat',13.4125,103.867],['Machu Picchu',-13.163,-72.546],
+ ['Nazca Lines',-14.692,-75.122],['Stonehenge',51.179,-1.826],['Teotihuacan',19.692,-98.844],
+ ['Mohenjo-daro',27.329,68.138],['Baalbek',34.007,36.204],['Petra',30.329,35.444],
+ ['Persepolis',29.935,52.891],['Tiwanaku',-16.555,-68.673],['Sacsayhuaman',-13.509,-71.982],
+ ['Derinkuyu',38.374,34.734],['Knossos',35.298,25.163],['Carnac',47.585,-3.077],
+ ['Newgrange',53.694,-6.475],['Serpent Mound',39.025,-83.431],['Poverty Point',32.634,-91.408],
+ ['Cahokia',38.655,-90.062],['Chichen Itza',20.683,-88.569],['Great Zimbabwe',-20.267,30.934],
+ ['Lalibela',12.030,39.043],['Karnak Temple',25.719,32.657],["Xi'an (Terracotta)",34.384,109.273],
+ ['Sigiriya',7.957,80.760],['Borobudur',-7.608,110.204],['Nan Madol',6.844,158.334],
+ ['Ollantaytambo',-13.258,-72.263],['Puma Punku',-16.562,-68.680],['Tikal',17.222,-89.624],
+ ['Palenque',17.484,-92.046],['Rapa Iti',-27.617,-144.342],['Raivavae',-23.863,-147.662],
+ ['Tahiti',-17.680,-149.450],['Mangareva',-23.116,-134.972],['Pitcairn',-25.066,-130.100],
+ ['Henderson Island',-24.358,-128.322],["Tonga (Ha'amonga)",-21.137,-175.058],
+ ['Fiji (Sigatoka)',-18.144,177.514],['Marquesas',-8.860,-140.099],['Marotiri',-27.910,-143.424],
+ ['Ganweriwala',28.500,71.150],['Kalibangan',29.472,74.130],['Dholavira',23.888,70.213],
+ ['Harappa',30.631,72.865],['Lothal',22.523,72.249],['Rakhigarhi',29.293,76.114],
+ ['Mehrgarh',29.370,67.618],['Taxila',33.746,72.837],['Dwarka',22.240,68.968],
+ ['Giza',29.9792,31.1342],['Easter Island',-27.1127,-109.3497]
+];
+
+// --- spherical helpers ---
+function v3(lat,lng,r){
+  const la=lat*D2R, lo=lng*D2R;
+  return new THREE.Vector3(r*Math.cos(la)*Math.cos(lo), r*Math.sin(la), -r*Math.cos(la)*Math.sin(lo));
+}
+function bearing(a,b){
+  const la1=a.lat*D2R,lo1=a.lng*D2R,la2=b.lat*D2R,lo2=b.lng*D2R;
+  const x=Math.sin(lo2-lo1)*Math.cos(la2);
+  const y=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(lo2-lo1);
+  return((Math.atan2(x,y)/D2R)%360+360)%360;
+}
+function nearestG(az){
+  let e=999;
+  for(let i=1;i<=22;i++){
+    const g=(GA*i)%360;
+    let d=Math.abs(az-g); if(d>180)d=360-d;
+    if(d<e)e=d;
+  }
+  return e;
+}
+// full great circle through A at initial azimuth az (closed ring of points)
+function greatCircleAz(a,az,r,seg){
+  seg=seg||256;
+  const pts=[];
+  const la=a.lat*D2R, lo=a.lng*D2R, b=az*D2R;
+  for(let i=0;i<=seg;i++){
+    const d=2*Math.PI*i/seg;
+    const la2=Math.asin(Math.sin(la)*Math.cos(d)+Math.cos(la)*Math.sin(d)*Math.cos(b));
+    const lo2=lo+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(la),Math.cos(d)-Math.sin(la)*Math.sin(la2));
+    pts.push(v3(la2/D2R,lo2/D2R,r));
+  }
+  return pts;
+}
+// full great circle through two points (via their plane normal)
+function greatCircle2(a,b,r,seg){
+  return greatCircleAz(a,bearing(a,b),r,seg);
+}
+// small circle: ring at angular radius th deg around center c
+function smallCircle(c,th,r,seg){
+  seg=seg||180;
+  const pts=[];
+  for(let i=0;i<=seg;i++){
+    const brg=360*i/seg;
+    const la=c.lat*D2R, lo=c.lng*D2R, d=th*D2R, bb=brg*D2R;
+    const la2=Math.asin(Math.sin(la)*Math.cos(d)+Math.cos(la)*Math.sin(d)*Math.cos(bb));
+    const lo2=lo+Math.atan2(Math.sin(bb)*Math.sin(d)*Math.cos(la),Math.cos(d)-Math.sin(la)*Math.sin(la2));
+    pts.push(v3(la2/D2R,lo2/D2R,r));
+  }
+  return pts;
+}
+// arc from A toward azimuth az spanning span degrees
+function arcAz(a,az,span,r,seg){
+  seg=seg||48;
+  const pts=[];
+  const la=a.lat*D2R, lo=a.lng*D2R, b=az*D2R;
+  for(let i=0;i<=seg;i++){
+    const d=span*D2R*i/seg;
+    const la2=Math.asin(Math.sin(la)*Math.cos(d)+Math.cos(la)*Math.sin(d)*Math.cos(b));
+    const lo2=lo+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(la),Math.cos(d)-Math.sin(la)*Math.sin(la2));
+    pts.push(v3(la2/D2R,lo2/D2R,r));
+  }
+  return pts;
+}
+function line(pts,color,opacity){
+  const g=new THREE.BufferGeometry().setFromPoints(pts);
+  return new THREE.Line(g,new THREE.LineBasicMaterial({color:color,transparent:true,opacity:opacity}));
+}
+
+// --- scene ---
+const el=document.getElementById('globe');
+const scene=new THREE.Scene();
+const camera=new THREE.PerspectiveCamera(40,1,0.01,100);
+camera.position.copy(v3(15,-30,3.2));
+const renderer=new THREE.WebGLRenderer({antialias:true});
+renderer.setPixelRatio(window.devicePixelRatio);
+el.appendChild(renderer.domElement);
+const controls=new THREE.OrbitControls(camera,renderer.domElement);
+controls.enableDamping=true; controls.dampingFactor=0.08;
+controls.minDistance=1.35; controls.maxDistance=6; controls.enablePan=false;
+
+function resize(){
+  const w=window.innerWidth, h=window.innerHeight;
+  camera.aspect=w/h; camera.updateProjectionMatrix();
+  renderer.setSize(w,h);
+}
+window.addEventListener('resize',resize); resize();
+
+scene.add(new THREE.AmbientLight(0xffffff,1.0));
+
+// earth
+const world=new THREE.Group();
+scene.add(world);
+const sphere=new THREE.Mesh(
+  new THREE.SphereGeometry(1,96,96),
+  new THREE.MeshBasicMaterial({color:0x0a1220,side:THREE.DoubleSide})
+);
+world.add(sphere);
+new THREE.TextureLoader().load(
+  'earth-bluemarble.jpg',
+  function(tex){ sphere.material=new THREE.MeshBasicMaterial({map:tex,side:THREE.DoubleSide}); }
+);
+
+// layer groups
+const L={};
+['poles','shells','axis','rods','ribsG','ribsE','solstice','sites','maya','gbear','grat','impact','roads','reverb','compass','antipodal','trajectory','nodes','bhproj','bhpaths','catalog','moai','counter','parallels'].forEach(k=>{
+  L[k]=new THREE.Group(); world.add(L[k]);
+});
+
+// graticule
+for(let la=-75;la<=75;la+=15) L.grat.add(line(smallCircle({lat:la>0?90:-90,lng:0},90-Math.abs(la),1.001),0x334455,0.3));
+for(let lo=0;lo<180;lo+=15) L.grat.add(line(greatCircleAz({lat:0,lng:lo},0,1.001),0x334455,0.3));
+
+const siteMeshes=[];
+// poles: dot + halo rings
+for(const P of POLES){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.012,16,16),
+    new THREE.MeshBasicMaterial({color:P.color}));
+  m.position.copy(v3(P.p.lat,P.p.lng,1.005));
+  m.userData.name=P.name;
+  L.poles.add(m);
+  L.poles.add(line(smallCircle(P.p,1.2,1.004),P.color,0.9));
+}
+
+// geographic N/S poles
+(function(){
+  const geoPoles=[
+    {p:NPOLE, color:0xccddff, name:'Geographic North Pole (90°N)'},
+    {p:SPOLE, color:0xccddff, name:'Geographic South Pole (90°S)'}
+  ];
+  for(const gp of geoPoles){
+    const dot=new THREE.Mesh(new THREE.SphereGeometry(0.010,14,14),
+      new THREE.MeshBasicMaterial({color:gp.color}));
+    dot.position.copy(v3(gp.p.lat,gp.p.lng,1.006));
+    dot.userData.name=gp.name;
+    L.poles.add(dot); siteMeshes.push(dot);
+    L.poles.add(line(smallCircle(gp.p,1.0,1.005),gp.color,0.6));
+    // axis line through both poles
+  }
+  L.poles.add(line([v3(90,0,1.006),v3(-90,0,1.006)],0xccddff,0.2));
+})();
+
+// phi shells at all four poles, n=-1..6
+for(const P of POLES){
+  for(let n=-1;n<=6;n++){
+    const th=3*Math.pow(PHI,n);
+    if(th>60) continue;
+    L.shells.add(line(smallCircle(P.p,th,1.003),P.color,n<=2?0.5:0.3));
+  }
+}
+
+// axis ring through all four poles
+L.axis.add(line(greatCircle2(GIZA,EI,1.006),0xffffff,0.75));
+
+// center rods: four half-diameters from the Earth's center to each pole.
+// Giza<->SPac and EI<->Indus are straight rods through the center,
+// crossing at 34.66 deg (= phi-shell n=5 angle).
+// two variants: full rods for OUTSIDE view, hollow-core rods for INSIDE view
+// (inside, the camera sits at the X crossing — rods must keep clear of the eye)
+const rodsOut=new THREE.Group(), rodsIn=new THREE.Group();
+L.rods.add(rodsOut); L.rods.add(rodsIn);
+function rodSeg(pole,color,r0,r1,radius,group){
+  const dir=v3(pole.lat,pole.lng,1.0).normalize();
+  const a=dir.clone().multiplyScalar(r0), b=dir.clone().multiplyScalar(r1);
+  const seg=new THREE.Vector3().subVectors(b,a);
+  const len=seg.length();
+  const geo=new THREE.CylinderGeometry(radius,radius,len,10);
+  const m=new THREE.Mesh(geo,new THREE.MeshBasicMaterial({color:color,transparent:true,opacity:0.85}));
+  m.position.copy(a).add(b).multiplyScalar(0.5);
+  m.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),seg.normalize());
+  group.add(m);
+}
+for(const P of POLES){
+  rodSeg(P.p,P.color,0,1.0,0.0035,rodsOut);      // full half-diameter (outside view)
+  rodSeg(P.p,P.color,0.12,1.0,0.0016,rodsIn);    // hollow core (inside view)
+}
+// center node + axis plane: outside view only
+const ctr=new THREE.Mesh(new THREE.SphereGeometry(0.008,12,12),
+  new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0.9}));
+rodsOut.add(ctr);
+(function(){
+  const nA=v3(GIZA.lat,GIZA.lng,1).cross(v3(EI.lat,EI.lng,1)).normalize();
+  const disc=new THREE.Mesh(new THREE.CircleGeometry(1.0,72),
+    new THREE.MeshBasicMaterial({color:0xaaccff,transparent:true,opacity:0.05,side:THREE.DoubleSide,depthWrite:false}));
+  disc.quaternion.setFromUnitVectors(new THREE.Vector3(0,0,1),nA);
+  rodsOut.add(disc);
+})();
+
+// rib fans (full unbroken great circles)
+function ribFan(origin,anti,group,colMid){
+  for(const s of SITES){
+    if(s[0]==='Giza'||s[0]==='Easter Island') continue;
+    const site={lat:s[1],lng:s[2]};
+    const e1=nearestG(bearing(origin,site));
+    const e2=nearestG(bearing(anti,site));
+    let color=colMid,op=0.14;
+    if(e1<3&&e2<3){color=0xffd700;op=0.95;}
+    else if(e1<5&&e2<5){op=0.5;}
+    group.add(line(greatCircle2(origin,site,1.004),color,op));
+  }
+}
+ribFan(GIZA,SPAC,L.ribsG,0x88aaff);
+ribFan(EI,INDUS,L.ribsE,0xffaa44);
+
+// solstice sunset great circles from each pole
+const EPS=23.44;
+for(const P of POLES){
+  for(const s of [{dec:-EPS,color:0xff7043},{dec:EPS,color:0xffe14a}]){
+    const x=Math.sin(s.dec*D2R)/Math.cos(P.p.lat*D2R);
+    if(Math.abs(x)>1) continue;
+    const azSet=360-Math.acos(x)/D2R;
+    L.solstice.add(line(greatCircleAz(P.p,azSet,1.005),s.color,0.6));
+  }
+}
+
+// sites
+
+for(const s of SITES){
+  const isAnchor=(s[0]==='Giza'||s[0]==='Easter Island');
+  const m=new THREE.Mesh(new THREE.SphereGeometry(isAnchor?0.009:0.006,10,10),
+    new THREE.MeshBasicMaterial({color:isAnchor?0xff4444:0x66ff99}));
+  m.position.copy(v3(s[1],s[2],1.004));
+  m.userData.name=s[0];
+  L.sites.add(m); siteMeshes.push(m);
+}
+
+// maya wheel at Chichen Itza
+(function(){
+  const WHEEL=16.2; // 1800 km in degrees
+  const GS={54:1,72:1,126:1,144:1};
+  L.maya.add(line(smallCircle(CI,WHEEL,1.004),0x44cc88,0.7));
+  for(let k=0;k<20;k++){
+    const az=k*18, isG=GS[az];
+    L.maya.add(line(arcAz(CI,az,WHEEL,1.004),isG?0xffd700:0x44cc88,isG?0.95:0.45));
+  }
+  const _tz=new Date().getTimezoneOffset()*60000;const jdn=Math.floor((Date.now()-_tz)/86400000+2440588);
+  const days=jdn-584283;
+  L.maya.add(line(arcAz(CI,days%360,WHEEL*1.28,1.006),0xff4444,1.0));
+  // sidebar table
+  let rem=days;
+  const bk=Math.floor(rem/144000); rem%=144000;
+  const kt=Math.floor(rem/7200); rem%=7200;
+  const tn=Math.floor(rem/360); rem%=360;
+  const un=Math.floor(rem/20), kn=rem%20;
+  const TZN=['Imix','Ik','Akbal','Kan','Chicchan','Cimi','Manik','Lamat','Muluc','Oc','Chuen','Eb','Ben','Ix','Men','Cib','Caban','Etznab','Cauac','Ahau'];
+  const HAB=['Pop','Uo','Zip','Zotz','Tzec','Xul','Yaxkin','Mol','Chen','Yax','Zac','Ceh','Mac','Kankin','Muan','Pax','Kayab','Cumku','Wayeb'];
+  const doy=(348+days)%365;
+  document.getElementById('maya-tbl').innerHTML=
+    '<tr><td>Long Count</td><td class="v gold">'+bk+'.'+kt+'.'+tn+'.'+un+'.'+kn+'</td></tr>'+
+    '<tr><td>Tzolkin</td><td class="v">'+(((days+3)%13)+1)+' '+TZN[(days+19)%20]+'</td></tr>'+
+    '<tr><td>Haab</td><td class="v">'+(doy%20)+' '+HAB[Math.floor(doy/20)]+'</td></tr>'+
+    '<tr><td>Tun bearing</td><td class="v gold">'+(days%360)+'&deg;</td></tr>';
+})();
+
+
+// === SAILING ROADS: five G-corridors out of Easter Island + Akivi sight line ===
+(function(){
+  const ROADS=[
+    {brg:242.556,span:63.9,col:0xff7043},
+    {brg:262.62,span:70.7,col:0x66ccff},
+    {brg:275.016,span:98.6,col:0xffd700},
+    {brg:295.08,span:58.1,col:0xffe14a},
+    {brg:315.144,span:68.5,col:0xcc88ff}
+  ];
+  for(const r of ROADS) L.roads.add(line(arcAz(EI,r.brg,r.span,1.006),r.col,0.85));
+  L.roads.add(line(arcAz(EI,271,31,1.007),0xffffff,0.5));
+  const DEST=[["NZ East Cape", -37.7, 178.5], ["Rarotonga", -21.23, -159.78], ["Kiritimati", 1.87, -157.4], ["Samoa", -14.215, -169.058], ["Rangiroa (Tuamotu)", -15.12, -147.64], ["Tubuai", -23.35, -149.48]];
+  for(const d of DEST){
+    const m=new THREE.Mesh(new THREE.SphereGeometry(0.005,8,8),
+      new THREE.MeshBasicMaterial({color:0xffffff}));
+    m.position.copy(v3(d[1],d[2],1.004));
+    m.userData.name=d[0]+' — road landfall';
+    L.roads.add(m); siteMeshes.push(m);
+  }
+})();
+
+// === FULL BHOLE GEOMETRY: 53 bholes, antipodal pairs, collinear lines, impact connections ===
+(function(){
+  var D2R=Math.PI/180;
+  var ALL_BH=[
+    {n:'HR 6819',lat:-30.76,lng:-148.10,k:3,d:'1.1kly',cat:'bh'},
+    {n:'Gaia BH1',lat:14.23,lng:-76.87,k:11,d:'1.6kly',cat:'bh'},
+    {n:'Gaia BH3',lat:12.55,lng:-69.13,k:3,d:'1.9kly',cat:'bh'},
+    {n:'A0620-00',lat:-15.09,lng:119.66,k:1612,d:'3.3kly',cat:'bh'},
+    {n:'Gaia BH2',lat:-69.63,lng:41.65,k:26,d:'3.8kly',cat:'bh'},
+    {n:'Gaia18ajz',lat:-0.95,lng:-69.76,k:26,d:'3.8kly',cat:'bh'},
+    {n:'MOA-2011',lat:-20.77,lng:-66.06,k:9,d:'5.2kly',cat:'bh'},
+    {n:'GRS 1124',lat:-66.45,lng:83.71,k:9,d:'5.4kly',cat:'bh'},
+    {n:'Swift J1357',lat:66.39,lng:38.88,k:1612,d:'5.0kly',cat:'bh'},
+    {n:'XTE J1118',lat:55.26,lng:54.20,k:65,d:'5.7kly',cat:'bh'},
+    {n:'Cygnus X-1',lat:-8.64,lng:-119.71,k:26,d:'6.1kly',cat:'bh'},
+    {n:'LB-1',lat:5.42,lng:128.15,k:1,d:'6.9kly',cat:'bh'},
+    {n:'V404 Cygni',lat:0.17,lng:-105.97,k:3,d:'7.8kly',cat:'bh'},
+    {n:'GRO J0422',lat:-21.77,lng:-173.39,k:1612,d:'8.1kly',cat:'bh'},
+    {n:'GS 2000+25',lat:-7.87,lng:-108.98,k:9,d:'8.8kly',cat:'bh'},
+    {n:'GRO J1719',lat:8.95,lng:-32.11,k:9,d:'8.5kly',cat:'bh'},
+    {n:'Gaia18cbf',lat:-23.54,lng:-34.17,k:65,d:'9.3kly',cat:'bh'},
+    {n:'MAXI J1820',lat:-13.24,lng:-114.29,k:26,d:'9.8kly',cat:'bh'},
+    {n:'GRO J1655',lat:-18.57,lng:-35.97,k:1,d:'11kly',cat:'bh'},
+    {n:'Swift J1727',lat:8.68,lng:-53.18,k:1,d:'11kly',cat:'bh'},
+    {n:'XTE J1752',lat:-2.09,lng:-51.23,k:19,d:'11.5kly',cat:'bh'},
+    {n:'4U 1630',lat:-45.67,lng:-57.64,k:65,d:'15kly',cat:'bh'},
+    {n:'NGC 3201',lat:0.25,lng:64.22,k:16,d:'15.7kly',cat:'bh'},
+    {n:'XTE J1550',lat:-66.42,lng:-77.95,k:11,d:'17kly',cat:'bh'},
+    {n:'GRS 1009',lat:-6.70,lng:72.89,k:11,d:'17.2kly',cat:'bh'},
+    {n:'SS 433',lat:-12.27,lng:-100.77,k:1,d:'18kly',cat:'bh'},
+    {n:'Cyg X-3',lat:-27.79,lng:-145.37,k:65,d:'24kly',cat:'bh'},
+    {n:'GX 339-4',lat:-36.92,lng:-138.73,k:26,d:'26kly',cat:'bh'},
+    {n:'GRS 1758',lat:-31.30,lng:-119.04,k:11,d:'28kly',cat:'bh'},
+    {n:'GRS 1915',lat:10.56,lng:-71.75,k:9,d:'36kly',cat:'bh'},
+    {n:'Sgr A*',lat:-32.18,lng:-113.36,k:26,d:'26kly',cat:'center'},
+    {n:'LMC X-1',lat:-60.85,lng:64.99,k:62,d:'160kly',cat:'bh'},
+    {n:'IC 10 X-1',lat:68.95,lng:-29.52,k:11,d:'2.1Mly',cat:'bh'},
+    {n:'M33 X-7',lat:29.27,lng:-0.10,k:1612,d:'2.7Mly',cat:'bh'},
+    {n:'Omega Cen',lat:-37.48,lng:-152.30,k:16,d:'15.8kly',cat:'bh'},
+    {n:'M82 X-1',lat:63.59,lng:165.18,k:9,d:'12Mly',cat:'bh'},
+    {n:'3XMM J2150',lat:-26.76,lng:-69.74,k:19,d:'740Mly',cat:'bh'},
+    {n:'Centaurus A',lat:-27.59,lng:59.70,k:6,d:'13Mly',cat:'bh'},
+    {n:'M104',lat:18.00,lng:161.54,k:1612,d:'29.4Mly',cat:'bh'},
+    {n:'NGC 3115',lat:6.41,lng:127.65,k:62,d:'32Mly',cat:'bh'},
+    {n:'M87*',lat:31.63,lng:175.89,k:65,d:'53.5Mly',cat:'bh'},
+    {n:'Holmberg 15A',lat:-45.55,lng:-14.81,k:1,d:'700Mly',cat:'bh'},
+    {n:'IC 1101*',lat:66.81,lng:-36.19,k:26,d:'1.0Bly',cat:'bh'},
+    {n:'GW150914',lat:-78.80,lng:31.01,k:3,d:'1.3Bly',cat:'bh'},
+    {n:'GW151226',lat:-30.24,lng:-157.49,k:1612,d:'1.4Bly',cat:'bh'},
+    {n:'3C 273',lat:22.75,lng:172.58,k:62,d:'2.4Bly',cat:'bh'},
+    {n:'Mrk 231',lat:39.60,lng:33.15,k:62,d:'580Mly',cat:'confirm'},
+    {n:'Phoenix A',lat:-1.25,lng:17.32,k:1612,d:'5.7Bly',cat:'bh'},
+    {n:'TON 618',lat:-2.11,lng:-159.78,k:62,d:'10.4Bly',cat:'bh'},
+    {n:'S5 0014+81',lat:-4.11,lng:-146.75,k:11,d:'12.1Bly',cat:'bh'},
+    {n:'QSO J0313',lat:22.64,lng:34.20,k:19,d:'13Bly',cat:'confirm'},
+    {n:'ULAS J1342',lat:76.15,lng:175.83,k:19,d:'13.1Bly',cat:'bh'},
+    {n:'Fornax A',lat:-72.90,lng:95.40,k:0,d:'62Mly',cat:'confirm'}
+  ];
+
+  var IMPACTS=[
+    {n:'Wilkes',lat:-70.0,lng:120.0},
+    {n:'Chicxulub',lat:21.4,lng:-89.5},
+    {n:'Burckle',lat:-30.87,lng:61.36},
+    {n:'Easter Is.',lat:-27.1,lng:-109.3}
+  ];
+
+  // K-value colors
+  var KC={1:0xffffff,3:0x66aaff,6:0x44dddd,9:0xffdd44,11:0x44ff88,
+          16:0xbb66ff,19:0xff88cc,26:0xff9944,62:0xff4444,65:0x44cccc,1612:0xff44ff,0:0xcc44ff};
+
+  function gcInterp(a,b,f){
+    var la1=a.lat*D2R,lo1=a.lng*D2R,la2=b.lat*D2R,lo2=b.lng*D2R;
+    var d=Math.acos(Math.max(-1,Math.min(1,Math.sin(la1)*Math.sin(la2)+Math.cos(la1)*Math.cos(la2)*Math.cos(lo2-lo1))));
+    if(d<1e-8) return v3(a.lat,a.lng,1.003);
+    var A=Math.sin((1-f)*d)/Math.sin(d);
+    var B=Math.sin(f*d)/Math.sin(d);
+    var x=A*Math.cos(la1)*Math.cos(lo1)+B*Math.cos(la2)*Math.cos(lo2);
+    var y=A*Math.cos(la1)*Math.sin(lo1)+B*Math.cos(la2)*Math.sin(lo2);
+    var z=A*Math.sin(la1)+B*Math.sin(la2);
+    var lat=Math.atan2(z,Math.sqrt(x*x+y*y))/D2R;
+    var lng=Math.atan2(y,x)/D2R;
+    return v3(lat,lng,1.003);
+  }
+
+  function havDeg(a,b){
+    var la1=a.lat*D2R,lo1=a.lng*D2R,la2=b.lat*D2R,lo2=b.lng*D2R;
+    var dlat=la2-la1,dlng=lo2-lo1;
+    var h=Math.sin(dlat/2)*Math.sin(dlat/2)+Math.cos(la1)*Math.cos(la2)*Math.sin(dlng/2)*Math.sin(dlng/2);
+    return 2*Math.asin(Math.sqrt(h))/D2R;
+  }
+
+  function drawGC(a,b,color,opacity,dashed,ext){
+    var pts=[];
+    var s=ext?-0.3:0, e=ext?1.3:1;
+    for(var t=s;t<=e;t+=0.005) pts.push(gcInterp(a,b,t));
+    var geo=new THREE.BufferGeometry().setFromPoints(pts);
+    var mat=dashed?
+      new THREE.LineDashedMaterial({color:color,transparent:true,opacity:opacity,dashSize:0.012,gapSize:0.006}):
+      new THREE.LineBasicMaterial({color:color,transparent:true,opacity:opacity});
+    var line=new THREE.Line(geo,mat);
+    if(dashed) line.computeLineDistances();
+    line.renderOrder=9;
+    L.trajectory.add(line);
+    return line;
+  }
+
+  // === 1. ALL BHOLE MARKERS ===
+  for(var i=0;i<ALL_BH.length;i++){
+    var bh=ALL_BH[i];
+    var col=bh.cat==='confirm'?0xff4466:bh.cat==='center'?0xffdd44:(KC[bh.k]||0xcc44ff);
+    var sz=bh.cat==='confirm'?0.012:bh.cat==='center'?0.014:0.007;
+    var op=bh.cat==='confirm'?0.95:bh.cat==='center'?0.95:0.65;
+    var m=new THREE.Mesh(
+      new THREE.OctahedronGeometry(sz),
+      new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op})
+    );
+    m.position.copy(v3(bh.lat,bh.lng,1.008));
+    m.renderOrder=11;
+    m.userData.name=bh.n+' ('+bh.d+', k='+bh.k+')';
+    L.trajectory.add(m);
+    siteMeshes.push(m);
+  }
+
+  // === 2. ANTIPODAL PAIRS — cyan lines connecting bholes on opposite sides ===
+  var ANTI_PAIRS=[
+    ['LB-1','XTE J1752',3.4],
+    ['Phoenix A','TON 618',4.4],
+    ['Omega Cen','Mrk 231',4.8],
+    ['Cyg X-3','QSO J0313',5.2],
+    ['V404 Cygni','GRS 1009',6.6],
+    ['GX 339-4','Mrk 231',6.9],
+    ['GW150914','ULAS J1342',7.9],
+    ['HR 6819','QSO J0313',8.4],
+    ['HR 6819','Mrk 231',8.9],
+    ['Gaia BH3','A0620-00',8.9],
+    ['Cygnus X-1','NGC 3201',9.3],
+    ['A0620-00','Swift J1727',9.5],
+    ['GRO J0422','M33 X-7',9.6]
+  ];
+
+  function findBH(name){
+    for(var i=0;i<ALL_BH.length;i++) if(ALL_BH[i].n===name) return ALL_BH[i];
+    return null;
+  }
+
+  for(var p=0;p<ANTI_PAIRS.length;p++){
+    var a=findBH(ANTI_PAIRS[p][0]), b=findBH(ANTI_PAIRS[p][1]);
+    if(!a||!b) continue;
+    var pts=[v3(a.lat,a.lng,1.006),new THREE.Vector3(0,0,0),v3(b.lat,b.lng,1.006)];
+    var geo=new THREE.BufferGeometry().setFromPoints(pts);
+    var line=new THREE.Line(geo,new THREE.LineDashedMaterial({
+      color:0x44ddff,transparent:true,opacity:0.25,dashSize:0.02,gapSize:0.01
+    }));
+    line.computeLineDistances();
+    line.renderOrder=8;
+    L.trajectory.add(line);
+  }
+
+  // === 3. COLLINEAR GREAT CIRCLES — key alignments ===
+  // IC 10 X-1 — TON 618 — Fornax A (162° span)
+  drawGC(findBH('IC 10 X-1'),findBH('Fornax A'),0x8844ff,0.35,true,true);
+  // A0620-00 — GW150914 — ULAS J1342 (172° span)
+  drawGC(findBH('A0620-00'),findBH('ULAS J1342'),0x44ff88,0.3,true,true);
+  // Gaia BH2 — Mrk 231 — QSO J0313 (Nile Line extended, 109°)
+  drawGC(findBH('Gaia BH2'),findBH('QSO J0313'),0xff6644,0.4,true,true);
+  // Sgr A* — Centaurus A — GW150914 (120°)
+  drawGC(findBH('Sgr A*'),findBH('GW150914'),0xffdd44,0.3,true,true);
+  // M87* — TON 618 — QSO J0313 (155°)
+  drawGC(findBH('M87*'),findBH('QSO J0313'),0xff88cc,0.25,true,true);
+
+  // === 4. FORNAX A → WILKES TRAJECTORY (kept from original) ===
+  var FORNAX={lat:-72.9,lng:95.4}, WILKES={lat:-70.0,lng:120.0};
+
+  // Extended dashed ground track
+  var gcPts=[];
+  for(var t=-0.8;t<=2.5;t+=0.01) gcPts.push(gcInterp(FORNAX,WILKES,t));
+  var gcGeo=new THREE.BufferGeometry().setFromPoints(gcPts);
+  var gcLine=new THREE.Line(gcGeo,new THREE.LineDashedMaterial({
+    color:0xcc44ff,transparent:true,opacity:0.6,dashSize:0.015,gapSize:0.008
+  }));
+  gcLine.computeLineDistances();gcLine.renderOrder=9;
+  L.trajectory.add(gcLine);
+
+  // Solid route segment
+  var routePts=[];
+  for(var t=0;t<=1;t+=0.005) routePts.push(gcInterp(FORNAX,WILKES,t));
+  var routeGeo=new THREE.BufferGeometry().setFromPoints(routePts);
+  L.trajectory.add(new THREE.Line(routeGeo,new THREE.LineBasicMaterial({
+    color:0xff44ff,transparent:true,opacity:0.9,renderOrder:9
+  })));
+
+  // Sky trajectory line
+  var skyDir=v3(FORNAX.lat,FORNAX.lng,1).normalize();
+  var trajPts=[
+    new THREE.Vector3().copy(skyDir).multiplyScalar(4.0),
+    new THREE.Vector3().copy(skyDir).multiplyScalar(2.5),
+    new THREE.Vector3().copy(skyDir).multiplyScalar(1.8),
+    new THREE.Vector3().copy(skyDir).multiplyScalar(1.3),
+    v3(FORNAX.lat,FORNAX.lng,1.003),v3(WILKES.lat,WILKES.lng,1.003)
+  ];
+  L.trajectory.add(new THREE.Line(
+    new THREE.BufferGeometry().setFromPoints(trajPts),
+    new THREE.LineBasicMaterial({color:0xcc44ff,transparent:true,opacity:0.7})
+  ));
+
+  // Fornax A sky marker
+  var skyM=new THREE.Mesh(new THREE.SphereGeometry(0.06,12,12),
+    new THREE.MeshBasicMaterial({color:0xcc44ff,transparent:true,opacity:0.7}));
+  skyM.position.copy(skyDir).multiplyScalar(4.0);skyM.renderOrder=9;
+  L.trajectory.add(skyM);
+
+  // === 5. IMPACT-BHOLE PROXIMITY LINES ===
+  var IMP_BH=[
+    ['Wilkes','Fornax A',8.3,0xff44ff],
+    ['Wilkes','GRS 1124',13.7,0xff44ff],
+    ['Burckle','Centaurus A',3.6,0xff6644],
+    ['Easter Is.','Sgr A*',6.2,0xffdd44],
+    ['Easter Is.','GRS 1758',9.5,0xffdd44],
+    ['Chicxulub','Gaia BH1',14.0,0xff9944]
+  ];
+
+  for(var ib=0;ib<IMP_BH.length;ib++){
+    var imp=null,bh2=findBH(IMP_BH[ib][1]);
+    for(var j=0;j<IMPACTS.length;j++) if(IMPACTS[j].n===IMP_BH[ib][0]) imp=IMPACTS[j];
+    if(!imp||!bh2) continue;
+    drawGC(imp,bh2,IMP_BH[ib][3],0.5,false,false);
+    // Impact marker
+    var im=new THREE.Mesh(new THREE.SphereGeometry(0.008,10,10),
+      new THREE.MeshBasicMaterial({color:IMP_BH[ib][3],transparent:true,opacity:0.9}));
+    im.position.copy(v3(imp.lat,imp.lng,1.008));im.renderOrder=12;
+    im.userData.name=imp.n+' crater ← '+IMP_BH[ib][1]+' ('+IMP_BH[ib][2]+'°)';
+    L.trajectory.add(im);siteMeshes.push(im);
+  }
+
+  // === 6. CENTAURUS A → BURCKLE sky trajectory (new discovery) ===
+  var CENA=findBH('Centaurus A'), BURCKLE={lat:-30.87,lng:61.36};
+  if(CENA){
+    var sd2=v3(CENA.lat,CENA.lng,1).normalize();
+    var tp2=[
+      new THREE.Vector3().copy(sd2).multiplyScalar(3.5),
+      new THREE.Vector3().copy(sd2).multiplyScalar(2.0),
+      new THREE.Vector3().copy(sd2).multiplyScalar(1.3),
+      v3(CENA.lat,CENA.lng,1.003),v3(BURCKLE.lat,BURCKLE.lng,1.003)
+    ];
+    L.trajectory.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(tp2),
+      new THREE.LineBasicMaterial({color:0xff6644,transparent:true,opacity:0.6})
+    ));
+    var sm2=new THREE.Mesh(new THREE.SphereGeometry(0.04,10,10),
+      new THREE.MeshBasicMaterial({color:0xff6644,transparent:true,opacity:0.6}));
+    sm2.position.copy(sd2).multiplyScalar(3.5);sm2.renderOrder=9;
+    L.trajectory.add(sm2);
+  }
+
+  // === 7. SGR A* → EASTER ISLAND sky trajectory ===
+  var SGRA=findBH('Sgr A*'), EI={lat:-27.1,lng:-109.3};
+  if(SGRA){
+    var sd3=v3(SGRA.lat,SGRA.lng,1).normalize();
+    var tp3=[
+      new THREE.Vector3().copy(sd3).multiplyScalar(3.0),
+      new THREE.Vector3().copy(sd3).multiplyScalar(1.8),
+      new THREE.Vector3().copy(sd3).multiplyScalar(1.3),
+      v3(SGRA.lat,SGRA.lng,1.003),v3(EI.lat,EI.lng,1.003)
+    ];
+    L.trajectory.add(new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(tp3),
+      new THREE.LineBasicMaterial({color:0xffdd44,transparent:true,opacity:0.6})
+    ));
+    var sm3=new THREE.Mesh(new THREE.SphereGeometry(0.05,10,10),
+      new THREE.MeshBasicMaterial({color:0xffdd44,transparent:true,opacity:0.7}));
+    sm3.position.copy(sd3).multiplyScalar(3.0);sm3.renderOrder=9;
+    sm3.userData.name='Sgr A* — Milky Way center (26 kly)';
+    L.trajectory.add(sm3);siteMeshes.push(sm3);
+  }
+
+  // === 8. WILKES ANTIPODE → IC 1101* connection (exit wound) ===
+  var IC1101=findBH('IC 1101*');
+  if(IC1101){
+    var SIBERIAN={lat:70.0,lng:-60.0};
+    drawGC(SIBERIAN,IC1101,0xffd700,0.35,true,false);
+  }
+
+  // True N-S rotation axis
+  var axPts=[new THREE.Vector3(0,-4,0),new THREE.Vector3(0,-1.015,0),new THREE.Vector3(0,1.015,0),new THREE.Vector3(0,4,0)];
+  var axGeo=new THREE.BufferGeometry().setFromPoints(axPts);
+  var axLine=new THREE.Line(axGeo,new THREE.LineDashedMaterial({
+    color:0x88ccff,transparent:true,opacity:0.5,dashSize:0.03,gapSize:0.015
+  }));
+  axLine.computeLineDistances();axLine.renderOrder=9;
+  L.trajectory.add(axLine);
+  var npM=new THREE.Mesh(new THREE.SphereGeometry(0.015,8,8),
+    new THREE.MeshBasicMaterial({color:0x88ccff,transparent:true,opacity:0.6}));
+  npM.position.set(0,1.02,0);npM.renderOrder=9;L.trajectory.add(npM);
+  var spM=new THREE.Mesh(new THREE.SphereGeometry(0.015,8,8),
+    new THREE.MeshBasicMaterial({color:0x88ccff,transparent:true,opacity:0.6}));
+  spM.position.set(0,-1.02,0);spM.renderOrder=9;L.trajectory.add(spM);
+
+  console.log('Full bhole geometry: '+ALL_BH.length+' bholes, '+ANTI_PAIRS.length+' antipodal pairs, impact connections loaded');
+})();
+
+
+// === ANTIPODAL IMPACTS: Wilkes Land, Siberian Traps lattice node, Chicxulub, Deccan ===
+(function(){
+  const IMPACTS=[
+    {name:"Wilkes Land Crater — ~480 km, ~260 Ma (P-T extinction) · Antipode of Permian-Triassic Pangaea",lat:-70.0,lng:120.0,type:"impact",color:0xff4466,size:0.012},
+    {name:"Siberian Traps — Lattice: Saturn 0.00%, G8 0.10°, 12 anchors",lat:71.925,lng:92.712,type:"volcanism",color:0xffd700,size:0.011},
+    {name:"Chicxulub Crater — ~180 km, 66 Ma (K-Pg extinction)",lat:21.4,lng:-89.5,type:"impact",color:0xff6644,size:0.010},
+    {name:"Deccan Traps — impact-triggered intensification",lat:18.5,lng:73.5,type:"volcanism",color:0xffaa33,size:0.009}
+  ];
+
+  for(const imp of IMPACTS){
+    const isImpact = imp.type==='impact';
+    const geom = isImpact
+      ? new THREE.ConeGeometry(imp.size, imp.size*2, 3)
+      : new THREE.OctahedronGeometry(imp.size);
+    const mat = new THREE.MeshBasicMaterial({color:imp.color, transparent:true, opacity:0.95});
+    const m = new THREE.Mesh(geom, mat);
+    m.position.copy(v3(imp.lat, imp.lng, 1.01));
+    m.lookAt(0,0,0);
+    m.userData.name = imp.name;
+    L.antipodal.add(m);
+    siteMeshes.push(m);
+  }
+
+  // Crater rings (great circle approximation at crater radius)
+  const rings = [
+    {lat:-70.0, lng:120.0, radiusKm:240, color:0xff4466},
+    {lat:21.4, lng:-89.5, radiusKm:90, color:0xff6644}
+  ];
+  for(const ring of rings){
+    const pts = [];
+    const angRad = (ring.radiusKm / 6371);
+    for(let a=0; a<=360; a+=4){
+      const ar = a * Math.PI/180;
+      const laR = ring.lat * Math.PI/180;
+      const loR = ring.lng * Math.PI/180;
+      const lat2 = Math.asin(Math.sin(laR)*Math.cos(angRad) + Math.cos(laR)*Math.sin(angRad)*Math.cos(ar));
+      const lng2 = loR + Math.atan2(Math.sin(ar)*Math.sin(angRad)*Math.cos(laR), Math.cos(angRad)-Math.sin(laR)*Math.sin(lat2));
+      pts.push(v3(lat2*180/Math.PI, lng2*180/Math.PI, 1.005));
+    }
+    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineBasicMaterial({color:ring.color, transparent:true, opacity:0.5, linewidth:1});
+    L.antipodal.add(new THREE.Line(geom, mat));
+  }
+
+  // Connecting great-circle arcs (impact -> volcanism pairs)
+  const pairs = [
+    {from:{lat:-70.0,lng:120.0}, to:{lat:71.925,lng:92.712}, color:0xff6688},
+    {from:{lat:21.4,lng:-89.5}, to:{lat:18.5,lng:73.5}, color:0xffaa44}
+  ];
+  for(const p of pairs){
+    const pts = [];
+    const n = 80;
+    const la1=p.from.lat*Math.PI/180, lo1=p.from.lng*Math.PI/180;
+    const la2=p.to.lat*Math.PI/180, lo2=p.to.lng*Math.PI/180;
+    for(let i=0; i<=n; i++){
+      const f = i/n;
+      const d = Math.acos(Math.sin(la1)*Math.sin(la2)+Math.cos(la1)*Math.cos(la2)*Math.cos(lo2-lo1));
+      const A = Math.sin((1-f)*d)/Math.sin(d);
+      const B = Math.sin(f*d)/Math.sin(d);
+      const x = A*Math.cos(la1)*Math.cos(lo1) + B*Math.cos(la2)*Math.cos(lo2);
+      const y = A*Math.cos(la1)*Math.sin(lo1) + B*Math.cos(la2)*Math.sin(lo2);
+      const z = A*Math.sin(la1) + B*Math.sin(la2);
+      const lat = Math.atan2(z, Math.sqrt(x*x+y*y))*180/Math.PI;
+      const lng = Math.atan2(y, x)*180/Math.PI;
+      pts.push(v3(lat, lng, 1.006));
+    }
+    const geom = new THREE.BufferGeometry().setFromPoints(pts);
+    const mat = new THREE.LineDashedMaterial({color:p.color, transparent:true, opacity:0.5, dashSize:0.02, gapSize:0.01});
+    const ln = new THREE.Line(geom, mat);
+    ln.computeLineDistances();
+    L.antipodal.add(ln);
+  }
+})();
+
+// === ACTIVE GEOPHYSICS (reverb): instrument-era features on the shells ===
+(function(){
+  const F=[["Macdonald Seamount \u2014 ACTIVE hotspot, erupted 1987-89", -28.978, -140.258, "n=2", 0.29], ["Teahitia \u2014 32,000 quakes 1981-85, hydrothermal 2013", -17.567, -148.85, "n=3", 0.3], ["Mehetia \u2014 Society hotspot", -17.87, -148.07, "n=3", 0.58], ["Superswell center \u2014 seafloor 680 m too shallow", -25.0, -143.0, "n=2", 0.65], ["Arago Seamount \u2014 Austral hotspot", -23.44, -150.73, "n=2", 1.11], ["EPR 30S \u2014 fastest seafloor spreading on Earth (~150 mm/yr)", -31.0, -112.0, "n=5", 1.63], ["Juan Fernandez microplate", -33.0, -110.0, "n=5", 0.18], ["Easter microplate", -25.5, -114.5, "n=5", 2.64], ["Adams Seamount \u2014 Pitcairn hotspot, lavas ~2 ka", -25.37, -129.27, "n=4", 2.63], ["Vailulu'u \u2014 Samoa hotspot, Nafanua cone grew 300 m in 4 yr", -14.215, -169.058, "n=4", 3.83]];
+  for(const f of F){
+    const col=f[4]<1?0xffd700:f[4]<2?0x44dddd:0x8899aa;
+    const m=new THREE.Mesh(new THREE.SphereGeometry(0.0075,10,10),
+      new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.95}));
+    m.position.copy(v3(f[1],f[2],1.005));
+    m.userData.name=f[0]+' [shell '+f[3]+' err '+f[4]+'°]';
+    L.reverb.add(m); siteMeshes.push(m);
+  }
+})();
+
+
+// === COMPASS ROSE: 8-direction golden-angle cycle from Easter Island ===
+(function(){
+  const BEARINGS = [{'i': 1, 'az': 137.5, 'dir': 'SE', 'color': 16746564}, {'i': 2, 'az': 275.0, 'dir': 'W', 'color': 6728447}, {'i': 3, 'az': 52.5, 'dir': 'NE', 'color': 4513194}, {'i': 4, 'az': 190.0, 'dir': 'S', 'color': 16729190}, {'i': 5, 'az': 327.5, 'dir': 'NW', 'color': 8978312}, {'i': 6, 'az': 105.0, 'dir': 'E', 'color': 16763972}, {'i': 7, 'az': 242.6, 'dir': 'SW', 'color': 13395711}, {'i': 8, 'az': 20.1, 'dir': 'N', 'color': 4491519}, {'i': 9, 'az': 157.6, 'dir': 'S', 'color': 16729190}, {'i': 10, 'az': 295.1, 'dir': 'NW', 'color': 8978312}, {'i': 11, 'az': 72.6, 'dir': 'E', 'color': 16763972}, {'i': 12, 'az': 210.1, 'dir': 'SW', 'color': 13395711}, {'i': 13, 'az': 347.6, 'dir': 'N', 'color': 4491519}, {'i': 14, 'az': 125.1, 'dir': 'SE', 'color': 16746564}, {'i': 15, 'az': 262.6, 'dir': 'W', 'color': 6728447}, {'i': 16, 'az': 40.1, 'dir': 'NE', 'color': 4513194}, {'i': 17, 'az': 177.6, 'dir': 'S', 'color': 16729190}, {'i': 18, 'az': 315.1, 'dir': 'NW', 'color': 8978312}, {'i': 19, 'az': 92.6, 'dir': 'E', 'color': 16763972}, {'i': 20, 'az': 230.2, 'dir': 'SW', 'color': 13395711}, {'i': 21, 'az': 7.7, 'dir': 'N', 'color': 4491519}, {'i': 22, 'az': 145.2, 'dir': 'SE', 'color': 16746564}];
+
+  const COMPASS_HEX = {N:0x4488ff,NE:0x44ddaa,E:0xffcc44,SE:0xff8844,
+    S:0xff4466,SW:0xcc66ff,W:0x66aaff,NW:0x88ff88};
+
+  // Draw arcs from EI for each bearing, colored by compass direction
+  for(const b of BEARINGS){
+    // Arc length: 25 degrees (enough to see direction without clutter)
+    const arc = arcAz(EI, b.az, 25, 1.008);
+    const mat = new THREE.LineBasicMaterial({color:b.color, transparent:true, opacity:0.85, linewidth:1});
+    const geom = new THREE.BufferGeometry().setFromPoints(arc.map(p=>new THREE.Vector3(p.x,p.y,p.z)));
+    const ln = new THREE.Line(geom, mat);
+    L.compass.add(ln);
+
+    // Small dot at the arc tip
+    const tip = arc[arc.length-1];
+    const dm = new THREE.Mesh(new THREE.SphereGeometry(0.004,6,6),
+      new THREE.MeshBasicMaterial({color:b.color}));
+    dm.position.set(tip.x, tip.y, tip.z);
+    dm.userData.name = 'G'+b.i+' = '+b.az+'\u00b0 ('+b.dir+') — Cycle '+(b.i<=8?1:b.i<=16?2:3);
+    L.compass.add(dm);
+    siteMeshes.push(dm);
+  }
+
+  // Draw opposite-pair connections (dashed white lines through EI)
+  // Pairs: G1-G5, G2-G6, G3-G7, G4-G8
+  const pairs = [[1,5],[2,6],[3,7],[4,8]];
+  const eiv = v3(EI.lat,EI.lng,1.009);
+  for(const [a,b] of pairs){
+    const ba = BEARINGS.find(x=>x.i===a);
+    const bb = BEARINGS.find(x=>x.i===b);
+    // Draw a short arc spanning both directions through EI
+    const arcA = arcAz(EI, ba.az, 25, 1.009);
+    const arcB = arcAz(EI, bb.az, 25, 1.009);
+    // Connect the two arcs through center (dashed)
+    const pts = [...arcA.reverse(), ...arcB];
+    const g = new THREE.BufferGeometry().setFromPoints(pts.map(p=>new THREE.Vector3(p.x,p.y,p.z)));
+    const m = new THREE.LineDashedMaterial({color:0xffffff,transparent:true,opacity:0.3,
+      dashSize:0.008,gapSize:0.006});
+    const ln = new THREE.Line(g, m);
+    ln.computeLineDistances();
+    L.compass.add(ln);
+  }
+
+  // Compass labels at 8 cardinal positions around EI
+  const labels = [
+    {dir:'N',az:0},{dir:'NE',az:45},{dir:'E',az:90},{dir:'SE',az:135},
+    {dir:'S',az:180},{dir:'SW',az:225},{dir:'W',az:270},{dir:'NW',az:315}
+  ];
+  for(const lb of labels){
+    const pt = arcAz(EI, lb.az, 30, 1.012);
+    const tip = pt[pt.length-1];
+    const canvas = document.createElement('canvas');
+    canvas.width=64; canvas.height=32;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#ffffff';
+    ctx.font = 'bold 20px monospace';
+    ctx.textAlign = 'center';
+    ctx.fillText(lb.dir, 32, 22);
+    const tex = new THREE.CanvasTexture(canvas);
+    const sp = new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:0.7}));
+    sp.position.set(tip.x, tip.y, tip.z);
+    sp.scale.set(0.06,0.03,1);
+    L.compass.add(sp);
+  }
+})();
+
+// optional: 22 G-bearings from Giza (full circles)
+for(let i=1;i<=22;i++){
+  L.gbear.add(line(greatCircleAz(GIZA,(GA*i)%360,1.002),0x666688,0.25));
+}
+
+
+// === CONVERGENCE NODES: points where 3+ lattice lines intersect ===
+(function(){
+  var NODES=[
+    {lat:-37.5,lng:-144.2,n:10,avg:2.9,lbl:'\u03b1',pair:1,site:null},
+    {lat:37.5,lng:35.8,n:10,avg:2.9,lbl:'\u03b1\'',pair:1,site:'Gobekli Tepe 2.5\u00b0'},
+    {lat:-71.7,lng:68.1,n:10,avg:5.0,lbl:'\u03b2',pair:2,site:null},
+    {lat:71.7,lng:-111.9,n:10,avg:5.0,lbl:'\u03b2\'',pair:2,site:null},
+    {lat:65.7,lng:-28.1,n:8,avg:2.6,lbl:'\u03b3',pair:3,site:null},
+    {lat:20.4,lng:35.9,n:8,avg:2.8,lbl:'\u03b4',pair:4,site:'Lalibela 8.9\u00b0'},
+    {lat:-20.4,lng:-144.1,n:8,avg:2.8,lbl:'\u03b4\'',pair:4,site:null},
+    {lat:69.9,lng:-66.6,n:8,avg:3.6,lbl:'\u03b5',pair:5,site:null},
+    {lat:-69.9,lng:113.4,n:8,avg:3.6,lbl:'\u03b5\'',pair:5,site:'Wilkes Land 2.3\u00b0'},
+    {lat:37.1,lng:-145.4,n:8,avg:3.8,lbl:'\u03b6',pair:6,site:null},
+    {lat:-37.1,lng:34.6,n:8,avg:3.8,lbl:'\u03b6\'',pair:6,site:null},
+    {lat:-11.7,lng:29.8,n:7,avg:3.1,lbl:'\u03b7',pair:7,site:'Great Zimbabwe 8.6\u00b0'},
+    {lat:11.7,lng:-150.2,n:7,avg:3.1,lbl:'\u03b7\'',pair:7,site:null},
+    {lat:-23.6,lng:33.6,n:7,avg:3.8,lbl:'\u03b8',pair:8,site:'Great Zimbabwe 4.1\u00b0'},
+    {lat:23.6,lng:-146.4,n:7,avg:3.8,lbl:'\u03b8\'',pair:8,site:null},
+    {lat:13.1,lng:-61.3,n:7,avg:3.8,lbl:'\u03b9',pair:9,site:null},
+    {lat:-13.1,lng:118.7,n:7,avg:3.8,lbl:'\u03b9\'',pair:9,site:'Borobudur 10.0\u00b0'},
+    {lat:51.8,lng:26.4,n:7,avg:3.9,lbl:'\u03ba',pair:10,site:null}
+  ];
+
+  var PAIR_COLORS=[
+    0xff2288, 0x22ffaa, 0xffaa22, 0x2288ff, 0xff8844,
+    0x88ff44, 0xff44aa, 0x44ffcc, 0xaa44ff, 0xff6622
+  ];
+
+  for(var i=0;i<NODES.length;i++){
+    var nd=NODES[i];
+    var col=PAIR_COLORS[(nd.pair-1)%PAIR_COLORS.length];
+    var sz=nd.n>=10?0.018:nd.n>=8?0.014:0.011;
+
+    // Diamond marker
+    var geo=new THREE.OctahedronGeometry(sz);
+    var mat=new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.9});
+    var m=new THREE.Mesh(geo,mat);
+    m.position.copy(v3(nd.lat,nd.lng,1.015));
+    m.renderOrder=15;
+    var tip=nd.lbl+' ('+nd.n+' lines, avg '+nd.avg+'\u00b0)';
+    if(nd.site) tip+=' \u2190 '+nd.site;
+    m.userData.name='Node '+tip;
+    L.nodes.add(m);
+    siteMeshes.push(m);
+
+    // Pulsing halo ring
+    var ring=new THREE.Line(
+      new THREE.BufferGeometry().setFromPoints(
+        (function(){var pts=[];for(var a=0;a<=64;a++){var t=a/64*2*Math.PI;
+          var r2=sz*2.2;pts.push(new THREE.Vector3(Math.cos(t)*r2,Math.sin(t)*r2,0));}return pts;})()
+      ),
+      new THREE.LineBasicMaterial({color:col,transparent:true,opacity:0.4})
+    );
+    ring.position.copy(v3(nd.lat,nd.lng,1.016));
+    ring.lookAt(0,0,0);
+    ring.renderOrder=14;
+    L.nodes.add(ring);
+
+    // Text label
+    var canvas=document.createElement('canvas');
+    canvas.width=96;canvas.height=48;
+    var ctx=canvas.getContext('2d');
+    ctx.fillStyle='#'+col.toString(16).padStart(6,'0');
+    ctx.font='bold 28px serif';
+    ctx.textAlign='center';
+    ctx.fillText(nd.lbl,48,32);
+    var tex=new THREE.CanvasTexture(canvas);
+    var sp=new THREE.Sprite(new THREE.SpriteMaterial({map:tex,transparent:true,opacity:0.85}));
+    sp.position.copy(v3(nd.lat,nd.lng,1.025));
+    sp.scale.set(0.07,0.035,1);
+    sp.renderOrder=16;
+    L.nodes.add(sp);
+  }
+
+  // Antipodal connections between paired nodes (dashed lines through center)
+  var drawn={};
+  for(var i=0;i<NODES.length;i++){
+    var nd=NODES[i];
+    if(drawn[nd.pair]) continue;
+    // find partner
+    for(var j=i+1;j<NODES.length;j++){
+      if(NODES[j].pair===nd.pair){
+        var col=PAIR_COLORS[(nd.pair-1)%PAIR_COLORS.length];
+        var pts=[v3(nd.lat,nd.lng,1.012),new THREE.Vector3(0,0,0),v3(NODES[j].lat,NODES[j].lng,1.012)];
+        var geo=new THREE.BufferGeometry().setFromPoints(pts);
+        var ln=new THREE.Line(geo,new THREE.LineDashedMaterial({
+          color:col,transparent:true,opacity:0.2,dashSize:0.025,gapSize:0.012
+        }));
+        ln.computeLineDistances();
+        ln.renderOrder=7;
+        L.nodes.add(ln);
+        drawn[nd.pair]=true;
+        break;
+      }
+    }
+  }
+
+  console.log('Convergence nodes: '+NODES.length+' eigenmodes mapped, '+Object.keys(drawn).length+' antipodal pairs');
+})();
+
+
+// ========== PORTED LAYERS (from lattice.html) ==========
+
+// --- BH PROJECTIONS (cb-bhproj) ---
+const BH_PROJECTIONS = [
+  {n:'M31 Andromeda',cat:'confirm',lat:31.4,lng:28.9,shellErr:26,note:'Nearest galaxy -> origin'},
+  {n:'Markarian 231',cat:'confirm',lat:39.6,lng:33.2,shellErr:8.8,note:'580 Mly -> underground city'},
+  {n:'QSO J0313-1806',cat:'confirm',lat:22.6,lng:34.2,shellErr:7.4,note:'Most distant quasar -> Nile'},
+  {n:'V4641 Sgr',cat:'confirm',lat:-28.0,lng:-110.5,shellErr:12,note:'20 kly -> Easter Island'},
+  {n:'GW151226 proj',cat:'bhpred',lat:-30.2,lng:-157.5,shellErr:0.1,note:'Grav wave -> S.Pacific'},
+  {n:'Holmberg 15A proj',cat:'bhpred',lat:-45.5,lng:-14.8,shellErr:0.8,note:'700 Mly -> S.Atlantic'},
+  {n:'HLX-1 proj',cat:'bhpred',lat:-34.8,lng:-147.8,shellErr:1.6,note:'290 Mly -> antipode region'},
+  {n:'IC 1101 proj',cat:'bhpred',lat:66.8,lng:-36.2,shellErr:1.6,note:'Largest galaxy -> N.Atlantic'},
+  {n:'Omega Cen proj',cat:'bhpred',lat:-37.5,lng:-152.3,shellErr:0.2,note:'IMBH -> S.Pacific'},
+  {n:'XTE J1752 proj',cat:'bhpred',lat:-2.1,lng:-51.2,shellErr:1.4,note:'11.5 kly -> Amazon basin'},
+  {n:'GX 339-4 proj',cat:'bhpred',lat:-36.9,lng:-138.7,shellErr:1.3,note:'Galactic center BH -> S.Pacific'},
+  {n:'3XMM J2150 proj',cat:'bhpred',lat:-26.8,lng:-69.7,shellErr:5.0,note:'740 Mly -> Atacama'},
+  {n:'Gaia18ajz proj',cat:'bhpred',lat:-1.0,lng:-69.8,shellErr:6.2,note:'3.8 kly -> equatorial Andes'},
+  {n:'Cyg X-3 proj',cat:'bhpred',lat:-27.8,lng:-145.4,shellErr:2.3,note:'24 kly -> on S9 corridor'},
+  {n:'NGC 4151 proj',cat:'bhpred',lat:-27.0,lng:-150.2,shellErr:2.6,note:'51.5 Mly -> near antipode'},
+  {n:'IC 10 X-1 proj',cat:'bhpred',lat:68.9,lng:-29.5,shellErr:2.2,note:'Local Group BH -> N.Atlantic'},
+  {n:'Fornax A proj',cat:'bhpred',lat:-72.9,lng:95.4,shellErr:4.7,note:'62 Mly -> S.Indian Ocean'},
+  {n:'S5 0014+81 proj',cat:'bhpred',lat:-4.1,lng:-146.8,shellErr:7.7,note:'12.1 Bly -> almost exact S12'},
+  {n:'GRS 1009-45 proj',cat:'bhpred',lat:-6.7,lng:72.9,shellErr:2.6,note:'17.2 kly -> Indian Ocean'},
+  {n:'M104 Sombrero proj',cat:'bhpred',lat:18.0,lng:161.5,shellErr:5.5,note:'29 Mly -> W.Pacific'},
+];
+(function(){
+  const BH_COL={confirm:0xff4466,bhpred:0xcc44ff};
+  for(const bh of BH_PROJECTIONS){
+    const col=BH_COL[bh.cat]||0xcc44ff;
+    const op=bh.shellErr<3?0.9:bh.shellErr<7?0.7:0.5;
+    const sz=bh.cat==='confirm'?0.014:0.010;
+    const m=new THREE.Mesh(new THREE.SphereGeometry(sz,12,12),
+      new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op}));
+    m.position.copy(v3(bh.lat,bh.lng,1.007));
+    m.userData.name=bh.n+' — '+bh.note;
+    L.bhproj.add(m); siteMeshes.push(m);
+    L.bhproj.add(line(smallCircle({lat:bh.lat,lng:bh.lng},0.8,1.006),col,op*0.6));
+  }
+})();
+
+// --- BH SKY PATHS + ORION BELT (cb-bhpaths) ---
+const BH_PATHS_DATA = [
+  {n:'Markarian 231',brg:9.2,color:0xff4466,
+   hits:[{n:'Derinkuyu',lat:38.374,lng:34.734},{n:'Taputapuatea',lat:-16.833,lng:-151.432}]},
+  {n:'M31 Andromeda',brg:309.9,color:0x44bbff,
+   hits:[{n:'Town Creek',lat:35.4392,lng:-80.0811},{n:'Teotihuacan',lat:19.6925,lng:-98.8438}]},
+  {n:'QSO J0313-1806',brg:158.8,color:0xffaa33,
+   hits:[{n:'Luxor/Karnak',lat:25.7188,lng:32.6573},{n:'Madagascar',lat:-20.37,lng:48.06}]},
+];
+const ORION_BELT_DATA = [
+  {n:'Alnitak (zeta Ori)',lat:19.21,lng:54.38},
+  {n:'Alnilam (epsilon Ori)',lat:23.69,lng:46.03},
+  {n:'Mintaka (delta Ori)',lat:-3.47,lng:87.31},
+];
+(function(){
+  for(const p of BH_PATHS_DATA){
+    const arc=arcAz(GIZA,p.brg,180,1.006,128);
+    L.bhpaths.add(line(arc,p.color,0.4));
+    for(const h of p.hits){
+      const hm=new THREE.Mesh(new THREE.SphereGeometry(0.008,10,10),
+        new THREE.MeshBasicMaterial({color:p.color,transparent:true,opacity:0.7}));
+      hm.position.copy(v3(h.lat,h.lng,1.007));
+      hm.userData.name=p.n+' path hit: '+h.n;
+      L.bhpaths.add(hm); siteMeshes.push(hm);
+    }
+  }
+  // Nile BH Line
+  const nileArc=arcAz({lat:39.6,lng:33.2},176.8,20,1.006,32);
+  L.bhpaths.add(line(nileArc,0xff88ff,0.5));
+
+  // Orion Belt
+  const beltPts=[];
+  for(const s of ORION_BELT_DATA){
+    const sm=new THREE.Mesh(new THREE.SphereGeometry(0.012,12,12),
+      new THREE.MeshBasicMaterial({color:0xffdd44}));
+    sm.position.copy(v3(s.lat,s.lng,1.008));
+    sm.userData.name=s.n;
+    L.bhpaths.add(sm); siteMeshes.push(sm);
+    beltPts.push(v3(s.lat,s.lng,1.007));
+  }
+  const bg=new THREE.BufferGeometry().setFromPoints(beltPts);
+  L.bhpaths.add(new THREE.Line(bg,new THREE.LineBasicMaterial({color:0xffdd44,transparent:true,opacity:0.5})));
+})();
+
+// --- FULL SKY CATALOG (cb-catalog) ---
+const FULL_CATALOG = [
+  {n:'HR 6819',t:'BH',k:3,lat:-30.76,lng:-148.10,fe:1.0},
+  {n:'Gaia BH1',t:'BH',k:11,lat:14.23,lng:-76.87,fe:1.5},
+  {n:'Gaia BH3',t:'BH',k:3,lat:12.55,lng:-69.13,fe:5.2},
+  {n:'A0620-00',t:'BH',k:1612,lat:-15.09,lng:119.66,fe:2.4},
+  {n:'Gaia BH2',t:'BH',k:26,lat:-69.63,lng:41.65,fe:1.5},
+  {n:'Gaia18ajz',t:'BH',k:26,lat:-0.95,lng:-69.76,fe:1.5},
+  {n:'MOA-2011-BLG-191',t:'BH',k:9,lat:-20.77,lng:-66.06,fe:6.2},
+  {n:'GRS 1124-683',t:'BH',k:9,lat:-66.45,lng:83.71,fe:1.6},
+  {n:'Swift J1357',t:'BH',k:1612,lat:66.39,lng:38.88,fe:3.4},
+  {n:'XTE J1118+480',t:'BH',k:65,lat:55.26,lng:54.20,fe:1.5},
+  {n:'Cygnus X-1',t:'BH',k:26,lat:-8.64,lng:-119.71,fe:0.2},
+  {n:'LB-1',t:'BH',k:1,lat:5.42,lng:128.15,fe:2.0},
+  {n:'V404 Cygni',t:'BH',k:3,lat:0.17,lng:-105.97,fe:0.6},
+  {n:'GRO J0422+32',t:'BH',k:1612,lat:-21.77,lng:-173.39,fe:0.5},
+  {n:'GS 2000+25',t:'BH',k:9,lat:-7.87,lng:-108.98,fe:0.9},
+  {n:'GRO J1719-24',t:'BH',k:9,lat:8.95,lng:-32.11,fe:4.3},
+  {n:'Gaia18cbf',t:'BH',k:65,lat:-23.54,lng:-34.17,fe:1.1},
+  {n:'MAXI J1820',t:'BH',k:26,lat:-13.24,lng:-114.29,fe:0.0},
+  {n:'GRO J1655-40',t:'BH',k:1,lat:-18.57,lng:-35.97,fe:0.5},
+  {n:'Swift J1727',t:'BH',k:1,lat:8.68,lng:-53.18,fe:0.5},
+  {n:'XTE J1752',t:'BH',k:19,lat:-2.09,lng:-51.23,fe:0.8},
+  {n:'4U 1630-47',t:'BH',k:65,lat:-45.67,lng:-57.64,fe:1.0},
+  {n:'NGC 3201',t:'BH',k:16,lat:0.25,lng:64.22,fe:0.6},
+  {n:'XTE J1550',t:'BH',k:11,lat:-66.42,lng:-77.95,fe:3.2},
+  {n:'GRS 1009-45',t:'BH',k:11,lat:-6.70,lng:72.89,fe:2.1},
+  {n:'SS 433',t:'BH',k:1,lat:-12.27,lng:-100.77,fe:1.6},
+  {n:'Cyg X-3',t:'BH',k:65,lat:-27.79,lng:-145.37,fe:2.1},
+  {n:'GX 339-4',t:'BH',k:26,lat:-36.92,lng:-138.73,fe:1.3},
+  {n:'GRS 1758',t:'BH',k:11,lat:-31.30,lng:-119.04,fe:1.5},
+  {n:'GRS 1915',t:'BH',k:9,lat:10.56,lng:-71.75,fe:4.3},
+  {n:'LMC X-1',t:'BH',k:62,lat:-60.85,lng:64.99,fe:0.1},
+  {n:'IC 10 X-1',t:'BH',k:11,lat:68.95,lng:-29.52,fe:0.5},
+  {n:'M33 X-7',t:'BH',k:1612,lat:29.27,lng:-0.10,fe:4.9},
+  {n:'Omega Cen',t:'BH',k:16,lat:-37.48,lng:-152.30,fe:0.1},
+  {n:'M82 X-1',t:'BH',k:9,lat:63.59,lng:165.18,fe:1.0},
+  {n:'3XMM J2150',t:'BH',k:19,lat:-26.76,lng:-69.74,fe:0.4},
+  {n:'Centaurus A',t:'BH',k:6,lat:-27.59,lng:59.70,fe:0.5},
+  {n:'M104 Sombrero',t:'BH',k:1612,lat:18.00,lng:161.54,fe:2.8},
+  {n:'NGC 3115',t:'BH',k:62,lat:6.41,lng:127.65,fe:0.4},
+  {n:'M87*',t:'BH',k:65,lat:31.63,lng:175.89,fe:1.1},
+  {n:'Holmberg 15A',t:'BH',k:1,lat:-45.55,lng:-14.81,fe:0.2},
+  {n:'IC 1101*',t:'BH',k:26,lat:66.81,lng:-36.19,fe:2.8},
+  {n:'GW150914',t:'BH',k:3,lat:-78.80,lng:31.01,fe:0.0},
+  {n:'GW151226',t:'BH',k:1612,lat:-30.24,lng:-157.49,fe:4.4},
+  {n:'3C 273',t:'BH',k:62,lat:22.75,lng:172.58,fe:0.7},
+  {n:'Markarian 231',t:'BH',k:62,lat:39.60,lng:33.15,fe:1.4},
+  {n:'Phoenix A',t:'BH',k:1612,lat:-1.25,lng:17.32,fe:0.3},
+  {n:'TON 618',t:'BH',k:62,lat:-2.11,lng:-159.78,fe:1.3},
+  {n:'S5 0014+81',t:'BH',k:11,lat:-4.11,lng:-146.75,fe:3.1},
+  {n:'QSO J0313',t:'BH',k:19,lat:22.64,lng:34.20,fe:2.5},
+  {n:'ULAS J1342',t:'BH',k:19,lat:76.15,lng:175.83,fe:1.7},
+  {n:'Ross 128',t:'STAR',k:11,lat:38.61,lng:47.40,fe:0.1},
+  {n:'Tau Ceti',t:'STAR',k:6,lat:12.85,lng:29.06,fe:0.7},
+  {n:'Teegarden',t:'STAR',k:1,lat:16.14,lng:43.85,fe:3.9},
+  {n:'Kruger 60',t:'STAR',k:1,lat:44.20,lng:15.36,fe:0.6},
+  {n:'Sigma Draconis',t:'STAR',k:19,lat:54.15,lng:13.81,fe:1.1},
+  {n:'Delta Pavonis',t:'STAR',k:19,lat:3.78,lng:18.52,fe:4.7},
+  {n:'82 Eridani',t:'STAR',k:19,lat:2.18,lng:37.84,fe:3.7},
+  {n:'Vega',t:'STAR',k:26,lat:49.09,lng:-9.65,fe:3.8},
+  {n:'Arcturus',t:'STAR',k:19,lat:82.91,lng:7.87,fe:2.6},
+  {n:'Capella',t:'STAR',k:9,lat:44.06,lng:110.17,fe:4.4},
+  {n:'Rasalhague',t:'STAR',k:16,lat:37.79,lng:-53.16,fe:2.1},
+  {n:'Caph',t:'STAR',k:11,lat:60.21,lng:-90.93,fe:1.8},
+  {n:'Aldebaran',t:'STAR',k:65,lat:-13.00,lng:118.33,fe:0.0},
+  {n:'Regulus',t:'STAR',k:16,lat:8.90,lng:156.02,fe:1.2},
+  {n:'Megrez',t:'STAR',k:16,lat:31.84,lng:-164.10,fe:0.9},
+  {n:'Mizar',t:'STAR',k:16,lat:29.78,lng:-154.69,fe:3.6},
+  {n:'Algol',t:'STAR',k:19,lat:4.76,lng:-179.38,fe:2.1},
+  {n:'Dubhe',t:'STAR',k:62,lat:-29.48,lng:-149.07,fe:0.0},
+  {n:'Elnath',t:'STAR',k:65,lat:-26.36,lng:-164.16,fe:3.1},
+  {n:'Achernar',t:'STAR',k:11,lat:-52.54,lng:-146.57,fe:2.1},
+  {n:'Spica',t:'STAR',k:19,lat:31.60,lng:32.15,fe:1.2},
+  {n:'Bellatrix',t:'STAR',k:19,lat:29.45,lng:33.16,fe:1.2},
+  {n:'Canopus',t:'STAR',k:62,lat:-45.04,lng:83.15,fe:0.0},
+  {n:'Thuban',t:'STAR',k:9,lat:71.48,lng:-148.91,fe:1.0},
+  {n:'Polaris',t:'STAR',k:3,lat:52.38,lng:-149.03,fe:0.5},
+  {n:'Antares',t:'STAR',k:26,lat:4.68,lng:-45.44,fe:0.7},
+  {n:'Betelgeuse',t:'STAR',k:19,lat:-31.14,lng:-179.47,fe:0.9},
+  {n:'Rigel',t:'STAR',k:6,lat:-37.11,lng:-165.13,fe:0.5},
+  {n:'Mintaka',t:'STAR',k:26,lat:-35.78,lng:160.30,fe:1.8},
+  {n:'Alnilam',t:'STAR',k:3,lat:-19.90,lng:111.75,fe:4.3},
+  {n:'Alnitak',t:'STAR',k:62,lat:-14.11,lng:102.47,fe:0.2},
+  {n:'Gamma Velorum',t:'STAR',k:3,lat:-32.21,lng:-151.74,fe:1.2},
+  {n:'Eta Carinae',t:'STAR',k:3,lat:-17.86,lng:59.45,fe:3.3},
+  {n:'WR 136',t:'STAR',k:65,lat:21.23,lng:-88.36,fe:2.3},
+  {n:'Mu Cephei',t:'STAR',k:19,lat:-5.28,lng:-131.67,fe:3.8},
+  {n:'Gamma Cas',t:'STAR',k:26,lat:68.66,lng:-104.19,fe:0.7},
+  {n:'W44',t:'RADIO',k:11,lat:2.97,lng:28.69,fe:0.4},
+  {n:'Cygnus Loop',t:'RADIO',k:11,lat:5.02,lng:42.35,fe:0.4},
+  {n:'Vela SNR',t:'RADIO',k:19,lat:42.73,lng:29.15,fe:3.5},
+  {n:'Cassiopeia A',t:'RADIO',k:19,lat:32.46,lng:58.21,fe:0.6},
+  {n:'W28',t:'RADIO',k:62,lat:-50.55,lng:73.14,fe:0.0},
+  {n:'Orion Nebula',t:'RADIO',k:19,lat:-68.92,lng:-148.87,fe:0.3},
+  {n:'IC 10',t:'RADIO',k:1,lat:72.29,lng:4.72,fe:1.0},
+  {n:'Sgr A*',t:'BH',k:26,lat:-32.18,lng:-113.36,fe:4.9},
+  {n:'Sirius',t:'STAR',k:6,lat:24.23,lng:43.55,fe:1.0},
+  {n:'Proxima Centauri',t:'STAR',k:3,lat:23.85,lng:30.51,fe:2.1},
+  {n:'Alpha Centauri',t:'STAR',k:3,lat:23.72,lng:30.15,fe:0.6},
+  {n:'Crab Nebula',t:'RADIO',k:11,lat:25.30,lng:73.27,fe:0.3},
+  {n:'Deneb',t:'STAR',k:1,lat:-15.86,lng:-132.10,fe:0.1},
+  {n:'Procyon',t:'STAR',k:3,lat:29.01,lng:50.18,fe:4.0},
+  {n:'Fomalhaut',t:'STAR',k:11,lat:0.87,lng:8.20,fe:2.5},
+];
+const K_COLORS_HEX = {
+  1:0xffffff, 3:0x66aaff, 6:0x44dddd, 9:0xffdd44,
+  11:0x44ff88, 16:0xbb66ff, 19:0xff88cc, 26:0xff9944,
+  62:0xff4444, 65:0x44cccc, 1612:0xff44ff
+};
+const TYPE_SIZE = {BH:0.010, STAR:0.007, RADIO:0.008};
+(function(){
+  for(const obj of FULL_CATALOG){
+    const col=K_COLORS_HEX[obj.k]||0xaaaaaa;
+    const sz=TYPE_SIZE[obj.t]||0.007;
+    const op=obj.fe<=2?0.9:obj.fe<=5?0.7:0.5;
+    const m=new THREE.Mesh(
+      obj.t==='RADIO'?new THREE.BoxGeometry(sz*1.4,sz*1.4,sz*1.4):new THREE.SphereGeometry(sz,10,10),
+      new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op}));
+    m.position.copy(v3(obj.lat,obj.lng,1.007));
+    m.userData.name=obj.n+' ['+obj.t+', k='+obj.k+']';
+    L.catalog.add(m); siteMeshes.push(m);
+  }
+})();
+
+// --- MOAI FACING BEARINGS (cb-moai) ---
+const AHUS = [
+  {n:'Ahu Akivi',lat:-27.115,lng:-109.395,facing:262,sea:true,target:'Giza',tBrg:75.7,tDist:16161},
+  {n:'Ahu Vinapu',lat:-27.1727,lng:-109.399,facing:45,sea:false,target:'Stonehenge',tBrg:44.6,tDist:13523},
+  {n:'Ahu Tahai',lat:-27.1167,lng:-109.3817,facing:90,sea:false,target:'Mohenjo-daro',tBrg:83.9,tDist:19769},
+  {n:'Ahu Tongariki',lat:-27.1256,lng:-109.2773,facing:330,sea:false,target:null},
+  {n:'Ahu Nau Nau',lat:-27.074,lng:-109.322,facing:195,sea:false,target:null},
+  {n:'Ahu Te Pito Kura',lat:-27.083,lng:-109.314,facing:225,sea:false,target:null},
+];
+(function(){
+  for(const a of AHUS){
+    const col=a.sea?0xFF4444:0x44DDFF;
+    // ahu marker
+    const m=new THREE.Mesh(new THREE.SphereGeometry(0.012,12,12),
+      new THREE.MeshBasicMaterial({color:col}));
+    m.position.copy(v3(a.lat,a.lng,1.009));
+    m.userData.name=a.n+(a.target?' -> '+a.target:'');
+    L.moai.add(m); siteMeshes.push(m);
+    // facing direction arc (sea=7deg, inland=3.5deg)
+    const span=a.sea?7:3.5;
+    L.moai.add(line(arcAz({lat:a.lat,lng:a.lng},a.facing,span,1.007,24),col,0.8));
+    // reverse bearing (faint)
+    L.moai.add(line(arcAz({lat:a.lat,lng:a.lng},(a.facing+180)%360,2.5,1.007,16),col,0.2));
+    // target connection if exists
+    if(a.target && a.tDist){
+      const tDeg=a.tDist/111.32;
+      L.moai.add(line(arcAz({lat:a.lat,lng:a.lng},a.facing,Math.min(tDeg,180),1.005,96),col,0.12));
+    }
+  }
+  // Giza connection from Akivi
+  L.moai.add(line(arcAz({lat:-27.115,lng:-109.395},75.7,180,1.005,128),0xff4444,0.12));
+  // Vinapu-Stonehenge
+  L.moai.add(line(arcAz({lat:-27.1727,lng:-109.399},44.6,125,1.005,96),0x44ddff,0.12));
+})();
+
+// --- COUNTER LATTICE (cb-counter) ---
+(function(){
+  const EI_A={lat:-27.1127,lng:-109.3497};
+  const PHI_V=(1+Math.sqrt(5))/2;
+  const GA_V=137.508;
+  // counter shells
+  for(let n=-1;n<=8;n++){
+    const deg=3.0*Math.pow(PHI_V,n);
+    if(deg>170) break;
+    const km=deg*111.32;
+    if(km<50||km>6500) continue;
+    const op=n<=2?0.7:0.4;
+    const w=n<=2?1:1;
+    L.counter.add(line(smallCircle(EI_A,deg,1.004),0x4aeaaa,op));
+  }
+  // 22 G-bearing great circles from EI
+  for(let i=1;i<=22;i++){
+    const az=(GA_V*i)%360;
+    L.counter.add(line(arcAz(EI_A,az,180,1.004,128),0x4aeaaa,0.3));
+  }
+  // antipole marker
+  const ap=new THREE.Mesh(new THREE.SphereGeometry(0.018,16,16),
+    new THREE.MeshBasicMaterial({color:0x4aeaaa}));
+  ap.position.copy(v3(EI_A.lat,EI_A.lng,1.010));
+  ap.userData.name='Easter Island — Counter Lattice Antipole';
+  L.counter.add(ap); siteMeshes.push(ap);
+  // Giza-EI axis great circle
+  L.counter.add(line(greatCircle2(GIZA,EI_A,1.004),0x4aeaaa,0.35));
+  // dual-hit markers: sites near both a Giza G-line AND an EI G-line
+  for(const s of SITES){
+    const sLat=s[1], sLng=s[2];
+    const gErr=nearestG(bearing(GIZA,{lat:sLat,lng:sLng}));
+    const eErr=nearestG(bearing(EI_A,{lat:sLat,lng:sLng}));
+    if(gErr<5&&eErr<5){
+      const tight=gErr<3&&eErr<3;
+      const col=tight?0xffe066:0x4aeaaa;
+      const sz=tight?0.010:0.007;
+      const dm=new THREE.Mesh(new THREE.OctahedronGeometry(sz,0),
+        new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:0.85}));
+      dm.position.copy(v3(sLat,sLng,1.009));
+      dm.userData.name='Dual-hit: '+s[0]+' (G-err '+gErr.toFixed(1)+'° / EI-err '+eErr.toFixed(1)+'°)';
+      L.counter.add(dm); siteMeshes.push(dm);
+    }
+  }
+})();
+
+
+// --- BEARING PARALLELS (cross-site G-bearing coherence) ---
+(function(){
+  // Key nodes: sites with known outgoing bearings or framework significance
+  var KEY_NODES = [];
+  // Build from SITES + poles + CI + AHUS
+  for(var i=0;i<SITES.length;i++){
+    KEY_NODES.push({n:SITES[i][0], lat:SITES[i][1], lng:SITES[i][2]});
+  }
+  // Add ahu facing bearings as explicit directional nodes
+  var AHU_DIR = [
+    {n:'Ahu Akivi (facing 262°)',lat:-27.115,lng:-109.395,fixedAz:262},
+    {n:'Ahu Vinapu (facing 45°)',lat:-27.1727,lng:-109.399,fixedAz:45},
+    {n:'Ahu Tahai (facing 90°)',lat:-27.1167,lng:-109.3817,fixedAz:90},
+  ];
+
+  // For each site, compute its nearest G-bearing from Giza
+  function siteGBearing(s){
+    var az = bearing(GIZA, {lat:s.lat, lng:s.lng});
+    var bestG = -1, bestErr = 999, bestAz = 0;
+    for(var i=1;i<=22;i++){
+      var g = (GA*i)%360;
+      var d = Math.abs(az-g); if(d>180) d=360-d;
+      if(d<bestErr){ bestErr=d; bestG=i; bestAz=g; }
+    }
+    return {g:bestG, az:bestAz, err:bestErr, actual:az};
+  }
+
+  // For each site compute the G-bearing it sits on (from Giza)
+  var tagged = [];
+  for(var i=0;i<KEY_NODES.length;i++){
+    var s = KEY_NODES[i];
+    var gb = siteGBearing(s);
+    if(gb.err < 5) tagged.push({n:s.n, lat:s.lat, lng:s.lng, g:gb.g, az:gb.az, err:gb.err});
+  }
+
+  // Now compare: sites on the SAME G-bearing from Giza are "bearing parallel"
+  // Group by G-line number
+  var groups = {};
+  for(var i=0;i<tagged.length;i++){
+    var t = tagged[i];
+    if(!groups[t.g]) groups[t.g] = [];
+    groups[t.g].push(t);
+  }
+
+  // Draw connections within each group
+  for(var g in groups){
+    var grp = groups[g];
+    if(grp.length < 2) continue;
+    for(var i=0;i<grp.length;i++){
+      for(var j=i+1;j<grp.length;j++){
+        var a = grp[i], b = grp[j];
+        // skip if same cluster (within 3 degrees)
+        var dlat = Math.abs(a.lat-b.lat), dlng = Math.abs(a.lng-b.lng);
+        if(dlat<3 && dlng<3) continue;
+        // tightness: both errors combined
+        var combined = a.err + b.err;
+        var col = combined < 3 ? 0xffd700 : combined < 6 ? 0xff8844 : 0xff6666;
+        var op = combined < 3 ? 0.6 : combined < 6 ? 0.4 : 0.25;
+        // great circle arc between the two sites
+        var arcPts = arcAz({lat:a.lat,lng:a.lng},
+          bearing({lat:a.lat,lng:a.lng},{lat:b.lat,lng:b.lng}),
+          // angular distance
+          Math.acos(Math.sin(a.lat*D2R)*Math.sin(b.lat*D2R)+Math.cos(a.lat*D2R)*Math.cos(b.lat*D2R)*Math.cos((b.lng-a.lng)*D2R))/D2R,
+          1.005, 64);
+        L.parallels.add(line(arcPts, col, op));
+        // midpoint marker
+        var midIdx = Math.floor(arcPts.length/2);
+        var mm = new THREE.Mesh(new THREE.SphereGeometry(0.004,8,8),
+          new THREE.MeshBasicMaterial({color:col,transparent:true,opacity:op+0.2}));
+        mm.position.copy(arcPts[midIdx]);
+        mm.userData.name = 'G'+g+' parallel: '+a.n+' ↔ '+b.n+' (err '+combined.toFixed(1)+'°)';
+        L.parallels.add(mm); siteMeshes.push(mm);
+      }
+    }
+  }
+
+  // Also add ahu facing parallels: check if any ahu facing direction matches
+  // a G-bearing from another site
+  for(var ai=0;ai<AHU_DIR.length;ai++){
+    var ahu = AHU_DIR[ai];
+    for(var si=0;si<tagged.length;si++){
+      var s = tagged[si];
+      // bearing FROM ahu toward site
+      var azToSite = bearing({lat:ahu.lat,lng:ahu.lng},{lat:s.lat,lng:s.lng});
+      var diff = Math.abs(azToSite - ahu.fixedAz);
+      if(diff>180) diff=360-diff;
+      if(diff < 8){
+        // ahu facing direction points toward this site (or close)
+        var angDist = Math.acos(
+          Math.sin(ahu.lat*D2R)*Math.sin(s.lat*D2R) +
+          Math.cos(ahu.lat*D2R)*Math.cos(s.lat*D2R)*Math.cos((s.lng-ahu.lng)*D2R)
+        )/D2R;
+        if(angDist < 3) continue; // skip nearby
+        var arcPts2 = arcAz({lat:ahu.lat,lng:ahu.lng}, azToSite, angDist, 1.006, 64);
+        var col2 = diff < 3 ? 0xff4444 : 0xff8844;
+        var op2 = diff < 3 ? 0.55 : 0.3;
+        L.parallels.add(line(arcPts2, col2, op2));
+        var mid2 = Math.floor(arcPts2.length/2);
+        var m2 = new THREE.Mesh(new THREE.SphereGeometry(0.004,8,8),
+          new THREE.MeshBasicMaterial({color:col2,transparent:true,opacity:op2+0.2}));
+        m2.position.copy(arcPts2[mid2]);
+        m2.userData.name = ahu.n+' faces '+s.n+' (Δ'+diff.toFixed(1)+'°)';
+        L.parallels.add(m2); siteMeshes.push(m2);
+      }
+    }
+  }
+
+  // Maya today-line: check if today's Tzolkin bearing from CI parallels any G-bearing
+  var _tz2=new Date().getTimezoneOffset()*60000;
+  var jdn2=Math.floor((Date.now()-_tz2)/86400000+2440588);
+  var days2=jdn2-584283;
+  var todayAz=days2%360;
+  // find nearest G
+  var bestGi=0, bestGerr=999;
+  for(var i=1;i<=22;i++){
+    var g=(GA*i)%360;
+    var d=Math.abs(todayAz-g); if(d>180)d=360-d;
+    if(d<bestGerr){bestGerr=d; bestGi=i;}
+  }
+  if(bestGerr < 5){
+    // today's Maya line aligns with a G-bearing — highlight with marker at CI
+    var tm = new THREE.Mesh(new THREE.OctahedronGeometry(0.012,0),
+      new THREE.MeshBasicMaterial({color:0xff4444}));
+    tm.position.copy(v3(CI.lat,CI.lng,1.012));
+    tm.userData.name = 'Today Tzolkin '+todayAz+'° ≈ G'+bestGi+' (err '+bestGerr.toFixed(1)+'°)';
+    L.parallels.add(tm); siteMeshes.push(tm);
+  }
+})();
+
+// toggles
+const MAP={'ly-poles':'poles','ly-shells':'shells','ly-axis':'axis','ly-rods':'rods','ly-ribs-g':'ribsG',
+  'ly-ribs-e':'ribsE','ly-solstice':'solstice','ly-sites':'sites','ly-maya':'maya',
+  'ly-gbear':'gbear','ly-grat':'grat','ly-impact':'impact','ly-roads':'roads','ly-reverb':'reverb','ly-compass':'compass','ly-antipodal':'antipodal','ly-trajectory':'trajectory','ly-nodes':'nodes','ly-bhproj':'bhproj','ly-bhpaths':'bhpaths','ly-catalog':'catalog','ly-moai':'moai','ly-counter':'counter','ly-parallels':'parallels'};
+for(const id in MAP){
+  const cb=document.getElementById(id);
+  L[MAP[id]].visible=cb.checked;
+  cb.addEventListener('change',()=>{L[MAP[id]].visible=cb.checked;});
+}
+
+// hover tooltip
+const ray=new THREE.Raycaster(); ray.params.Points={threshold:0.02};
+const mouse=new THREE.Vector2(); const tip=document.getElementById('tip');
+renderer.domElement.addEventListener('mousemove',function(ev){
+  mouse.x=(ev.clientX/window.innerWidth)*2-1;
+  mouse.y=-(ev.clientY/window.innerHeight)*2+1;
+  ray.setFromCamera(mouse,camera);
+  const hits=ray.intersectObjects(siteMeshes.filter(m=>m.parent&&m.parent.visible).concat(L.poles.visible?L.poles.children.filter(o=>o.isMesh):[]));
+  if(hits.length&&hits[0].object.userData.name){
+    tip.style.display='block';
+    tip.style.left=(ev.clientX+12)+'px'; tip.style.top=(ev.clientY+8)+'px';
+    tip.textContent=hits[0].object.userData.name;
+  } else tip.style.display='none';
+});
+
+// --- view modes ---
+let inside=false;
+function setMode(ins){
+  inside=ins;
+  if(ins){
+    world.scale.set(-1,1,1);
+    sphere.scale.setScalar(1.012);
+    controls.rotateSpeed=-0.35;
+    controls.enableZoom=false;
+    controls.minDistance=0.011; controls.maxDistance=0.011;
+    camera.position.set(0.011,0,0);
+    camera.fov=85;
+    rodsOut.visible=false; rodsIn.visible=true;
+    document.getElementById('btn-mode').textContent='Switch to OUTSIDE view';
+    document.getElementById('modehint').innerHTML='INSIDE VIEW &middot; drag to look around &middot; scroll = zoom (FOV) &middot; antipodes are directly behind you &middot; <a href="lattice.html">flat map</a>';
+  } else {
+    world.scale.set(1,1,1);
+    sphere.scale.setScalar(1);
+    controls.rotateSpeed=1.0;
+    controls.enableZoom=true;
+    controls.minDistance=1.35; controls.maxDistance=6;
+    camera.position.copy(v3(15,-30,3.2));
+    camera.fov=40;
+    rodsOut.visible=true; rodsIn.visible=false;
+    document.getElementById('btn-mode').textContent='Switch to INSIDE view';
+    document.getElementById('modehint').innerHTML='OUTSIDE VIEW &middot; drag to spin &middot; scroll to zoom &middot; <a href="lattice.html">flat map</a>';
+  }
+  camera.updateProjectionMatrix();
+  controls.update();
+}
+document.getElementById('btn-mode').addEventListener('click',()=>setMode(!inside));
+document.querySelectorAll('.look').forEach(b=>{
+  b.addEventListener('click',()=>{
+    const lat=parseFloat(b.dataset.lat), lng=parseFloat(b.dataset.lng);
+    world.updateMatrixWorld(true);
+    const wp=v3(lat,lng,1).applyMatrix4(world.matrixWorld).normalize();
+    if(inside){
+      camera.position.copy(wp.multiplyScalar(-0.011));
+      if(b.dataset.fov){
+        camera.fov=parseFloat(b.dataset.fov);
+        camera.updateProjectionMatrix();
+      }
+    }
+    else camera.position.copy(wp.multiplyScalar(3.2));
+    controls.update();
+  });
+});
+
+// Lattice-only toggle: show only trajectory + antipodal layers
+(function(){
+  var latticeMode=false;
+  var savedState={};
+  var latticeLayers=['trajectory','antipodal','nodes','bhproj','bhpaths','catalog','moai','counter','parallels'];
+  var allLayerKeys=Object.keys(MAP);
+  document.getElementById('btn-lattice').addEventListener('click',function(){
+    latticeMode=!latticeMode;
+    this.classList.toggle('on');
+    this.style.background=latticeMode?'#0a2a3a':'';
+    if(latticeMode){
+      for(var id in MAP){
+        var cb=document.getElementById(id);
+        savedState[id]=cb.checked;
+        var isLattice=latticeLayers.indexOf(MAP[id])>=0||MAP[id]==='grat';
+        cb.checked=isLattice;
+        L[MAP[id]].visible=isLattice;
+      }
+    } else {
+      for(var id in MAP){
+        var cb=document.getElementById(id);
+        cb.checked=savedState[id]!==undefined?savedState[id]:true;
+        L[MAP[id]].visible=cb.checked;
+      }
+    }
+  });
+})();
+renderer.domElement.addEventListener('wheel',function(e){
+  if(!inside) return;
+  e.preventDefault();
+  camera.fov=Math.min(115,Math.max(25,camera.fov+e.deltaY*0.05));
+  camera.updateProjectionMatrix();
+},{passive:false});
+setMode(false);
+
+
+// === SHALLOW WATER EQUATIONS — physics-based tsunami propagation ===
+(function(){
+var SWE_W=360,SWE_H=180,SWE_N=SWE_W*SWE_H;
+var R_E=6371000,GR=9.81;
+var SWE_DT=10;
+var SWE_FRICTION=3e-5;
+var SWE_SMOOTH=0.003;
+
+var SWE_IMPACTS=[
+  {lat:-29.98,lng:-148.87,t0:0},
+  {lat:-27.2,lng:-146.3,t0:1800},
+  {lat:-24.8,lng:-143.8,t0:3600},
+  {lat:21.4,lng:-89.5,t0:7200}
+];
+
+var sweH=new Float32Array(SWE_N);
+var sweEta=new Float32Array(SWE_N);
+var sweU=new Float32Array(SWE_N);
+var sweV=new Float32Array(SWE_N);
+var sweEta2=new Float32Array(SWE_N);
+var sweU2=new Float32Array(SWE_N);
+var sweV2=new Float32Array(SWE_N);
+var sweElev=new Float32Array(SWE_N);
+
+var cosLat=new Float32Array(SWE_H);
+var dxRow=new Float32Array(SWE_H);
+var dyC=R_E*Math.PI/180;
+for(var jj=0;jj<SWE_H;jj++){
+  var la=(-90+(jj+0.5))*Math.PI/180;
+  cosLat[jj]=Math.cos(la);
+  dxRow[jj]=R_E*cosLat[jj]*Math.PI/180;
+}
+
+var sweRGBA=new Uint8Array(SWE_N*4);
+var sweTex=new THREE.DataTexture(sweRGBA,SWE_W,SWE_H);
+sweTex.format=THREE.RGBAFormat;
+sweTex.type=THREE.UnsignedByteType;
+sweTex.magFilter=THREE.LinearFilter;
+sweTex.minFilter=THREE.LinearFilter;
+sweTex.wrapS=THREE.RepeatWrapping;
+sweTex.wrapT=THREE.ClampToEdgeWrapping;
+sweTex.needsUpdate=true;
+
+var sweOverlay=new THREE.Mesh(
+  new THREE.SphereGeometry(1.004,96,96),
+  new THREE.MeshBasicMaterial({map:sweTex,transparent:true,depthWrite:false,side:THREE.FrontSide})
+);
+sweOverlay.renderOrder=8;
+sweOverlay.visible=false;
+L.impact.add(sweOverlay);
+
+var sweReady=false,sweActive=false,sweSimT=0;
+var sweInjected=[false,false,false,false];
+
+fetch('bathymetry_360x180.bin')
+  .then(function(r){return r.arrayBuffer()})
+  .then(function(buf){
+    var raw=new Float32Array(buf);
+    for(var ii=0;ii<SWE_N;ii++){sweElev[ii]=raw[ii];sweH[ii]=raw[ii]<0?-raw[ii]:0;}
+    sweReady=true;
+    var oc=0;for(var ii=0;ii<SWE_N;ii++) if(sweH[ii]>0) oc++;
+    console.log('SWE: bathymetry loaded, ocean:',oc,'/',SWE_N,'(inundation enabled)');
+  })
+  .catch(function(e){console.warn('SWE: no bathymetry',e);});
+
+function sweInject(lat0,lng0,amp,sigma){
+  var la0=lat0*Math.PI/180,lo0=lng0*Math.PI/180,s2=sigma*sigma;
+  for(var jj=0;jj<SWE_H;jj++){
+    var lat=(-90+(jj+0.5))*Math.PI/180;
+    var clat=Math.cos(lat);
+    for(var ii=0;ii<SWE_W;ii++){
+      var lon=(-180+(ii+0.5))*Math.PI/180;
+      var a=Math.sin((lat-la0)/2),b=Math.sin((lon-lo0)/2);
+      var hav=a*a+Math.cos(la0)*clat*b*b;
+      var dist=2*Math.atan2(Math.sqrt(hav),Math.sqrt(1-hav))*180/Math.PI;
+      var kk=jj*SWE_W+ii;
+      if(sweH[kk]>0) sweEta[kk]+=amp*Math.exp(-0.5*dist*dist/s2);
+    }
+  }
+}
+
+function sweStep(){
+  var dt=SWE_DT,g=GR,fr=SWE_FRICTION,W=SWE_W,Ht=SWE_H;
+  var j,i,k,kE,kW,kN,kS,hEff;
+  var WET=0.5;
+
+  // Phase 1: momentum — only wet cells get velocity
+  for(j=1;j<Ht-1;j++){
+    if(cosLat[j]<0.05) continue;
+    var dtg_dx=dt*g/(2*dxRow[j]),dtg_dy=dt*g/(2*dyC);
+    for(i=0;i<W;i++){
+      k=j*W+i;
+      hEff=sweEta[k]-sweElev[k];
+      if(hEff<WET){sweU2[k]=0;sweV2[k]=0;continue;}
+      var decay=1-fr*dt*(1+50/(hEff+0.1));if(decay<0)decay=0;
+      kE=j*W+(i+1)%W; kW=j*W+((i+W-1)%W);
+      kN=(j+1)*W+i;   kS=(j-1)*W+i;
+      sweU2[k]=sweU[k]*decay-dtg_dx*(sweEta[kE]-sweEta[kW]);
+      sweV2[k]=sweV[k]*decay-dtg_dy*(sweEta[kN]-sweEta[kS]);
+    }
+  }
+  sweU.set(sweU2); sweV.set(sweV2);
+
+  // Phase 2: continuity with wetting/drying
+  for(j=1;j<Ht-1;j++){
+    if(cosLat[j]<0.05) continue;
+    var dtH_dx=dt/(2*dxRow[j]),dtH_dy=dt/(2*dyC);
+    for(i=0;i<W;i++){
+      k=j*W+i;
+      kE=j*W+(i+1)%W; kW=j*W+((i+W-1)%W);
+      kN=(j+1)*W+i;   kS=(j-1)*W+i;
+      hEff=sweEta[k]-sweElev[k];
+      if(hEff<WET){
+        var maxNE=sweEta[kE];
+        if(sweEta[kW]>maxNE)maxNE=sweEta[kW];
+        if(sweEta[kN]>maxNE)maxNE=sweEta[kN];
+        if(sweEta[kS]>maxNE)maxNE=sweEta[kS];
+        if(maxNE<=sweElev[k]){sweEta2[k]=sweEta[k];continue;}
+        hEff=WET;
+      }
+      sweEta2[k]=sweEta[k]-hEff*(dtH_dx*(sweU[kE]-sweU[kW])+dtH_dy*(sweV[kN]-sweV[kS]));
+    }
+  }
+
+  // Phase 3: smoothing (skip deep-dry land)
+  var al=SWE_SMOOTH;
+  for(j=1;j<Ht-1;j++){
+    for(i=0;i<W;i++){
+      k=j*W+i;
+      if(sweElev[k]>0&&sweEta2[k]<sweElev[k]-10){sweEta[k]=sweEta2[k];continue;}
+      kE=j*W+(i+1)%W; kW=j*W+((i+W-1)%W);
+      kN=(j+1)*W+i;   kS=(j-1)*W+i;
+      sweEta[k]=(1-al)*sweEta2[k]+al*0.25*(sweEta2[kE]+sweEta2[kW]+sweEta2[kN]+sweEta2[kS]);
+    }
+  }
+}
+
+function sweUpdateTex(){
+  var mx=0.1,k,a;
+  for(k=0;k<SWE_N;k++){a=sweEta[k];if(a>mx)mx=a;else if(-a>mx)mx=-a;}
+  var sc=1.0/mx;
+  for(k=0;k<SWE_N;k++){
+    var e=sweEta[k],p=k*4;
+    var isLand=sweElev[k]>=0;
+    var hEff=e-sweElev[k];
+    if(hEff<0.5){sweRGBA[p+3]=0;continue;}
+    if(isLand){
+      var d=hEff,t=d>80?1:d/80;
+      sweRGBA[p]  =180+75*t|0;
+      sweRGBA[p+1]=15+25*t|0;
+      sweRGBA[p+2]=10+15*t|0;
+      sweRGBA[p+3]=t*180+60|0;
+    }else{
+      var t=Math.abs(e)*sc;
+      if(t<0.015){sweRGBA[p+3]=0;continue;}
+      if(t>1)t=1;
+      var alpha=t*t*200+40;if(alpha>240)alpha=240;
+      if(e>0){
+        sweRGBA[p]  =150+105*t|0;
+        sweRGBA[p+1]=40+190*t*t|0;
+        sweRGBA[p+2]=10+50*t*t|0;
+      }else{
+        sweRGBA[p]  =5+25*t|0;
+        sweRGBA[p+1]=20+90*t|0;
+        sweRGBA[p+2]=60+160*t|0;
+      }
+      sweRGBA[p+3]=alpha|0;
+    }
+  }
+  sweTex.needsUpdate=true;
+}
+
+window._sweReset=function(){
+  sweEta.fill(0);sweU.fill(0);sweV.fill(0);
+  sweEta2.fill(0);sweU2.fill(0);sweV2.fill(0);
+  for(var _r=0;_r<sweInjected.length;_r++)sweInjected[_r]=false;
+  sweSimT=0;sweActive=false;
+  sweOverlay.visible=false;
+  sweRGBA.fill(0);sweTex.needsUpdate=true;
+};
+
+window._sweUpdate=function(simTime,simRunning){
+  if(!sweReady||!simRunning) return;
+  for(var f=0;f<SWE_IMPACTS.length;f++){
+    if(f<3&&!window._simEI) continue;
+    if(f===3&&!window._simCHX) continue;
+    if(!sweInjected[f]&&simTime>=SWE_IMPACTS[f].t0){
+      sweInjected[f]=true;
+      sweInject(SWE_IMPACTS[f].lat,SWE_IMPACTS[f].lng,300,2.5);
+      sweActive=true;
+      sweOverlay.visible=true;
+    }
+  }
+  if(!sweActive) return;
+  var maxSteps=24,steps=0;
+  while(sweSimT+SWE_DT<=simTime&&steps<maxSteps){
+    sweStep();sweSimT+=SWE_DT;steps++;
+  }
+  if(steps>0) sweUpdateTex();
+};
+})();
+
+// === IMPACT SIMULATION ===
+const FRAGS=[
+  {lat:-29.98,lng:-148.87,t0:0},
+  {lat:-27.2,lng:-146.3,t0:1800},
+  {lat:-24.8,lng:-143.8,t0:3600},
+  {lat:21.4,lng:-89.5,t0:7200}
+];
+
+const SIM_EVT=[
+  {n:'Fragment 1 impact',t:0,lat:-29.98,lng:-148.87,tp:'impact'},
+  {n:'Seismic P-wave &rarr; Giza (through the core)',t:1260,lat:29.9792,lng:31.1342,tp:'seismic'},
+  {n:'Fragment 2 impact',t:1800,lat:-27.2,lng:-146.3,tp:'impact'},
+  {n:'Rapa Iti hit (shell n=1)',t:2460,lat:-27.617,lng:-144.342,tp:'hit'},
+  {n:'Marotiri hit',t:2760,lat:-27.91,lng:-143.424,tp:'hit'},
+  {n:'Raivavae hit (shell n=2)',t:3300,lat:-23.863,lng:-147.662,tp:'hit'},
+  {n:'Tubuai hit',t:3540,lat:-23.35,lng:-149.48,tp:'hit'},
+  {n:'Fragment 3 impact',t:3600,lat:-24.8,lng:-143.8,tp:'impact'},
+  {n:'Surface waves converge at Giza (antipode)',t:5040,lat:29.9792,lng:31.1342,tp:'seismic'},
+  {n:'Tahiti reached',t:6600,lat:-17.68,lng:-149.45,tp:'hit'},
+  {n:'New Zealand reached',t:17040,lat:-41.0,lng:174.0,tp:'hit'},
+  {n:'Easter Island reached (shell n=5)',t:18480,lat:-27.1127,lng:-109.3497,tp:'hit'},
+  {n:'Hawaii reached',t:26880,lat:20.0,lng:-155.5,tp:'hit'},
+  {n:'Magellan/Beagle channels breach',t:30540,lat:-52.6,lng:-74.8,tp:'breach'},
+  {n:'Drake Passage breach &rarr; South Atlantic',t:32760,lat:-57.5,lng:-66,tp:'breach'},
+  {n:'Chilean coast hit &mdash; Andes wall',t:34740,lat:-30.5,lng:-71.8,tp:'hit'},
+  {n:'Andes backwash &mdash; reflection heads west',t:34740,lat:-32.0,lng:-74.0,tp:'refl'},
+  {n:'Gulf of California funnel',t:35160,lat:25.0,lng:-110.0,tp:'breach'},
+  {n:'Altiplano overtopping (stacked waves)',t:36540,lat:-16.5,lng:-68.0,tp:'breach'},
+  {n:'Tehuantepec breach (224 m divide)',t:36720,lat:16.5,lng:-95.0,tp:'breach'},
+  {n:'Nicaragua breach (32 m divide)',t:38880,lat:11.5,lng:-85.7,tp:'breach'},
+  {n:'R&iacute;o de la Plata blowout &rarr; Atlantic',t:44160,lat:-38.6,lng:-56.5,tp:'breach'},
+  {n:'Salton Trough filling (Lake Cahuilla)',t:45300,lat:33.2,lng:-115.9,tp:'breach'},
+  {n:'Caribbean flooding (west + east)',t:45600,lat:15.5,lng:-80.5,tp:'hit'},
+  {n:'Backwash re-reaches Easter Island',t:52320,lat:-27.1127,lng:-109.3497,tp:'refl'},
+  {n:'Gulf of Mexico convergence (3 breaches)',t:60180,lat:26.5,lng:-93.5,tp:'breach'},
+  {n:'Monterrey gap convergence (G18 0.16&deg;)',t:63780,lat:25.4,lng:-101.1,tp:'breach'},
+  {n:'Equatorial Atlantic crossing',t:68400,lat:0,lng:-30,tp:'hit'},
+  {n:'Cape of Good Hope rounded',t:72420,lat:-38,lng:20,tp:'hit'},
+  {n:'Antilles reached from the east',t:84600,lat:13.5,lng:-57,tp:'hit'},
+  {n:'Mozambique Channel funneling',t:86580,lat:-19,lng:40.5,tp:'hit'},
+  {n:'Horn of Africa passed',t:104460,lat:12,lng:53,tp:'hit'},
+  {n:'Persian Gulf valley reached',t:117060,lat:26.7,lng:52.5,tp:'hit'}
+].sort((a,b)=>a.t-b.t);
+
+const SIM_MAX=124260, SIM_SCALE=640;
+let simT=0, simOn=false, simSpd=1, lastEvCount=-1;
+
+// pre-allocate wave ring buffers (3 fragments x 4 trailing rings)
+function mkRing(col,op){
+  const pos=new Float32Array(181*3);
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(pos,3));
+  const mat=new THREE.LineBasicMaterial({color:col,transparent:true,opacity:op,depthWrite:false});
+  const ln=new THREE.Line(geo,mat);
+  ln.visible=false; ln.renderOrder=10;
+  L.impact.add(ln);
+  return ln;
+}
+function setRing(ln,cen,deg,r){
+  if(deg<=0.3||deg>180){ln.visible=false;return;}
+  ln.visible=true;
+  const arr=ln.geometry.attributes.position.array;
+  const N=181;
+  const la0=cen.lat*D2R,lo0=cen.lng*D2R,dd=deg*D2R;
+  for(let i=0;i<N;i++){
+    const brg=2*Math.PI*i/(N-1);
+    const la2=Math.asin(Math.sin(la0)*Math.cos(dd)+Math.cos(la0)*Math.sin(dd)*Math.cos(brg));
+    const lo2=lo0+Math.atan2(Math.sin(brg)*Math.sin(dd)*Math.cos(la0),Math.cos(dd)-Math.sin(la0)*Math.sin(la2));
+    const cl=Math.cos(la2),x=cl*Math.cos(lo2),y=Math.sin(la2),z=-cl*Math.sin(lo2);
+    arr[i*3]=x*r; arr[i*3+1]=y*r; arr[i*3+2]=z*r;
+  }
+  ln.geometry.attributes.position.needsUpdate=true;
+  ln.geometry.computeBoundingSphere();
+}
+
+const RC=[[0xff2222,0.9],[0xff5522,0.55],[0xffaa22,0.3],[0xffdd44,0.12]];
+const RC2=[[0x4466ff,0.9],[0x6644ff,0.55],[0x9944ff,0.3],[0xcc66ff,0.12]];
+const wRings=[];
+for(let f=0;f<3;f++){const a=[];for(const[c,o] of RC) a.push(mkRing(c,o));wRings.push(a);}
+{const a=[];for(const[c,o] of RC2) a.push(mkRing(c,o));wRings.push(a);}
+
+// === directional channel waves: pulses along real water corridors ===
+const CHANNELS=[
+  {name:'drake',col:0xffaa33,spd:750,trail:3000,headR:0.013,t0:32760,wps:[[-57.5,-66],[-54,-55],[-48,-45],[-40,-38],[-31,-33],[-21,-30],[-11,-28],[0,-30],[8,-40],[13.5,-57]]},
+  {name:'magellan',col:0xff8844,spd:600,trail:2200,headR:0.01,t0:30540,wps:[[-52.6,-74.8],[-53.4,-70.8],[-52.3,-68.2],[-49,-64.5],[-43,-59.5],[-38.6,-56.5],[-33,-48],[-27,-40]]},
+  {name:'indian',col:0x44ddaa,spd:750,trail:3500,headR:0.012,t0:11940,wps:[[-45,-170],[-53,177],[-56,150],[-57,130],[-55,108],[-51,85],[-46,62],[-42,40],[-38,20],[-35.5,25],[-30,33],[-25,38],[-19,40.5],[-13,42.5],[-6,46],[3,50],[8,52],[12,53],[16,58],[22,62],[25,58.5],[26.4,56.5],[26.7,52.5]]},
+  {name:'nica',col:0xff8800,spd:450,trail:1600,headR:0.009,t0:38880,wps:[[11.2,-86.4],[11.9,-84.9],[12.6,-82.5],[15.5,-80.5],[18.5,-83],[21.2,-86.5],[23.5,-90],[26.5,-93.5]]},
+  {name:'tehua',col:0xff8800,spd:450,trail:1200,headR:0.008,t0:36720,wps:[[15.8,-95.6],[17.3,-94.7],[19.5,-94],[21.5,-92.5],[22.5,-92]]},
+  {name:'goc',col:0xffcc44,spd:500,trail:1400,headR:0.009,t0:35160,wps:[[22.8,-107.8],[25,-109.8],[27.3,-111.3],[29.3,-113],[31.2,-114.6],[33.2,-115.9]]}
+];
+
+function buildChannel(ch){
+  const pts=[],cum=[];
+  let prev=null,total=0;
+  for(let s=0;s<ch.wps.length-1;s++){
+    const A=v3(ch.wps[s][0],ch.wps[s][1],1).normalize();
+    const B=v3(ch.wps[s+1][0],ch.wps[s+1][1],1).normalize();
+    const ang=Math.acos(Math.min(1,Math.max(-1,A.dot(B))));
+    const sn=Math.sin(ang);
+    const n=Math.max(2,Math.ceil(ang*6371/45));
+    for(let k=(s===0?0:1);k<=n;k++){
+      const t=k/n;
+      const p=new THREE.Vector3()
+        .addScaledVector(A,Math.sin((1-t)*ang)/sn)
+        .addScaledVector(B,Math.sin(t*ang)/sn)
+        .normalize();
+      if(prev) total+=p.angleTo(prev)*6371;
+      pts.push(p.clone().multiplyScalar(1.008));
+      cum.push(total);
+      prev=p;
+    }
+  }
+  const geo=new THREE.BufferGeometry().setFromPoints(pts);
+  const lnn=new THREE.Line(geo,new THREE.LineBasicMaterial(
+    {color:ch.col,transparent:true,opacity:0.85,depthWrite:false}));
+  lnn.visible=false;lnn.renderOrder=12;
+  const hd=new THREE.Mesh(new THREE.SphereGeometry(ch.headR,10,10),
+    new THREE.MeshBasicMaterial({color:ch.col,transparent:true,opacity:0.95,depthWrite:false}));
+  hd.visible=false;hd.renderOrder=16;
+  L.impact.add(lnn);L.impact.add(hd);
+  return {ch:ch,pts:pts,cum:cum,ln:lnn,hd:hd,len:total,i:0,j:0};
+}
+const chans=CHANNELS.map(buildChannel);
+
+// === Andes backwash: reflection off the Chilean coast, west-only arc ===
+const REFL={lat:-30.5,lng:-71.8};
+const T_COAST=34740;
+const reflRing=mkRing(0x44ccff,0.85);
+function setArcSpan(ln,cen,deg,b0,b1,r){
+  if(deg<=0.3){ln.visible=false;return;}
+  ln.visible=true;
+  const arr=ln.geometry.attributes.position.array;
+  const N=181;
+  const la0=cen.lat*D2R,lo0=cen.lng*D2R,dd=deg*D2R;
+  for(let i=0;i<N;i++){
+    const brg=(b0+(b1-b0)*i/(N-1))*D2R;
+    const la2=Math.asin(Math.sin(la0)*Math.cos(dd)+Math.cos(la0)*Math.sin(dd)*Math.cos(brg));
+    const lo2=lo0+Math.atan2(Math.sin(brg)*Math.sin(dd)*Math.cos(la0),Math.cos(dd)-Math.sin(la0)*Math.sin(la2));
+    const cl=Math.cos(la2),x=cl*Math.cos(lo2),y=Math.sin(la2),z=-cl*Math.sin(lo2);
+    arr[i*3]=x*r;arr[i*3+1]=y*r;arr[i*3+2]=z*r;
+  }
+  ln.geometry.attributes.position.needsUpdate=true;
+  ln.geometry.computeBoundingSphere();
+}
+
+// seismic wave ring (blue, fast)
+const seisRing=mkRing(0x4488ff,0.7);
+
+// flash spheres
+const flashes=FRAGS.map(f=>{
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.02,16,16),
+    new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:0,depthWrite:false}));
+  m.position.copy(v3(f.lat,f.lng,1.015));
+  m.renderOrder=20;
+  L.impact.add(m); return m;
+});
+
+// Giza antipodal glow
+const gizaGlow=new THREE.Mesh(new THREE.SphereGeometry(0.03,20,20),
+  new THREE.MeshBasicMaterial({color:0x4488ff,transparent:true,opacity:0,depthWrite:false}));
+gizaGlow.position.copy(v3(GIZA.lat,GIZA.lng,1.012));
+gizaGlow.renderOrder=20;
+L.impact.add(gizaGlow);
+
+// event markers
+const evDots=SIM_EVT.map(ev=>{
+  const c=ev.tp==='seismic'?0x4488ff:ev.tp==='breach'?0xff8800:ev.tp==='impact'?0xffffff:ev.tp==='refl'?0x44ccff:0xff4444;
+  const m=new THREE.Mesh(new THREE.SphereGeometry(0.008,10,10),
+    new THREE.MeshBasicMaterial({color:c,transparent:true,opacity:0,depthWrite:false}));
+  m.position.copy(v3(ev.lat,ev.lng,1.011));
+  m.renderOrder=15;
+  L.impact.add(m); return m;
+});
+
+const TSPD=750/111.32/3600; // tsunami deg/s
+
+function updateSim(dt){
+  if(!simOn||!L.impact.visible) return;
+  dt=Math.min(dt,0.1);
+  simT+=dt*SIM_SCALE*simSpd;
+  if(window._sweUpdate) window._sweUpdate(simT,true);
+  // sim continues past SIM_MAX — SWE waves keep propagating
+
+  // primary tsunami rings
+  for(let f=0;f<4;f++){
+    if(f<3&&!window._simEI){for(let r=0;r<4;r++)wRings[f][r].visible=false;continue;}
+    if(f===3&&!window._simCHX){for(let r=0;r<4;r++)wRings[f][r].visible=false;continue;}
+    const el=simT-FRAGS[f].t0;
+    const rcRef=f<3?RC:RC2;
+    for(let r=0;r<4;r++){
+      const re=el-r*1200;
+      if(re<=0){wRings[f][r].visible=false;continue;}
+      const deg=re*TSPD;
+      setRing(wRings[f][r],FRAGS[f],deg,1.006+r*0.001);
+      wRings[f][r].material.opacity=rcRef[r][1]*Math.max(0.1,1-deg/140);
+    }
+  }
+
+  // directional channel waves (Easter Island only)
+  if(!window._simEI){for(const c of chans){c.ln.visible=false;c.hd.visible=false;}}
+  else for(const c of chans){
+    const el=simT-c.ch.t0;
+    if(el<=0){c.ln.visible=false;c.hd.visible=false;c.i=0;c.j=0;continue;}
+    const km=el*c.ch.spd/3600;
+    if(km>=c.len+c.ch.trail){c.ln.visible=false;c.hd.visible=false;continue;}
+    const headKm=Math.min(km,c.len);
+    let hi=c.i; if(headKm<c.cum[hi]) hi=0;
+    while(hi<c.cum.length-1&&c.cum[hi+1]<=headKm) hi++;
+    c.i=hi;
+    const tailKm=Math.max(0,km-c.ch.trail);
+    let tj=c.j; if(tailKm<c.cum[tj]) tj=0;
+    while(tj<c.cum.length-1&&c.cum[tj+1]<=tailKm) tj++;
+    c.j=tj;
+    c.ln.visible=true;
+    c.ln.geometry.setDrawRange(tj,Math.max(2,hi-tj+1));
+    if(km<c.len){
+      c.hd.visible=true;
+      c.hd.position.copy(c.pts[hi]);
+      c.hd.scale.setScalar(1+0.3*Math.sin(simT/500));
+    } else c.hd.visible=false;
+  }
+
+  // Andes backwash (westward-only reflection arc)
+  const relR=simT-T_COAST;
+  if(relR>0){
+    const dg=relR*TSPD;
+    if(dg<40){
+      setArcSpan(reflRing,REFL,dg,195,345,1.0085);
+      reflRing.material.opacity=0.85*Math.max(0.08,1-dg/40);
+    } else reflRing.visible=false;
+  } else reflRing.visible=false;
+
+  // seismic surface wave (much faster — visual: ~12 deg/real-second)
+  const seisEl=simT;
+  const seisDeg=seisEl*(4.0/111.32); // 4 km/s surface wave
+  if(seisDeg>0.5&&seisDeg<185){
+    if(!window._simEI){seisRing.visible=false;}else setRing(seisRing,FRAGS[0],Math.min(seisDeg,180),1.009);
+    seisRing.material.opacity=0.6*Math.max(0,1-seisDeg/185);
+  } else seisRing.visible=false;
+
+  // impact flashes
+  for(let i=0;i<4;i++){
+    if(i<3&&!window._simEI){flashes[i].material.opacity=0;continue;}
+    if(i===3&&!window._simCHX){flashes[i].material.opacity=0;continue;}
+    const el=simT-FRAGS[i].t0;
+    if(el>=0&&el<800){
+      flashes[i].material.opacity=Math.max(0,1-el/800);
+      flashes[i].scale.setScalar(1+el/200);
+    } else {flashes[i].material.opacity=0;flashes[i].scale.setScalar(1);}
+  }
+
+  // Giza glow (Easter Island only — seismic wave to antipode)
+  if(!window._simEI){gizaGlow.material.opacity=0;gizaGlow.scale.setScalar(1);}
+  else if(seisDeg>140&&seisDeg<185){
+    const t=(seisDeg-140)/45;
+    gizaGlow.material.opacity=Math.sin(t*Math.PI)*0.9;
+    gizaGlow.scale.setScalar(1+Math.sin(t*Math.PI)*2.5);
+  } else if(simT>5040&&simT<15000){
+    // sustained gentle glow during surface wave focusing
+    gizaGlow.material.opacity=0.3*Math.max(0,1-(simT-5040)/10000);
+    gizaGlow.scale.setScalar(1.5);
+  } else {gizaGlow.material.opacity=0;gizaGlow.scale.setScalar(1);}
+
+  // event markers (Easter Island)
+  for(let i=0;i<SIM_EVT.length;i++){
+    const ev=SIM_EVT[i];
+    if(!window._simEI){evDots[i].material.opacity=0;continue;}
+    if(simT>=ev.t){
+      const f=Math.min(1,(simT-ev.t)/800);
+      evDots[i].material.opacity=f*0.9;
+      if(ev.tp==='breach'&&simT-ev.t<2000)
+        evDots[i].scale.setScalar(1+Math.sin((simT-ev.t)/300)*0.6);
+      else evDots[i].scale.setScalar(1);
+    } else evDots[i].material.opacity=0;
+  }
+
+  // UI
+  const hrs=Math.floor(simT/3600);
+  const mins=Math.floor((simT%3600)/60);
+  document.getElementById('sim-clock').textContent=
+    String(hrs).padStart(2,'0')+':'+String(mins).padStart(2,'0');
+  document.getElementById('sim-bar-fill').style.width=Math.min(simT/SIM_MAX*100,100)+'%';
+
+  let evn=0;
+  if(window._simEI) for(const ev of SIM_EVT) if(simT>=ev.t) evn++;
+  if(evn!==lastEvCount){
+    lastEvCount=evn;
+    let lg='';
+    for(const ev of SIM_EVT){
+      if(!window._simEI) break;
+      if(simT>=ev.t){
+        const h=Math.floor(ev.t/3600),m=Math.floor((ev.t%3600)/60);
+        const c=ev.tp==='impact'?'sev imp':ev.tp==='breach'?'sev brch':ev.tp==='refl'?'sev refl':ev.tp==='seismic'?'sev sei':'sev';
+        lg+='<div class="'+c+'"><span class="st">'+h+'h'+String(m).padStart(2,'0')+'</span>'+ev.n+'</div>';
+      }
+    }
+    const le=document.getElementById('sim-log');
+    le.innerHTML=lg;
+    le.scrollTop=le.scrollHeight;
+  }
+}
+
+function resetSim(){
+  simT=0;simOn=false;
+  if(window._sweReset) window._sweReset();
+  document.getElementById('sim-play').innerHTML='&#9654; Play';
+  document.getElementById('sim-play').classList.remove('on');
+  document.getElementById('sim-clock').textContent='00:00';
+  document.getElementById('sim-bar-fill').style.width='0%';
+  document.getElementById('sim-log').innerHTML='<div class="sev" style="color:#664433">Press &#9654; to begin</div>';
+  lastEvCount=-1;
+  for(const rr of wRings) for(const r of rr) r.visible=false;
+  for(const c of chans){c.ln.visible=false;c.hd.visible=false;c.i=0;c.j=0;}
+  reflRing.visible=false;
+  seisRing.visible=false;
+  for(const f of flashes){f.material.opacity=0;f.scale.setScalar(1);}
+  gizaGlow.material.opacity=0;gizaGlow.scale.setScalar(1);
+  for(const m of evDots){m.material.opacity=0;m.scale.setScalar(1);}
+}
+
+document.getElementById('sim-play').addEventListener('click',()=>{
+  simOn=!simOn;
+  const b=document.getElementById('sim-play');
+  b.innerHTML=simOn?'&#9646;&#9646; Pause':'&#9654; Play';
+  if(simOn) b.classList.add('on'); else b.classList.remove('on');
+});
+document.getElementById('sim-reset').addEventListener('click',resetSim);
+const SPDS=[1,2,4,8];
+let spIdx=0;
+document.getElementById('sim-speed').addEventListener('click',()=>{
+  spIdx=(spIdx+1)%SPDS.length;
+  simSpd=SPDS[spIdx];
+  document.getElementById('sim-speed').textContent=simSpd+'×';
+});
+window._simEI=true; window._simCHX=true;
+document.getElementById('sim-ei').addEventListener('change',function(){window._simEI=this.checked;});
+document.getElementById('sim-chx').addEventListener('change',function(){window._simCHX=this.checked;});
+document.getElementById('ly-impact').addEventListener('change',function(e){
+  if(!e.target.checked&&simOn){
+    simOn=false;
+    const pb=document.getElementById('sim-play');
+    pb.innerHTML='&#9654; Play';pb.classList.remove('on');
+  }
+});
+resetSim();
+
+let _pt=performance.now();
+(function animate(){
+  requestAnimationFrame(animate);
+  const _now=performance.now();
+  const _dt=(_now-_pt)/1000;
+  _pt=_now;
+  controls.update();
+  updateSim(_dt);
+  renderer.render(scene,camera);
+})();
+
+
+// ========== HUD PANEL ==========
+(function(){
+  var hud=document.getElementById('hud');
+  var tog=document.getElementById('hud-toggle');
+  tog.addEventListener('click',function(){
+    hud.classList.toggle('collapsed');
+    tog.classList.toggle('open');
+  });
+  // section collapse
+  var secs=hud.querySelectorAll('section .sec-head');
+  for(var i=0;i<secs.length;i++){
+    secs[i].addEventListener('click',(function(sec){
+      return function(){
+        var body=sec.nextElementSibling;
+        var arrow=sec.querySelector('.arrow');
+        body.classList.toggle('open');
+        arrow.classList.toggle('open');
+      };
+    })(secs[i]));
+  }
+})();
+
+// ========== CLICK-TO-INSPECT ==========
+(function(){
+  var inspDiv=document.getElementById('inspect');
+  var inspName=document.getElementById('insp-name');
+  var inspType=document.getElementById('insp-type');
+  var inspBody=document.getElementById('insp-body');
+  document.getElementById('insp-close').addEventListener('click',function(){inspDiv.style.display='none';});
+
+  function findLayerName(obj){
+    var p=obj.parent;
+    while(p&&p!==world){
+      for(var k in L){if(L[k]===p) return k;}
+      p=p.parent;
+    }
+    return '';
+  }
+
+  function layerContext(layer){
+    var ctx={
+      poles:"Part of the four-pole axis system. Giza and Easter Island define the primary axis; their antipodes complete the geometry.",
+      shells:"A \u03c6-shell ring at 3\u00b7\u03c6\u207f degrees from one of the four poles. Sites cluster at these boundaries.",
+      sites:"One of 109 ancient sites tested against the \u03c6-shell + G-bearing grid.",
+      maya:"Maya ceremonial site. The Tzolkin 20-day cycle maps onto golden-angle spacing from Chichen Itza.",
+      gbear:"A golden-angle bearing line from Giza. G_n = (n\u00b7137.508\u00b0) mod 360.",
+      bhproj:"Black hole projected onto Earth surface via shell (distance) + bearing (sky position). Confirmation = within 500 km of a known site.",
+      bhpaths:"Great-circle path from Giza toward a black hole, extended across the globe. Hit sites lie along this corridor.",
+      catalog:"Astronomical object from the k-sorted sky catalog. Distance/k = Fibonacci number within measurement error.",
+      moai:"Easter Island ahu platform. Moai facing directions encode bearings to framework sites.",
+      counter:"Counter Lattice element \u2014 the \u03c6-shell + G-bearing grid centred on Easter Island instead of Giza.",
+      impact:"Impact simulation element. Younger Dryas fragment trajectories and tsunami propagation.",
+      antipodal:"Antipodal impact focusing. Shockwaves converge at the point diametrically opposite the impact.",
+      trajectory:"Fornax A infall corridor \u2014 the trajectory from 62 Mly projected onto the surface.",
+      nodes:"Convergence node \u2014 eigenmode intersection where multiple shell+bearing lines cross.",
+      roads:"Sailing road from Easter Island along a G-bearing. Ancient Pacific navigation corridors.",
+      reverb:"Active geophysical feature on a framework bearing \u2014 seismic or volcanic.",
+      compass:"Compass rose: 8-direction ceremonial cycle from framework bearings.",
+      parallels:"Bearing parallel \u2014 these two sites share the same G-bearing corridor from Giza, meaning the golden-angle grid passes through both.",
+    };
+    return ctx[layer]||'';
+  }
+
+  function coordStr(pos){
+    if(!pos) return '';
+    var p=pos.clone();
+    world.updateMatrixWorld(true);
+    var inv=new THREE.Matrix4().copy(world.matrixWorld).invert();
+    p.applyMatrix4(inv);
+    var r=p.length();
+    var lat=Math.asin(p.y/r)/D2R;
+    var lng=-Math.atan2(p.z,p.x)/D2R;
+    return lat.toFixed(2)+'°'+(lat>=0?'N':'S')+', '+Math.abs(lng).toFixed(2)+'°'+(lng>=0?'E':'W');
+  }
+
+  renderer.domElement.addEventListener('click',function(ev){
+    var m2=new THREE.Vector2();
+    m2.x=(ev.clientX/window.innerWidth)*2-1;
+    m2.y=-(ev.clientY/window.innerHeight)*2+1;
+    ray.setFromCamera(m2,camera);
+    var allTargets=siteMeshes.filter(function(o){return o.parent&&o.parent.visible;});
+    if(L.poles.visible) allTargets=allTargets.concat(L.poles.children.filter(function(o){return o.isMesh;}));
+    var hits=ray.intersectObjects(allTargets);
+    if(!hits.length||!hits[0].object.userData.name){inspDiv.style.display='none';return;}
+    var obj=hits[0].object;
+    var name=obj.userData.name;
+    var layer=findLayerName(obj);
+    inspName.textContent=name;
+    inspType.textContent=layer?layer.replace(/([A-Z])/g,' $1').trim():'';
+    var html='<span class="lbl">Position:</span> <span class="val">'+coordStr(obj.position)+'</span>';
+    var ctx=layerContext(layer);
+    if(ctx) html+='<br><br>'+ctx;
+    if(obj.userData.detail) html+='<br><br>'+obj.userData.detail;
+    inspBody.innerHTML=html;
+    inspDiv.style.display='block';
+  });
+
+  document.addEventListener('keydown',function(e){if(e.key==='Escape') inspDiv.style.display='none';});
+})();
+
+</script>
+</body>
+</html>

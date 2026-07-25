@@ -1,0 +1,692 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Lattice 3D — Dipole Globe</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{background:#06080f;overflow:hidden;font-family:'Courier New',monospace;color:#8899bb}
+canvas{display:block;cursor:grab}
+canvas:active{cursor:grabbing}
+#panel{
+  position:fixed;top:16px;right:16px;width:240px;
+  background:rgba(8,12,22,0.92);border:1px solid rgba(80,100,140,0.2);
+  border-radius:8px;padding:14px;font-size:10px;
+  backdrop-filter:blur(10px);z-index:10;
+  max-height:calc(100vh - 32px);overflow-y:auto;
+}
+#panel h2{color:#c8d4e8;font-size:12px;margin-bottom:10px;letter-spacing:3px;font-weight:400}
+.lg{display:flex;align-items:center;gap:6px;margin:3px 0;font-size:9px}
+.ld{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.ll{width:16px;height:2px;flex-shrink:0;border-radius:1px}
+.sep{border-top:1px solid rgba(80,100,140,0.15);margin:8px 0;padding-top:6px}
+#info{
+  position:fixed;bottom:16px;left:16px;
+  background:rgba(8,12,22,0.92);border:1px solid rgba(80,100,140,0.2);
+  border-radius:8px;padding:12px 16px;font-size:11px;
+  backdrop-filter:blur(10px);display:none;max-width:320px;z-index:10;
+}
+#info .name{color:#c8d4e8;font-size:13px;margin-bottom:6px}
+#info .row{margin:2px 0}
+#info .lbl{color:#5a6680}
+#info .val{color:#aabbdd}
+#info .src{color:#5a6680;font-size:9px;margin-top:4px}
+#hint{
+  position:fixed;bottom:16px;right:16px;
+  background:rgba(8,12,22,0.7);border-radius:6px;padding:6px 10px;
+  font-size:9px;color:#445566;z-index:10;
+}
+.toggle-row{margin:2px 0;display:flex;align-items:center;gap:5px}
+.toggle-row input{width:12px;height:12px;accent-color:#4466aa}
+.toggle-row label{font-size:9px;cursor:pointer}
+</style>
+</head>
+<body>
+<canvas id="c"></canvas>
+
+<div id="panel">
+  <h2>LATTICE DIPOLE</h2>
+  <div class="sep" style="margin-top:0">
+    <div class="toggle-row"><input type="checkbox" id="cb-sites" checked><label for="cb-sites">Ancient sites</label></div>
+    <div class="toggle-row"><input type="checkbox" id="cb-preds" checked><label for="cb-preds">Predicted sites</label></div>
+    <div class="toggle-row"><input type="checkbox" id="cb-catalog" checked><label for="cb-catalog">Sky catalog (k-sorted)</label></div>
+    <div class="toggle-row"><input type="checkbox" id="cb-bhproj" checked><label for="cb-bhproj">BH projections</label></div>
+    <div class="toggle-row"><input type="checkbox" id="cb-orion" checked><label for="cb-orion">Orion Belt</label></div>
+    <div class="toggle-row"><input type="checkbox" id="cb-shells" checked><label for="cb-shells">Orbital shells</label></div>
+    <div class="toggle-row"><input type="checkbox" id="cb-axis" checked><label for="cb-axis">Dipole axis</label></div>
+    <div class="toggle-row"><input type="checkbox" id="cb-grid" checked><label for="cb-grid">Lat/lng grid</label></div>
+    <div class="toggle-row"><input type="checkbox" id="cb-intersite"><label for="cb-intersite">Lattice links</label></div>
+  </div>
+  <div class="sep">
+    <div class="lg"><div class="ld" style="background:#ff9944"></div>Ancient sites</div>
+    <div class="lg"><div class="ld" style="background:#ff6688"></div>Predicted sites</div>
+    <div class="lg"><div class="ld" style="background:#ff44ff"></div>k=1612 (BH only)</div>
+    <div class="lg"><div class="ld" style="background:#ffdd44"></div>Orion Belt / k=9</div>
+    <div class="lg"><div class="ld" style="background:#66aaff"></div>k=3 (F₄)</div>
+    <div class="lg"><div class="ld" style="background:#44ff88"></div>k=11 (φ⁵)</div>
+    <div class="lg"><div class="ld" style="background:#bb66ff"></div>k=16 (2⁴)</div>
+    <div class="lg"><div class="ld" style="background:#ff9944"></div>k=26 (rev62)</div>
+    <div class="lg"><div class="ld" style="background:#ff4444"></div>k=62 (RITO)</div>
+    <div class="lg"><div class="ld" style="background:#44cccc"></div>k=65 (F₅F₇)</div>
+  </div>
+  <div class="sep">
+    <div class="lg"><div class="ll" style="background:linear-gradient(90deg,#ffcc44,#44ddff)"></div>Dipole axis</div>
+    <div class="lg"><div class="ll" style="background:#ff9944"></div>Orbital shells (Giza)</div>
+  </div>
+  <div class="sep" id="stats"></div>
+</div>
+
+<div id="info"></div>
+<div id="hint">Drag to rotate · Scroll to zoom · Click point for info</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+// === DATA ===
+const GIZA={lat:29.9792,lng:31.1342};
+const ANTIPODE={lat:-29.9792,lng:31.1342-180};
+const R_EARTH=6371;
+const KM_PER_AU=617;
+
+const ORBITS=[
+  ['Mercury',0.387,'#999999'],['Venus',0.723,'#ffcc44'],['Earth',1.0,'#44aaff'],
+  ['Mars',1.524,'#ff6644'],['Jupiter',5.203,'#ff9944'],['Saturn',9.537,'#ddbb66'],
+  ['Uranus',19.19,'#44dddd'],['Neptune',30.07,'#4466ff']
+];
+
+// Sites: [name, lat, lng, type] — 0=anchor,1=meso,2=mound,3=pueblo,4=other,5=pred
+const SITE_COLS=['#ff9944','#cc88ff','#ff6644','#44cc88','#44bbff','#ff6688'];
+const SITES=[
+['Giza',29.98,31.13,0],['Tiwanaku',-16.55,-68.67,0],['Angkor Wat',13.41,103.87,0],
+['Easter Island',-27.11,-109.35,0],['Göbekli Tepe',37.22,38.92,0],['Stonehenge',51.18,-1.83,0],
+['Mohenjo-daro',27.32,68.14,0],['Nok Nigeria',9.72,9.09,0],['Nan Madol',6.84,158.34,0],
+['Great Zimbabwe',-20.27,30.93,0],['Nabta Playa',22.51,30.73,0],['Newgrange',53.69,-6.48,0],
+['Carnac',47.58,-3.08,0],['Dwarka',22.24,68.97,0],
+['Teotihuacan',19.69,-98.84,1],['Chichen Itza',20.68,-88.57,1],['Tikal',17.22,-89.62,1],
+['Copan',14.84,-89.14,1],['Palenque',17.48,-92.05,1],['Monte Alban',17.04,-96.77,1],
+['La Venta',18.10,-94.04,1],['Uxmal',20.36,-89.77,1],['Quirigua',15.27,-89.04,1],
+['El Mirador',17.76,-89.92,1],['Calakmul',18.11,-89.81,1],['Cholula',19.06,-98.30,1],
+['Bonampak',16.70,-91.07,1],['Tulum',20.21,-87.43,1],
+['Cahokia',38.66,-90.06,2],['Poverty Point',32.63,-91.41,2],['Serpent Mound',39.03,-83.43,2],
+['Moundville',33.01,-87.63,2],['Newark Earthworks',40.05,-82.42,2],['Watson Brake',32.63,-92.34,2],
+['Pinson Mounds',35.48,-88.74,2],['Winterville',33.52,-91.06,2],['Emerald Mound',31.91,-91.00,2],
+['Spiro Mounds',35.25,-94.62,2],['Angel Mounds',37.93,-87.45,2],['Grave Creek',39.92,-80.75,2],
+['Meadowcroft',40.29,-80.52,2],['Crystal River',28.90,-82.63,2],['Town Creek',35.44,-80.08,2],
+['Marietta Earthworks',39.41,-81.46,2],
+['Chaco Canyon',36.06,-107.96,3],['Mesa Verde',37.17,-108.49,3],['Casa Grande',33.00,-111.53,3],
+['Wupatki',35.52,-111.37,3],['Montezuma Castle',34.61,-111.84,3],['Canyon de Chelly',36.13,-109.47,3],
+['Aztec Ruins',36.84,-108.00,3],['Paquimé',30.37,-107.96,3],
+['Baalbek',34.01,36.20,4],['Petra',30.33,35.44,4],['Persepolis',29.94,52.89,4],
+['Ellora',20.03,75.18,4],['Borobudur',-7.61,110.20,4],['Yonaguni',24.44,123.01,4],
+['Caral',-10.89,-77.52,4],['Sanxingdui',31.00,104.20,4],['Machu Picchu',-13.16,-72.55,4],
+['Doggerland',52.50,6.50,4],
+['Arnhem Land',-12.37,133.19,5],['Yenisei River',71.93,92.71,5],['Altai Mountains',48.20,97.61,5],
+['Owens Valley',37.66,-118.07,5],['Cochasquí',0.14,-78.07,5],['Cameroon',5.45,14.98,5],
+['Madagascar',-20.37,48.06,5],['SW Australia',-42.51,116.29,5],['Gulf of Guinea',13.21,5.70,5],
+['Atlas Morocco',28.30,-1.98,5],['Lake Victoria',1.13,32.29,5],['Qinghai',33.45,94.19,5],
+['Etosha',-20.92,16.08,5],['Makgadikgadi',-22.29,22.52,5],['Paraná',-31.60,-60.56,5],
+['Gibson Desert',-27.54,125.07,5],['Mogollon Rim',33.97,-110.46,5],['Nuevo León',26.53,-99.71,5],
+['Tlemcen',31.97,-2.59,5],['Land of Punt',7.43,50.34,5],['Congo Basin',1.47,26.32,5],
+['Belozersk',58.43,38.23,5],['Tanami',-20.90,128.62,5],['Kyiv',58.85,31.13,5],
+['Kola Peninsula',69.79,31.13,5],['Aleutian Islands',43.54,-148.87,5],
+['Sunda Strait',-7.64,104.76,5],['Oklo',-13.64,0.03,5],
+['Abu Hureyra',35.87,38.39,5],['Tell Qaramel',36.54,37.05,5],
+['Taputapuatea',-16.83,-151.43,5],['Azores (São Miguel)',37.77,-25.49,5],
+['Azores (Terceira)',38.69,-27.16,5]
+];
+
+// Catalog: [name, lat, lng, k, type] — type: 0=BH, 1=STAR, 2=RADIO
+const K_COLS={1:'#ffffff',3:'#66aaff',6:'#44dddd',9:'#ffdd44',11:'#44ff88',16:'#bb66ff',19:'#ff88cc',26:'#ff9944',62:'#ff4444',65:'#44cccc',1612:'#ff44ff'};
+const CATALOG=[
+['HR 6819',-30.76,-148.10,3,0],['Gaia BH1',14.23,-76.87,11,0],['Gaia BH3',12.55,-69.13,3,0],
+['A0620-00',-15.09,119.66,1612,0],['Gaia BH2',-69.63,41.65,26,0],['Gaia18ajz',-0.95,-69.76,26,0],
+['MOA-2011',-20.77,-66.06,9,0],['GRS 1124',-66.45,83.71,9,0],['Swift J1357',66.39,38.88,1612,0],
+['XTE J1118',55.26,54.20,65,0],['Cygnus X-1',-8.64,-119.71,26,0],['LB-1',5.42,128.15,1,0],
+['V404 Cygni',0.17,-105.97,3,0],['GRO J0422',-21.77,-173.39,1612,0],
+['GS 2000+25',-7.87,-108.98,9,0],['GRO J1719',8.95,-32.11,9,0],['Gaia18cbf',-23.54,-34.17,65,0],
+['MAXI J1820',-13.24,-114.29,26,0],['GRO J1655',-18.57,-35.97,1,0],['Swift J1727',8.68,-53.18,1,0],
+['XTE J1752',-2.09,-51.23,19,0],['4U 1630',-45.67,-57.64,65,0],['NGC 3201',0.25,64.22,16,0],
+['XTE J1550',-66.42,-77.95,11,0],['GRS 1009',-6.70,72.89,11,0],['SS 433',-12.27,-100.77,1,0],
+['Cyg X-3',-27.79,-145.37,65,0],['GX 339-4',-36.92,-138.73,26,0],['GRS 1758',-31.30,-119.04,11,0],
+['GRS 1915',10.56,-71.75,9,0],['LMC X-1',-60.85,64.99,62,0],['IC 10 X-1',68.95,-29.52,11,0],
+['M33 X-7',29.27,-0.10,1612,0],['Omega Cen',-37.48,-152.30,16,0],['M82 X-1',63.59,165.18,9,0],
+['3XMM J2150',-26.76,-69.74,19,0],['Centaurus A',-27.59,59.70,6,0],['M104',18.00,161.54,1612,0],
+['NGC 3115',6.41,127.65,62,0],['M87*',31.63,175.89,65,0],['Holmberg 15A',-45.55,-14.81,1,0],
+['IC 1101*',66.81,-36.19,26,0],['GW150914',-78.80,31.01,3,0],['GW151226',-30.24,-157.49,1612,0],
+['3C 273',22.75,172.58,62,0],['Markarian 231',39.60,33.15,62,0],['Phoenix A',-1.25,17.32,1612,0],
+['TON 618',-2.11,-159.78,62,0],['S5 0014+81',-4.11,-146.75,11,0],
+['QSO J0313',22.64,34.20,19,0],['ULAS J1342',76.15,175.83,19,0],
+['Ross 128',38.61,47.40,11,1],['Tau Ceti',12.85,29.06,6,1],['Teegarden',16.14,43.85,1,1],
+['Kruger 60',44.20,15.36,1,1],['Sigma Draconis',54.15,13.81,19,1],['Delta Pavonis',3.78,18.52,19,1],
+['82 Eridani',2.18,37.84,19,1],['Vega',49.09,-9.65,26,1],['Arcturus',82.91,7.87,19,1],
+['Capella',44.06,110.17,9,1],['Rasalhague',37.79,-53.16,16,1],['Caph',60.21,-90.93,11,1],
+['Aldebaran',-13.00,118.33,65,1],['Regulus',8.90,156.02,16,1],['Megrez',31.84,-164.10,16,1],
+['Mizar',29.78,-154.69,16,1],['Algol',4.76,-179.38,19,1],['Dubhe',-29.48,-149.07,62,1],
+['Elnath',-26.36,-164.16,65,1],['Achernar',-52.54,-146.57,11,1],['Spica',31.60,32.15,19,1],
+['Bellatrix',29.45,33.16,19,1],['Canopus',-45.04,83.15,62,1],['Thuban',71.48,-148.91,9,1],
+['Polaris',52.38,-149.03,3,1],['Antares',4.68,-45.44,26,1],['Betelgeuse',-31.14,-179.47,19,1],
+['Rigel',-37.11,-165.13,6,1],['Mintaka',-35.78,160.30,26,1],['Alnilam',-19.90,111.75,3,1],
+['Alnitak',-14.11,102.47,62,1],['Gamma Velorum',-32.21,-151.74,3,1],
+['Eta Carinae',-17.86,59.45,3,1],['WR 136',21.23,-88.36,65,1],['Mu Cephei',-5.28,-131.67,19,1],
+['Gamma Cas',68.66,-104.19,26,1],
+['W44',2.97,28.69,11,2],['Cygnus Loop',5.02,42.35,11,2],['Vela SNR',42.73,29.15,19,2],
+['Cassiopeia A',32.46,58.21,19,2],['W28',-50.55,73.14,62,2],['Orion Nebula',-68.92,-148.87,19,2],
+['IC 10',72.29,4.72,1,2]
+];
+
+// BH Projections: [name, lat, lng, category] — 0=confirm, 1=bhpred
+const BH_PROJ=[
+['M31 Andromeda',31.4,28.9,0],['Markarian 231',39.6,33.2,0],['QSO J0313-1806',22.6,34.2,0],
+['V4641 Sgr',-28.0,-110.5,0],
+['GW151226 proj',-30.2,-157.5,1],['Holmberg 15A proj',-45.5,-14.8,1],
+['HLX-1 proj',-34.8,-147.8,1],['IC 1101 proj',66.8,-36.2,1],['Omega Cen proj',-37.5,-152.3,1],
+['XTE J1752 proj',-2.1,-51.2,1],['GX 339-4 proj',-36.9,-138.7,1],
+['3XMM J2150 proj',-26.8,-69.7,1],['Gaia18ajz proj',-1.0,-69.8,1],
+['Cyg X-3 proj',-27.8,-145.4,1],['NGC 4151 proj',-27.0,-150.2,1],
+['IC 10 X-1 proj',68.9,-29.5,1],['Fornax A proj',-72.9,95.4,1],
+['S5 0014+81 proj',-4.1,-146.8,1],['GRS 1009 proj',-6.7,72.9,1],['M104 proj',18.0,161.5,1]
+];
+
+const ORION=[
+['Alnitak',19.21,54.38],['Alnilam',23.69,46.03],['Mintaka',-3.47,87.31]
+];
+
+// === THREE.JS SETUP ===
+const canvas=document.getElementById('c');
+let W=window.innerWidth, H=window.innerHeight;
+
+const renderer=new THREE.WebGLRenderer({canvas,antialias:true});
+renderer.setSize(W,H);
+renderer.setPixelRatio(Math.min(window.devicePixelRatio,2));
+
+const scene=new THREE.Scene();
+scene.background=new THREE.Color(0x06080f);
+
+const camera=new THREE.PerspectiveCamera(50,W/H,0.01,200);
+
+const world=new THREE.Group();
+scene.add(world);
+
+// === HELPERS ===
+function ll2v(lat,lng,r){
+  r=r||1.005;
+  const phi=(90-lat)*Math.PI/180, theta=(lng+180)*Math.PI/180;
+  return new THREE.Vector3(-r*Math.sin(phi)*Math.cos(theta), r*Math.cos(phi), r*Math.sin(phi)*Math.sin(theta));
+}
+
+function hav(lat1,lon1,lat2,lon2){
+  const d2r=Math.PI/180,dl=d2r*(lat2-lat1),dn=d2r*(lon2-lon1);
+  const a=Math.sin(dl/2)**2+Math.cos(d2r*lat1)*Math.cos(d2r*lat2)*Math.sin(dn/2)**2;
+  return R_EARTH*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+
+function bear(lat1,lon1,lat2,lon2){
+  const d2r=Math.PI/180,la1=d2r*lat1,la2=d2r*lat2,dlo=d2r*(lon2-lon1);
+  const x=Math.sin(dlo)*Math.cos(la2),y=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dlo);
+  return((Math.atan2(x,y)*180/Math.PI)+360)%360;
+}
+
+// Fibonacci + lattice bearing matching (for lattice links)
+const PHI=1.61803398875;
+const GOLDEN_ANGLE=137.50776405;
+const FIB=[1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10946,17711];
+const lattice={};
+for(let g=0;g<22;g++){const b=(g*GOLDEN_ANGLE)%360;lattice[Math.round(b*100)/100]='G'+g;}
+for(let s=0;s<22;s++){const b=(180+s*GOLDEN_ANGLE)%360;lattice[Math.round(b*100)/100]='S'+s;}
+const brgs=Object.keys(lattice).map(Number).sort((a,b)=>a-b);
+
+function nearestBrg(b){
+  let best=null,err=360;
+  for(const lb of brgs){let d=Math.abs(b-lb);if(d>180)d=360-d;if(d<err){err=d;best=lb;}}
+  return{brg:best,line:lattice[best],err};
+}
+function bestFib(dist){
+  let best='',err=100;
+  for(const f of FIB)for(const k of[1,2,3,5,8,10,13,21,34,50,55,89,100,144,233,500,1000]){
+    const target=k*f;if(target<10||target>25000)continue;
+    const e=Math.abs(dist-target)/Math.max(dist,1)*100;
+    if(e<err){err=e;best=k+'×'+f+'='+target;}
+  }
+  return{match:best,err};
+}
+
+// === STARFIELD ===
+const starGeo=new THREE.BufferGeometry();
+const starPos=new Float32Array(2000*3);
+for(let i=0;i<2000;i++){
+  const r=30+Math.random()*70;
+  const theta=Math.random()*Math.PI*2;
+  const phi=Math.acos(2*Math.random()-1);
+  starPos[i*3]=r*Math.sin(phi)*Math.cos(theta);
+  starPos[i*3+1]=r*Math.sin(phi)*Math.sin(theta);
+  starPos[i*3+2]=r*Math.cos(phi);
+}
+starGeo.setAttribute('position',new THREE.BufferAttribute(starPos,3));
+world.add(new THREE.Points(starGeo,new THREE.PointsMaterial({color:0x445566,size:0.08,sizeAttenuation:true})));
+
+// === GLOBE ===
+const globe=new THREE.Mesh(
+  new THREE.SphereGeometry(1,64,32),
+  new THREE.MeshBasicMaterial({color:0x0a1020,transparent:true,opacity:0.95})
+);
+world.add(globe);
+
+// Atmosphere glow
+const glowGeo=new THREE.SphereGeometry(1.04,64,32);
+const glowMat=new THREE.ShaderMaterial({
+  vertexShader:`varying vec3 vNormal;void main(){vNormal=normalize(normalMatrix*normal);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}`,
+  fragmentShader:`varying vec3 vNormal;void main(){float i=pow(0.65-dot(vNormal,vec3(0,0,1)),3.0);gl_FragColor=vec4(0.2,0.4,0.8,i*0.3);}`,
+  transparent:true,side:THREE.BackSide,depthWrite:false
+});
+world.add(new THREE.Mesh(glowGeo,glowMat));
+
+// === GRID ===
+const gridGroup=new THREE.Group();
+world.add(gridGroup);
+
+for(let lat=-60;lat<=60;lat+=30){
+  const pts=[];
+  const phi=(90-lat)*Math.PI/180;
+  for(let lng=0;lng<=360;lng+=1){
+    const theta=(lng+180)*Math.PI/180;
+    pts.push(new THREE.Vector3(-1.002*Math.sin(phi)*Math.cos(theta),1.002*Math.cos(phi),1.002*Math.sin(phi)*Math.sin(theta)));
+  }
+  const g=new THREE.BufferGeometry().setFromPoints(pts);
+  gridGroup.add(new THREE.Line(g,new THREE.LineBasicMaterial({color:lat===0?0x334466:0x1a2844,transparent:true,opacity:lat===0?0.35:0.15})));
+}
+for(let lng=0;lng<360;lng+=30){
+  const pts=[];
+  for(let lat=-90;lat<=90;lat+=1) pts.push(ll2v(lat,lng,1.002));
+  gridGroup.add(new THREE.Line(new THREE.BufferGeometry().setFromPoints(pts),new THREE.LineBasicMaterial({color:0x1a2844,transparent:true,opacity:0.15})));
+}
+
+// === ORBITAL SHELLS ===
+const shellGroup=new THREE.Group();
+world.add(shellGroup);
+
+const gDir=ll2v(GIZA.lat,GIZA.lng,1).normalize();
+const up=Math.abs(gDir.y)<0.99?new THREE.Vector3(0,1,0):new THREE.Vector3(1,0,0);
+const U=new THREE.Vector3().crossVectors(gDir,up).normalize();
+const V=new THREE.Vector3().crossVectors(gDir,U).normalize();
+
+for(const[name,au,color] of ORBITS){
+  const d_km=au*KM_PER_AU;
+  const theta=d_km/R_EARTH;
+  if(theta>Math.PI) continue;
+  const pts=[];
+  for(let a=0;a<=Math.PI*2+0.02;a+=0.025){
+    const pt=new THREE.Vector3()
+      .copy(gDir).multiplyScalar(Math.cos(theta))
+      .add(U.clone().multiplyScalar(Math.sin(theta)*Math.cos(a)))
+      .add(V.clone().multiplyScalar(Math.sin(theta)*Math.sin(a)));
+    pt.multiplyScalar(1.003);
+    pts.push(pt);
+  }
+  const g=new THREE.BufferGeometry().setFromPoints(pts);
+  const line=new THREE.Line(g,new THREE.LineBasicMaterial({color:new THREE.Color(color),transparent:true,opacity:0.3}));
+  line.userData={name};
+  shellGroup.add(line);
+}
+
+// === POINT DATA ===
+const allPts=[];
+
+// Sites
+for(const[n,lat,lng,t] of SITES){
+  allPts.push({n,lat,lng,color:SITE_COLS[t],src:t<5?'site':'pred',size:t===0?5:3,type:t<5?['anchor','meso','mound','pueblo','other'][t]:'predicted'});
+}
+
+// Catalog
+for(const[n,lat,lng,k,t] of CATALOG){
+  allPts.push({n,lat,lng,color:K_COLS[k]||'#ffffff',src:'catalog',k,size:4,type:['BH','Star','Radio'][t]});
+}
+
+// BH Projections
+for(const[n,lat,lng,cat] of BH_PROJ){
+  allPts.push({n,lat,lng,color:cat===0?'#ff4466':'#cc44ff',src:'bhproj',size:5,type:cat===0?'BH confirm':'BH predicted'});
+}
+
+// Orion Belt
+for(const[n,lat,lng] of ORION){
+  allPts.push({n,lat,lng,color:'#ffdd44',src:'orion',size:7,type:'Orion Belt'});
+}
+
+// === POINT CLOUD (custom shader for glow + variable size) ===
+const ptGroup=new THREE.Group();
+world.add(ptGroup);
+
+function rebuildPoints(){
+  while(ptGroup.children.length) ptGroup.remove(ptGroup.children[0]);
+
+  const cbSites=document.getElementById('cb-sites').checked;
+  const cbPreds=document.getElementById('cb-preds').checked;
+  const cbCatalog=document.getElementById('cb-catalog').checked;
+  const cbBH=document.getElementById('cb-bhproj').checked;
+  const cbOrion=document.getElementById('cb-orion').checked;
+
+  const visible=allPts.filter(p=>{
+    if(p.src==='site') return cbSites;
+    if(p.src==='pred') return cbPreds;
+    if(p.src==='catalog') return cbCatalog;
+    if(p.src==='bhproj') return cbBH;
+    if(p.src==='orion') return cbOrion;
+    return true;
+  });
+
+  if(!visible.length) return;
+
+  const positions=new Float32Array(visible.length*3);
+  const colors=new Float32Array(visible.length*3);
+  const sizes=new Float32Array(visible.length);
+
+  for(let i=0;i<visible.length;i++){
+    const p=visible[i];
+    const v=ll2v(p.lat,p.lng,1.008);
+    positions[i*3]=v.x; positions[i*3+1]=v.y; positions[i*3+2]=v.z;
+    const c=new THREE.Color(p.color);
+    colors[i*3]=c.r; colors[i*3+1]=c.g; colors[i*3+2]=c.b;
+    sizes[i]=p.size;
+  }
+
+  const geo=new THREE.BufferGeometry();
+  geo.setAttribute('position',new THREE.BufferAttribute(positions,3));
+  geo.setAttribute('color',new THREE.BufferAttribute(colors,3));
+  geo.setAttribute('size',new THREE.BufferAttribute(sizes,1));
+
+  const mat=new THREE.ShaderMaterial({
+    vertexShader:`
+      attribute float size;
+      varying vec3 vColor;
+      void main(){
+        vColor=color;
+        vec4 mv=modelViewMatrix*vec4(position,1.0);
+        gl_PointSize=size*(250.0/-mv.z);
+        gl_Position=projectionMatrix*mv;
+      }`,
+    fragmentShader:`
+      varying vec3 vColor;
+      void main(){
+        float d=length(gl_PointCoord-vec2(0.5));
+        if(d>0.5) discard;
+        float core=smoothstep(0.5,0.1,d);
+        float glow=smoothstep(0.5,0.3,d)*0.5;
+        gl_FragColor=vec4(vColor*(core+glow),core*0.9+glow);
+      }`,
+    vertexColors:true,transparent:true,depthWrite:false
+  });
+
+  const points=new THREE.Points(geo,mat);
+  points.userData.visible=visible;
+  ptGroup.add(points);
+
+  // Update stats
+  let siteC=0,predC=0,catC=0,bhC=0,orC=0;
+  for(const p of visible){
+    if(p.src==='site')siteC++;
+    else if(p.src==='pred')predC++;
+    else if(p.src==='catalog')catC++;
+    else if(p.src==='bhproj')bhC++;
+    else if(p.src==='orion')orC++;
+  }
+  document.getElementById('stats').innerHTML=
+    '<div style="font-size:9px;color:#5a6680">'+visible.length+' points visible</div>'+
+    '<div style="font-size:8px;color:#445566;margin-top:2px">'+siteC+' sites · '+predC+' pred · '+catC+' catalog · '+bhC+' BH · '+orC+' orion</div>';
+}
+rebuildPoints();
+
+// Checkbox listeners
+['cb-sites','cb-preds','cb-catalog','cb-bhproj','cb-orion'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',rebuildPoints);
+});
+document.getElementById('cb-shells').addEventListener('change',()=>{shellGroup.visible=document.getElementById('cb-shells').checked;});
+document.getElementById('cb-grid').addEventListener('change',()=>{gridGroup.visible=document.getElementById('cb-grid').checked;});
+
+// === DIPOLE AXIS ===
+const axisGroup=new THREE.Group();
+world.add(axisGroup);
+
+const gizaV=ll2v(GIZA.lat,GIZA.lng,1.5);
+const antiV=ll2v(ANTIPODE.lat,ANTIPODE.lng,1.5);
+
+// Axis line through center
+const axPts=[];
+const steps=80;
+for(let i=0;i<=steps;i++){
+  const t=i/steps;
+  axPts.push(new THREE.Vector3().lerpVectors(gizaV,antiV,t));
+}
+const axGeo=new THREE.BufferGeometry().setFromPoints(axPts);
+const axCols=new Float32Array((steps+1)*3);
+for(let i=0;i<=steps;i++){
+  const t=i/steps;
+  const c1=new THREE.Color(0xffcc44);
+  const c2=new THREE.Color(0x44ddff);
+  const c=c1.lerp(c2,t);
+  axCols[i*3]=c.r;axCols[i*3+1]=c.g;axCols[i*3+2]=c.b;
+}
+axGeo.setAttribute('color',new THREE.BufferAttribute(axCols,3));
+axisGroup.add(new THREE.Line(axGeo,new THREE.LineBasicMaterial({vertexColors:true,transparent:true,opacity:0.5})));
+
+// Pole markers
+const gizaM=new THREE.Mesh(new THREE.SphereGeometry(0.025,16,8),new THREE.MeshBasicMaterial({color:0xffcc44}));
+gizaM.position.copy(ll2v(GIZA.lat,GIZA.lng,1.03));
+axisGroup.add(gizaM);
+
+const antiM=new THREE.Mesh(new THREE.SphereGeometry(0.02,16,8),new THREE.MeshBasicMaterial({color:0x44ddff}));
+antiM.position.copy(ll2v(ANTIPODE.lat,ANTIPODE.lng,1.03));
+axisGroup.add(antiM);
+
+// Giza label sprite
+function makeLabel(text,color,pos,scale){
+  const c=document.createElement('canvas');
+  c.width=256;c.height=64;
+  const ctx=c.getContext('2d');
+  ctx.font='bold 28px Courier New';
+  ctx.fillStyle=color;
+  ctx.textAlign='center';
+  ctx.fillText(text,128,40);
+  const tex=new THREE.CanvasTexture(c);
+  const mat=new THREE.SpriteMaterial({map:tex,transparent:true,depthWrite:false});
+  const s=new THREE.Sprite(mat);
+  s.position.copy(pos);
+  s.scale.set(scale||0.4,0.1,1);
+  return s;
+}
+axisGroup.add(makeLabel('GIZA','#ffcc44',ll2v(GIZA.lat,GIZA.lng,1.12),0.35));
+axisGroup.add(makeLabel('ANTIPODE','#44ddff',ll2v(ANTIPODE.lat,ANTIPODE.lng,1.12),0.35));
+
+document.getElementById('cb-axis').addEventListener('change',()=>{axisGroup.visible=document.getElementById('cb-axis').checked;});
+
+// === LATTICE LINKS ===
+const linkGroup=new THREE.Group();
+linkGroup.visible=false;
+world.add(linkGroup);
+
+function buildLinks(){
+  while(linkGroup.children.length) linkGroup.remove(linkGroup.children[0]);
+
+  const pts=[];
+  for(const[n,lat,lng,t] of SITES){
+    if(lat===GIZA.lat && lng===GIZA.lng) continue;
+    pts.push({lat,lng,n,color:SITE_COLS[t]||'#ffffff',src:'site'});
+  }
+  for(const[n,lat,lng,k] of CATALOG){
+    pts.push({lat,lng,n,color:K_COLS[k]||'#ffffff',src:'catalog'});
+  }
+  for(const[n,lat,lng] of BH_PROJ){
+    pts.push({lat,lng,n,color:'#ff44ff',src:'bhproj'});
+  }
+  for(const[n,lat,lng] of ORION){
+    pts.push({lat,lng,n,color:'#ffdd44',src:'orion'});
+  }
+
+  let count=0;
+  for(let i=0;i<pts.length;i++){
+    for(let j=i+1;j<pts.length;j++){
+      const a=pts[i],b=pts[j];
+      const d=hav(a.lat,a.lng,b.lat,b.lng);
+      if(d<50) continue;
+      const brg=bear(a.lat,a.lng,b.lat,b.lng);
+      const lb=nearestBrg(brg);
+      const fb=bestFib(d);
+      if(lb.err<=2 && fb.err<=3){
+        // Draw arc on globe surface
+        const p1=ll2v(a.lat,a.lng,1.004);
+        const p2=ll2v(b.lat,b.lng,1.004);
+        const arcPts=[];
+        const segs=Math.max(10,Math.ceil(d/200));
+        for(let s=0;s<=segs;s++){
+          const t=s/segs;
+          const v=new THREE.Vector3().lerpVectors(p1,p2,t).normalize().multiplyScalar(1.004);
+          arcPts.push(v);
+        }
+        const col=a.src!=='site'?a.color:(b.src!=='site'?b.color:'#ffffff');
+        const geo=new THREE.BufferGeometry().setFromPoints(arcPts);
+        linkGroup.add(new THREE.Line(geo,new THREE.LineBasicMaterial({color:new THREE.Color(col),transparent:true,opacity:0.2})));
+        count++;
+      }
+    }
+  }
+  return count;
+}
+
+let linksBuilt=false;
+document.getElementById('cb-intersite').addEventListener('change',function(){
+  linkGroup.visible=this.checked;
+  if(this.checked && !linksBuilt){
+    const c=buildLinks();
+    linksBuilt=true;
+    console.log(c+' lattice links');
+  }
+});
+
+// === RAYCASTER (click detection) ===
+const raycaster=new THREE.Raycaster();
+raycaster.params.Points.threshold=0.03;
+const mouse=new THREE.Vector2();
+
+canvas.addEventListener('click',function(e){
+  if(wasDragging) return;
+  mouse.x=(e.clientX/W)*2-1;
+  mouse.y=-(e.clientY/H)*2+1;
+  raycaster.setFromCamera(mouse,camera);
+
+  if(ptGroup.children.length){
+    const pts=ptGroup.children[0];
+    const hits=raycaster.intersectObject(pts);
+    if(hits.length){
+      const idx=hits[0].index;
+      const p=pts.userData.visible[idx];
+      if(p){
+        const info=document.getElementById('info');
+        let html='<div class="name" style="color:'+p.color+'">'+p.n+'</div>';
+        html+='<div class="row"><span class="lbl">Type: </span><span class="val">'+p.type+'</span></div>';
+        html+='<div class="row"><span class="lbl">Position: </span><span class="val">'+p.lat.toFixed(2)+'°, '+p.lng.toFixed(2)+'°</span></div>';
+        if(p.k) html+='<div class="row"><span class="lbl">k-class: </span><span class="val">k='+p.k+'</span></div>';
+
+        const gDist=hav(GIZA.lat,GIZA.lng,p.lat,p.lng);
+        html+='<div class="row"><span class="lbl">Giza dist: </span><span class="val">'+gDist.toFixed(0)+' km</span></div>';
+        const brg=bear(GIZA.lat,GIZA.lng,p.lat,p.lng);
+        const lb=nearestBrg(brg);
+        html+='<div class="row"><span class="lbl">Bearing: </span><span class="val">'+lb.line+' ('+lb.err.toFixed(1)+'°)</span></div>';
+        const fb=bestFib(gDist);
+        html+='<div class="row"><span class="lbl">Fibonacci: </span><span class="val">'+fb.match+' ('+fb.err.toFixed(1)+'%)</span></div>';
+
+        html+='<div class="src">'+p.src+'</div>';
+        info.innerHTML=html;
+        info.style.display='block';
+      }
+    }
+  }
+});
+
+// === MOUSE CONTROLS ===
+let isDrag=false, wasDragging=false, prevX=0, prevY=0;
+let rotY=2.11, rotX=0.52;
+let zoomDist=3.0;
+let autoRot=true, lastInteract=0;
+
+canvas.addEventListener('mousedown',e=>{isDrag=true;wasDragging=false;prevX=e.clientX;prevY=e.clientY;});
+canvas.addEventListener('mousemove',e=>{
+  if(!isDrag) return;
+  const dx=e.clientX-prevX, dy=e.clientY-prevY;
+  if(Math.abs(dx)+Math.abs(dy)>3) wasDragging=true;
+  rotY+=dx*0.005;
+  rotX+=dy*0.005;
+  rotX=Math.max(-Math.PI/2+0.1,Math.min(Math.PI/2-0.1,rotX));
+  prevX=e.clientX;prevY=e.clientY;
+  autoRot=false;lastInteract=Date.now();
+});
+canvas.addEventListener('mouseup',()=>{isDrag=false;});
+canvas.addEventListener('mouseleave',()=>{isDrag=false;});
+canvas.addEventListener('wheel',e=>{
+  zoomDist+=e.deltaY*0.003;
+  zoomDist=Math.max(1.4,Math.min(8,zoomDist));
+  e.preventDefault();
+},{passive:false});
+
+// Touch
+let tPrev=null,tDist=null;
+canvas.addEventListener('touchstart',e=>{
+  if(e.touches.length===1){tPrev={x:e.touches[0].clientX,y:e.touches[0].clientY};wasDragging=false;}
+  if(e.touches.length===2){
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    tDist=Math.sqrt(dx*dx+dy*dy);
+  }
+});
+canvas.addEventListener('touchmove',e=>{
+  if(e.touches.length===1 && tPrev){
+    const t=e.touches[0];
+    const dx=t.clientX-tPrev.x, dy=t.clientY-tPrev.y;
+    if(Math.abs(dx)+Math.abs(dy)>3) wasDragging=true;
+    rotY+=dx*0.005;
+    rotX+=dy*0.005;
+    rotX=Math.max(-Math.PI/2+0.1,Math.min(Math.PI/2-0.1,rotX));
+    tPrev={x:t.clientX,y:t.clientY};
+    autoRot=false;lastInteract=Date.now();
+  }
+  if(e.touches.length===2 && tDist!==null){
+    const dx=e.touches[0].clientX-e.touches[1].clientX;
+    const dy=e.touches[0].clientY-e.touches[1].clientY;
+    const nd=Math.sqrt(dx*dx+dy*dy);
+    zoomDist*=tDist/nd;
+    zoomDist=Math.max(1.4,Math.min(8,zoomDist));
+    tDist=nd;
+  }
+  e.preventDefault();
+},{passive:false});
+canvas.addEventListener('touchend',()=>{tPrev=null;tDist=null;});
+
+// === ANIMATION ===
+function animate(){
+  requestAnimationFrame(animate);
+
+  if(!autoRot && Date.now()-lastInteract>4000) autoRot=true;
+  if(autoRot) rotY+=0.0008;
+
+  camera.position.set(
+    zoomDist*Math.cos(rotX)*Math.sin(rotY),
+    zoomDist*Math.sin(rotX),
+    zoomDist*Math.cos(rotX)*Math.cos(rotY)
+  );
+  camera.lookAt(0,0,0);
+
+  // Pulse Giza marker
+  const t=Date.now()*0.003;
+  gizaM.scale.setScalar(1+Math.sin(t)*0.2);
+
+  renderer.render(scene,camera);
+}
+animate();
+
+// === RESIZE ===
+window.addEventListener('resize',()=>{
+  W=window.innerWidth;H=window.innerHeight;
+  camera.aspect=W/H;
+  camera.updateProjectionMatrix();
+  renderer.setSize(W,H);
+});
+</script>
+</body>
+</html>

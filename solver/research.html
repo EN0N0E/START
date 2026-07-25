@@ -1,0 +1,697 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Impact Geometry Research Compendium</title>
+<style>
+:root {
+  --bg: #080c18;
+  --bg2: #0c1222;
+  --bg3: #101830;
+  --text: #b8c8da;
+  --text-dim: #5a6a7a;
+  --text-bright: #e0eaf4;
+  --impact: #ff4466;
+  --volcano: #ff9933;
+  --extinction: #ff2244;
+  --proposed: #cc44ff;
+  --accent: #44aaff;
+  --holocene: #44ccff;
+  --projected: #33ff88;
+  --border: #1a2a3a;
+  --link: #44aaff;
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --bg: #f0f2f6; --bg2: #e8ecf2; --bg3: #dce2ec;
+    --text: #2a3040; --text-dim: #6a7a8a; --text-bright: #101820;
+    --border: #c0c8d4; --link: #2266cc;
+  }
+}
+:root[data-theme="light"] {
+  --bg: #f0f2f6; --bg2: #e8ecf2; --bg3: #dce2ec;
+  --text: #2a3040; --text-dim: #6a7a8a; --text-bright: #101820;
+  --border: #c0c8d4; --link: #2266cc;
+}
+:root[data-theme="dark"] {
+  --bg: #080c18; --bg2: #0c1222; --bg3: #101830;
+  --text: #b8c8da; --text-dim: #5a6a7a; --text-bright: #e0eaf4;
+  --border: #1a2a3a; --link: #44aaff;
+}
+* { margin: 0; padding: 0; box-sizing: border-box; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.65;
+}
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 24px; }
+header {
+  padding: 40px 0 24px;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 24px;
+}
+header h1 {
+  font-family: 'Courier New', monospace;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-bright);
+  letter-spacing: 0.5px;
+  margin-bottom: 8px;
+}
+header .sub {
+  font-size: 13px;
+  color: var(--text-dim);
+  line-height: 1.6;
+  max-width: 720px;
+}
+header .sub em { color: var(--accent); font-style: normal; }
+nav.toc {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 16px 20px;
+  margin-bottom: 32px;
+}
+nav.toc h2 {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1.5px;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+nav.toc ul { list-style: none; columns: 2; column-gap: 24px; }
+nav.toc li { padding: 3px 0; break-inside: avoid; }
+nav.toc a {
+  color: var(--link);
+  text-decoration: none;
+  font-size: 13px;
+  font-family: 'Courier New', monospace;
+}
+nav.toc a:hover { text-decoration: underline; }
+.links {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 20px;
+  margin-bottom: 32px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+.links a {
+  color: var(--projected);
+  text-decoration: none;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+  padding: 4px 12px;
+  border: 1px solid var(--projected);
+  border-radius: 4px;
+  opacity: 0.8;
+}
+.links a:hover { opacity: 1; background: rgba(51,255,136,0.08); }
+section { margin-bottom: 40px; }
+section h2 {
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-bright);
+  padding: 8px 0;
+  border-bottom: 1px solid var(--border);
+  margin-bottom: 16px;
+}
+section h3 {
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: var(--accent);
+  margin: 20px 0 8px;
+}
+section h4 {
+  font-size: 13px;
+  color: var(--text-bright);
+  margin: 14px 0 6px;
+  font-weight: 600;
+}
+p { margin-bottom: 10px; font-size: 14px; }
+ul, ol { margin: 0 0 12px 20px; font-size: 14px; }
+li { margin-bottom: 4px; }
+.highlight { color: var(--impact); font-weight: 600; }
+.proposed { color: var(--proposed); font-weight: 600; }
+.volcano-hl { color: var(--volcano); font-weight: 600; }
+.accent { color: var(--accent); font-weight: 600; }
+.green { color: var(--projected); font-weight: 600; }
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 12px;
+  font-family: 'Courier New', monospace;
+  margin: 12px 0;
+}
+th {
+  text-align: left;
+  padding: 6px 10px;
+  border-bottom: 2px solid var(--border);
+  color: var(--text-dim);
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  font-weight: 400;
+}
+td {
+  padding: 5px 10px;
+  border-bottom: 1px solid var(--border);
+  vertical-align: top;
+}
+tr:hover td { background: var(--bg2); }
+details {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  margin: 12px 0;
+}
+details summary {
+  padding: 10px 16px;
+  cursor: pointer;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  color: var(--text-bright);
+  font-weight: 600;
+}
+details summary:hover { color: var(--accent); }
+details[open] summary { border-bottom: 1px solid var(--border); }
+details .inner { padding: 12px 16px; }
+.cite {
+  font-size: 12px;
+  color: var(--text-dim);
+  font-family: 'Courier New', monospace;
+  border-left: 2px solid var(--border);
+  padding-left: 12px;
+  margin: 8px 0;
+}
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+.card {
+  background: var(--bg2);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 14px 16px;
+}
+.card h4 {
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  margin: 0 0 6px;
+}
+.card .val {
+  font-family: 'Courier New', monospace;
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+}
+.card .note {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 4px;
+}
+.overflow-x { overflow-x: auto; }
+footer {
+  border-top: 1px solid var(--border);
+  padding: 24px 0 40px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: 'Courier New', monospace;
+}
+@media (max-width: 640px) {
+  nav.toc ul { columns: 1; }
+  .card-grid { grid-template-columns: 1fr; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>IMPACT GEOMETRY RESEARCH COMPENDIUM</h1>
+  <div class="sub">
+    Supporting research for the black hole projection lattice and impact periodicity thesis.
+    Covers <em>mass extinctions</em>, <em>impact periodicity</em>, <em>antipodal focusing</em>,
+    <em>Younger Dryas</em>, and <em>galactic oscillation mechanisms</em>.
+    Compiled from 20+ research agents querying primary literature.
+  </div>
+</header>
+
+<div class="links">
+  <a href="globe.html">3D Globe</a>
+  <a href="lattice.html">Lattice Map</a>
+  <a href="timeline.html">36 Myr Timeline</a>
+  <a href="research.html">Research (this page)</a>
+</div>
+
+<nav class="toc" id="toc">
+  <h2>Contents</h2>
+  <ul>
+    <li><a href="#periodicity">1. Impact Periodicity</a></li>
+    <li><a href="#mechanisms">2. Periodicity Mechanisms</a></li>
+    <li><a href="#antipodal">3. Antipodal Focusing</a></li>
+    <li><a href="#kpg">4. K-Pg Extinction (66 Ma)</a></li>
+    <li><a href="#permian">5. End-Permian (252 Ma)</a></li>
+    <li><a href="#ordovician">6. End-Ordovician (444 Ma)</a></li>
+    <li><a href="#devonian">7. Late Devonian (372 Ma)</a></li>
+    <li><a href="#triassic">8. End-Triassic (201 Ma)</a></li>
+    <li><a href="#ydih">9. Younger Dryas Impact</a></li>
+    <li><a href="#holocene">10. Holocene Sub-Cycle</a></li>
+    <li><a href="#refs">11. Key References</a></li>
+  </ul>
+</nav>
+
+<!-- ============================================= -->
+<section id="periodicity">
+<h2>1. IMPACT PERIODICITY</h2>
+
+<div class="card-grid">
+  <div class="card">
+    <h4>Fundamental Period</h4>
+    <div class="val" style="color:#44aaff">36 Myr</div>
+    <div class="note">Best fit across 11 large impacts over 580 Ma. 9 of 11 within ±4 Myr of predicted windows.</div>
+  </div>
+  <div class="card">
+    <h4>Raup-Sepkoski</h4>
+    <div class="val" style="color:#ff9933">26 Myr</div>
+    <div class="note">Original 1984 extinction periodicity. Rampino & Caldeira (2015) updated to 27.0 ±0.7 Myr.</div>
+  </div>
+  <div class="card">
+    <h4>Crater Period</h4>
+    <div class="val" style="color:#ff4466">28.4 Myr</div>
+    <div class="note">Alvarez & Muller (1984), 13 craters. Rampino & Caldeira confirmed 25.8 ±0.6 Myr from 37 craters.</div>
+  </div>
+  <div class="card">
+    <h4>Biodiversity Cycle</h4>
+    <div class="val" style="color:#cc44ff">62 Myr</div>
+    <div class="note">Rohde & Muller (2005). Confirmed at p=0.001 by Melott (2008) in independent PBDB dataset.</div>
+  </div>
+</div>
+
+<h3>36 Myr Cycle Fit</h3>
+<div class="overflow-x">
+<table>
+  <thead><tr><th>Impact</th><th>Age (Ma)</th><th>Diameter</th><th>Cycle</th><th>Predicted</th><th>Residual</th></tr></thead>
+  <tbody>
+    <tr><td style="color:#ff4466">Acraman</td><td>580</td><td>90 km</td><td>C16</td><td>576</td><td style="color:#33ff88">+4.0</td></tr>
+    <tr><td style="color:#ff4466">Siljan</td><td>377</td><td>52 km</td><td>C10</td><td>360</td><td style="color:#ff9933">+17.0</td></tr>
+    <tr><td style="color:#cc44ff">Woodleigh</td><td>364</td><td>120 km</td><td>C10</td><td>360</td><td style="color:#33ff88">+4.0</td></tr>
+    <tr><td style="color:#cc44ff">Wilkes Land</td><td>250</td><td>480 km</td><td>C7</td><td>252</td><td style="color:#33ff88">-2.0</td></tr>
+    <tr><td style="color:#ff4466">Manicouagan</td><td>214</td><td>100 km</td><td>C6</td><td>216</td><td style="color:#33ff88">-2.0</td></tr>
+    <tr><td style="color:#ff4466">Morokweng</td><td>145</td><td>70 km</td><td>C4</td><td>144</td><td style="color:#33ff88">+1.0</td></tr>
+    <tr><td style="color:#ff4466">Mjølnir</td><td>142</td><td>40 km</td><td>C4</td><td>144</td><td style="color:#33ff88">-2.0</td></tr>
+    <tr><td style="color:#ff4466">Kara</td><td>70.3</td><td>65 km</td><td>C2</td><td>72</td><td style="color:#33ff88">-1.7</td></tr>
+    <tr><td style="color:#ff4466">Chicxulub</td><td>66</td><td>180 km</td><td>C2</td><td>72</td><td style="color:#44ccff">-6.0</td></tr>
+    <tr><td style="color:#ff4466">Popigai</td><td>35.7</td><td>100 km</td><td>C1</td><td>36</td><td style="color:#33ff88">-0.3</td></tr>
+    <tr><td style="color:#ff4466">Chesapeake</td><td>35.5</td><td>85 km</td><td>C1</td><td>36</td><td style="color:#33ff88">-0.5</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>62 Myr Biodiversity Cycle</h3>
+<p>Rohde & Muller (2005, <em>Nature</em>) analyzed 36,380 marine genera across 542 Myr and found a 62 ±3 Myr cycle at 99% confidence. Independently confirmed by Melott (2008) using the Paleobiology Database at p = 0.001, with only 1.6 Myr phase displacement between datasets. The Big Five extinctions occur during declining phases. Roughly 2× the ~27-30 Myr impact/extinction period — a full galactic vertical oscillation produces plane crossings every ~31 Myr.</p>
+</section>
+
+<!-- ============================================= -->
+<section id="mechanisms">
+<h2>2. PERIODICITY MECHANISMS</h2>
+
+<details>
+  <summary>Galactic Plane Oscillation (30-35 Myr half-period)</summary>
+  <div class="inner">
+    <p>The solar system oscillates vertically through the galactic disk as it orbits the center. Full oscillation period ~62-66 Myr produces galactic mid-plane crossings every ~31-33 Myr. During crossings, enhanced gravitational perturbation of the Oort cloud sends comet showers into the inner solar system.</p>
+    <p>Rampino & Stothers (1984) and Schwartz & James (1984) proposed this simultaneously with the Nemesis hypothesis. The ~33 Myr half-period is broadly consistent with the ~27-30 Myr extinction/impact periodicity, though exact phase matching remains debated.</p>
+    <p class="cite">Medvedev & Melott (2007, ApJ): Extragalactic cosmic rays concentrated on the galaxy's north side. When the solar system emerges above the disk, it loses magnetic shielding and experiences heightened cosmic ray flux.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Nemesis Hypothesis (Davis, Hut & Muller 1984)</summary>
+  <div class="inner">
+    <p>A dim companion star ("Nemesis") at 25,000-150,000 AU with ~26 Myr orbital period periodically passes through the Oort cloud, sending comet showers Earthward.</p>
+    <p><span class="highlight">Effectively ruled out:</span> Orbital decay from galactic tides would increase its period by ~20% over 250 Myr, incompatible with the observed regularity of the extinction cycle (Whitmire 2016). The WISE all-sky survey found no companion star fitting the description.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Planet X Hypothesis (Whitmire & Matese 1985, 2016)</summary>
+  <div class="inner">
+    <p>An undiscovered planet beyond Neptune (1-15 Earth masses, ~100-210 AU) with a tilted, precessing orbit periodically passes through the Kuiper belt every ~28 Myr, scattering comets inward.</p>
+    <p>Whitmire (2016, <em>MNRAS Letters</em>) reconsidered the model and argued it better fits the extinction periodicity than Nemesis because a Planet X orbit maintains stable periodicity over 500 Myr. The independently-motivated Batygin & Brown (2016) Planet Nine has some overlapping parameter ranges but different orbital characteristics (~700 AU, ~15,000 yr period — too short for 27 Myr comet showers).</p>
+    <p>The WISE survey ruled out Saturn-sized objects to 28,000 AU and Jupiter-sized to 82,000 AU, eliminating the Tyche variant (Matese & Whitmire's ~4 Jupiter mass body at ~15,000 AU). A super-Earth at ~100-200 AU remains below WISE detection limits.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Alvarez & Muller (1984) — Crater Age Periodicity</summary>
+  <div class="inner">
+    <p>Walter Alvarez and Richard Muller analyzed 11-13 impact crater ages and found a <span class="accent">28.4 Myr periodicity</span>, matching the Raup-Sepkoski extinction cycle in both period and phase.</p>
+    <p>Rampino & Caldeira (2015, <em>MNRAS</em>) updated this with 37 precisely-dated craters and found <span class="accent">25.8 ±0.6 Myr</span> in crater ages and <span class="accent">27.0 ±0.7 Myr</span> in extinctions — remarkably similar. However, Lyytinen et al. (2009) showed reliable detection of periodicity from existing crater data is "impossible unless all impacts have been due to periodic comet showers."</p>
+    <p>The crater record suffers from: small sample sizes (~200 confirmed structures, only ~26 with robust ages), dating uncertainties, and the complication that most impacts are from aperiodic asteroids.</p>
+  </div>
+</details>
+</section>
+
+<!-- ============================================= -->
+<section id="antipodal">
+<h2>3. ANTIPODAL FOCUSING</h2>
+
+<h3>Mechanism</h3>
+<p>A large impact generates seismic waves that propagate through Earth's interior. Due to the planet's spherical geometry, both body waves (P, S) and surface waves (Rayleigh) reconverge at the <span class="highlight">antipodal point</span> — the exact opposite side of the globe. This "seismic lens" effect concentrates energy along the axis of symmetry between impact and antipode.</p>
+
+<h3>Key Quantitative Results</h3>
+<p>Meschede, Myhrvold & Tromp (2011, <em>GJI</em>) used SPECFEM3D_GLOBE with realistic 3D Earth models:</p>
+<ul>
+  <li>Peak antipodal displacements: ~4 meters (reduced from 15 m predicted by symmetric models)</li>
+  <li>Peak stress values exceeding <span class="highlight">50 bar</span>, strain exceeding 10⁻⁵</li>
+  <li>Stresses exceed typical triggering thresholds (1-10 bar) by an order of magnitude</li>
+  <li>Wave interference creates "channels" of peak stress <span class="highlight">5× greater</span> than surrounding areas — "mantle chimneys"</li>
+</ul>
+
+<h3>Key Proponents</h3>
+
+<details>
+  <summary>Hagstrum (2005) — Antipodal Hotspot Pairs</summary>
+  <div class="inner">
+    <p>Of 45 "primary" hotspots, <span class="accent">22 (49%) form antipodal pairs</span> within observed hotspot drift limits. Monte Carlo simulations: <span class="green">p < 0.01</span> (non-random at >99% confidence). Ages of both hotspots in each pair are similar (≤10 Myr difference). All pairs include at least one oceanic hotspot opposite continental volcanism.</p>
+    <p class="cite">Hagstrum, J.T. (2005). "Antipodal hotspots and bipolar catastrophes." Earth and Planetary Science Letters.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Richards et al. (2015) — Chicxulub Triggered Deccan</summary>
+  <div class="inner">
+    <p>Proposed that the Chicxulub impact generated seismic shaking equivalent to Mw 9+ globally, mobilizing existing magma within the plume head beneath India. <span class="volcano-hl">~70% of total Deccan lavas</span> (Wai subgroup) erupted within ~100,000 years after impact.</p>
+    <p><strong>Important:</strong> Richards explicitly noted Chicxulub is <span class="highlight">~5,000 km from Deccan's antipode</span> and rejected the strict antipodal focusing mechanism. Instead proposed global seismic shaking + magma mobilization (not antipodal energy concentration). Seismic energy densities of 0.1-1.0 J/m³ in upper ~200 km of mantle.</p>
+    <p class="cite">Richards, M.A. et al. (2015). "Triggering of the largest Deccan eruptions by the Chicxulub impact." GSA Bulletin.</p>
+  </div>
+</details>
+
+<details>
+  <summary>Criticisms & Limitations</summary>
+  <div class="inner">
+    <ul>
+      <li><strong>Energy deficit:</strong> Direct melting at the antipode requires energy orders of magnitude higher than seismic dissipation can deliver (Meschede et al. 2011). Mechanism is disruption/mobilization, not melting.</li>
+      <li><strong>Chicxulub-Deccan mismatch:</strong> ~5,000 km off antipodal — the best-studied case doesn't strictly fit.</li>
+      <li><strong>No impact markers at LIP sites:</strong> No tektite strewn fields or impact signatures found near continental LIPs.</li>
+      <li><strong>Melosh's critique:</strong> No firm evidence impacts can induce volcanism even near the crater, let alone at distance.</li>
+      <li><strong>Deccan predates Chicxulub:</strong> Several Myr of pre-impact eruptions, though at lower volume.</li>
+      <li><strong>Missing ocean craters:</strong> Theory predicts undiscovered structures in the Indian and Pacific Oceans.</li>
+    </ul>
+  </div>
+</details>
+
+<h3>Impact-Bhole Proximity (from globe geometry)</h3>
+<table>
+  <thead><tr><th>Impact</th><th>Nearest Bhole</th><th>Distance</th></tr></thead>
+  <tbody>
+    <tr><td>Burckle Crater</td><td>Centaurus A</td><td style="color:#33ff88">3.6°</td></tr>
+    <tr><td>Easter Island (SP impact)</td><td>Sgr A* (MW center)</td><td style="color:#33ff88">6.2°</td></tr>
+    <tr><td>Wilkes Land</td><td>Fornax A</td><td style="color:#44ccff">8.3°</td></tr>
+    <tr><td>Chicxulub</td><td>Gaia BH1</td><td>14.0°</td></tr>
+  </tbody>
+</table>
+</section>
+
+<!-- ============================================= -->
+<section id="kpg">
+<h2>4. K-Pg EXTINCTION (66 Ma)</h2>
+
+<p><span class="highlight">76% species loss.</span> Chicxulub impact (180 km crater, Yucatán) confirmed by global iridium anomaly (Alvarez et al. 1980). Impactor: ~10-15 km diameter asteroid, ~60° impact angle, 20 km/s. The impactor struck sulfate evaporites and carbonates — uniquely deadly target rock.</p>
+
+<h3>Kill Mechanism Chronology</h3>
+<div class="overflow-x">
+<table>
+  <thead><tr><th>Time</th><th>Mechanism</th><th>Effect</th></tr></thead>
+  <tbody>
+    <tr><td>0-5 min</td><td>Impact blast, Mw 9-11 earthquake</td><td>Crater formation, seismic destruction</td></tr>
+    <tr><td>5-60 min</td><td>Tsunami</td><td>1.5 km initial wave; 30,000× 2004 Indian Ocean</td></tr>
+    <tr><td>1-4 hr</td><td>Thermal pulse (ejecta re-entry)</td><td>>300°C at upper atmosphere, ignites vegetation globally</td></tr>
+    <tr><td>1-24 hr</td><td>Global wildfires</td><td>~70% of forests burned; global soot layer</td></tr>
+    <tr><td>1-30 days</td><td>Acid rain (H₂SO₄ + HNO₃)</td><td>pH 0-1 initially; weeks of extreme acidity</td></tr>
+    <tr><td>1-24 months</td><td>Impact winter + darkness</td><td>20-26°C cooling; photosynthesis ceases ~2 years</td></tr>
+    <tr><td>2-10 yr</td><td>Ozone depletion</td><td>50-90% ozone destroyed; UV "spring" after dust settles</td></tr>
+    <tr><td>10-100 yr</td><td>CO₂ greenhouse warming</td><td>Transition from frigid to hothouse</td></tr>
+    <tr><td>80-300 kyr</td><td>Ocean carbonate recovery</td><td>pH drop of ~0.25 units; acidification persists</td></tr>
+    <tr><td>1-6 Myr</td><td>Ecosystem recovery</td><td>Full biodiversity restoration</td></tr>
+  </tbody>
+</table>
+</div>
+
+<details>
+  <summary>Deccan Traps — Concurrent Volcanism</summary>
+  <div class="inner">
+    <p>The Deccan Traps (western India) erupted ~1.3 million km³ of basalt between ~68-63 Ma. ~70% of the volume (Wai subgroup) erupted within ~100,000 years <em>after</em> Chicxulub. Richards et al. (2015) proposed the impact mobilized pre-existing magma.</p>
+    <p>The Deccan-Chicxulub debate ("volcanism vs. impact") has largely converged on <span class="accent">both contributing</span>, with the impact as the primary extinction trigger and Deccan providing background stress + post-impact warming.</p>
+  </div>
+</details>
+</section>
+
+<!-- ============================================= -->
+<section id="permian">
+<h2>5. END-PERMIAN EXTINCTION (252 Ma)</h2>
+
+<p><span class="highlight">96% species loss</span> — the "Great Dying." Most severe extinction in Earth history. Killed 81% of marine species, 70% of terrestrial vertebrates, the only known mass extinction of insects.</p>
+
+<h3>Primary Driver: Siberian Traps</h3>
+<p>Largest known continental flood basalt province: ~3-4 million km³ of lava, ~7 million km² area (comparable to Australia). Erupted between ~252.24 and ~251.35 Ma (~0.9 Myr total). U-Pb zircon dating places the main eruptive pulse within 300 kyr of the extinction boundary.</p>
+
+<h3>Kill Mechanisms</h3>
+<ul>
+  <li><strong>CO₂ + Methane:</strong> Up to 170,000 Gt CO₂ released, plus methane from contact metamorphism of Tunguska Basin coal/petroleum deposits. Global warming of 8-10°C.</li>
+  <li><strong>Ocean anoxia/euxinia:</strong> >80% of seafloor under anoxic conditions. Uranium isotope evidence shows global oxygen depletion.</li>
+  <li><strong>Ocean acidification:</strong> Carbonate dissolution documented in boundary sections.</li>
+  <li><strong>Hydrogen sulfide:</strong> Euxinic oceans produced toxic H₂S gas, destroying the ozone layer via photolysis.</li>
+  <li><strong>Acid rain:</strong> SO₂ from eruptions.</li>
+</ul>
+
+<details>
+  <summary>Wilkes Land Connection (Proposed)</summary>
+  <div class="inner">
+    <p>The proposed Wilkes Land crater (~480 km, under Antarctic ice) dates to ~250 Ma and lies near the <span class="proposed">antipode of the Siberian Traps</span>. If confirmed, this would be the strongest antipodal impact-LIP pair. The Wilkes Land structure is detected by gravity anomaly but remains undrilled and age-uncertain.</p>
+    <p>In the bhole projection lattice, Wilkes Land is <span class="accent">8.3° from Fornax A</span> — one of the tightest impact-bhole proximities.</p>
+  </div>
+</details>
+</section>
+
+<!-- ============================================= -->
+<section id="ordovician">
+<h2>6. END-ORDOVICIAN EXTINCTION (444 Ma)</h2>
+
+<p><span class="highlight">85% species loss.</span> Two distinct pulses driven by Hirnantian glaciation — the only mass extinction primarily attributed to cooling rather than warming.</p>
+
+<h3>Two Pulses</h3>
+<table>
+  <thead><tr><th>Pulse</th><th>Timing</th><th>Driver</th><th>Killed</th></tr></thead>
+  <tbody>
+    <tr><td style="color:#ff4466">Pulse 1</td><td>Early Hirnantian</td><td>Glacial onset, ~100m sea-level fall, ~5°C cooling</td><td>Shallow shelf fauna (habitat loss)</td></tr>
+    <tr><td style="color:#ff4466">Pulse 2</td><td>Late Hirnantian</td><td>Deglaciation, transgression, anoxic/euxinic waters flood shelves</td><td>Cold-adapted Hirnantian fauna</td></tr>
+  </tbody>
+</table>
+
+<h3>Key Data</h3>
+<ul>
+  <li><strong>Glaciation:</strong> Ice sheets on Gondwana (N. Africa, Arabia, S. America). 50-250 million km³ ice volume (≥LGM). CO₂ fell from ~7,000 to ~4,400 ppm.</li>
+  <li><strong>Sea level:</strong> ~100 m regression. At least 4 distinct lowstands within the Hirnantian (Calner et al. 2021).</li>
+  <li><strong>Ocean anoxia:</strong> HOAE onset &lt;20 kyr before peak glaciation. ~15.8% of seafloor euxinic (vs &lt;1% today). Persisted >3 Myr after the second pulse.</li>
+  <li><strong>δ¹⁸O shift:</strong> +2 to 4‰ (combined ice volume + cooling signal).</li>
+  <li><strong>HICE:</strong> Positive δ¹³C shift of +3 to +7‰ — carbon burial + weathering feedback.</li>
+</ul>
+
+<details>
+  <summary>Volcanic Trigger: Alborz LIP</summary>
+  <div class="inner">
+    <p>The Alborz LIP (Iran), with U-Pb zircon ages 468.7 ±0.3 to ~442.5 Ma, spans the entire Late Ordovician including the Hirnantian. Mercury anomalies (Hg/TOC) documented in South China, Poland, and Laurentia support volcanic forcing. Two Hg/TOC spikes correlate with the two extinction pulses.</p>
+    <p>A 2025 <em>Nature Communications</em> study proposed volcanism + basalt weathering drove the 25-Myr interval of Ordovician cooling (470-445 Ma) culminating in the Hirnantian.</p>
+  </div>
+</details>
+
+<details>
+  <summary>GRB Hypothesis (Melott & Thomas 2004)</summary>
+  <div class="inner">
+    <p>A nearby gamma-ray burst (&lt;6,000 ly) could have destroyed ~50% of the ozone layer, triggering UV stress + glaciation. Selectivity evidence: shallow-water organisms hit hardest (consistent with UV kill). Piran & Jimenez (2014): 50% chance a lethal GRB hit Earth in the past 500 Myr.</p>
+    <p><span class="highlight">Status: Plausible but untestable.</span> No unique geological fingerprint. Largely eclipsed by volcanism-driven models with testable predictions. Not mentioned in Harper (2023) major review.</p>
+  </div>
+</details>
+</section>
+
+<!-- ============================================= -->
+<section id="devonian">
+<h2>7. LATE DEVONIAN EXTINCTION (372 Ma)</h2>
+
+<p><span class="highlight">75% species loss.</span> Not a single event but a prolonged biodiversity crisis across the Frasnian-Famennian (F-F) boundary. Two discrete black-shale horizons (Lower and Upper Kellwasser), with the Upper being the main extinction pulse.</p>
+
+<h3>Algeo-Scheckler Hypothesis: Plants Kill the Oceans</h3>
+<p>The evolution of deep-rooting land plants (<em>Archaeopteris</em> forests, 30 m tall) enhanced continental silicate weathering by ~10×. Deep roots fracture bedrock, stabilize thick soils, amplify chemical weathering via organic acids and mycorrhizal fungi. This flushed phosphorus into the oceans, triggering eutrophication, algal blooms, and widespread marine anoxia — the Kellwasser events.</p>
+
+<ul>
+  <li><strong>CO₂ drawdown:</strong> Atmospheric CO₂ fell from ~2,000-4,000 ppm (Early Devonian) to &lt;1,000 ppm (Late Devonian) via Urey reaction + organic carbon burial</li>
+  <li><strong>Cooling:</strong> ~5-7°C tropical cooling at F-F boundary (conodont δ¹⁸O). Famennian diamictites confirm glaciation by latest Devonian.</li>
+  <li><strong>⁸⁷Sr/⁸⁶Sr rise:</strong> From ~0.7078 to ~0.7085 through Middle-Late Devonian, consistent with enhanced continental weathering.</li>
+</ul>
+
+<details>
+  <summary>Viluy Traps & Volcanism</summary>
+  <div class="inner">
+    <p>Viluy Traps (eastern Siberia): >1 million km³ of magma across >320,000 km². Two ⁴⁰Ar/³⁹Ar phases: ~376.7 ±3.4 Ma and ~364.4 ±3.4 Ma. First phase overlaps Kellwasser extinction within error.</p>
+    <p>Mercury anomalies (Bond & Grasby 2018, <em>Geology</em>): Hg/TOC spikes at Upper Kellwasser across Germany, France, Morocco, North America. Coronene co-enrichment supports volcanic source.</p>
+    <p>Modern consensus: multifactorial — plant weathering provided background forcing, volcanic episodes (Viluy, Kola, Pripyat-Dnieper-Donets LIPs, Cerberean Caldera) pushed past tipping points.</p>
+  </div>
+</details>
+</section>
+
+<!-- ============================================= -->
+<section id="triassic">
+<h2>8. END-TRIASSIC EXTINCTION (201 Ma)</h2>
+
+<p><span class="highlight">80% species loss.</span> Coincides with the Central Atlantic Magmatic Province (CAMP) — one of the largest LIPs, emplaced as Pangaea began to rift open.</p>
+
+<h3>CAMP</h3>
+<ul>
+  <li>Area: ~11 million km² (fragments now across 4 continents)</li>
+  <li>Volume: ~2-3 million km³ of basalt</li>
+  <li>Duration: main phase ~600 kyr, but may have erupted in 4 discrete pulses</li>
+  <li>CO₂ release triggered 3-6°C warming, ocean acidification, anoxia</li>
+</ul>
+
+<p><strong>No confirmed impact:</strong> Manicouagan crater (100 km, Quebec) was initially proposed but dated to 214 Ma — 14 Myr too early. No other candidate crater matches the 201 Ma boundary.</p>
+
+<details>
+  <summary>CAMP-Impact Gap</summary>
+  <div class="inner">
+    <p>The 14 Myr gap between Manicouagan (214 Ma) and the Triassic-Jurassic boundary (201 Ma) is one of the strongest arguments against antipodal impact-LIP triggering for this extinction. CAMP volcanism began independently of any known impact.</p>
+  </div>
+</details>
+</section>
+
+<!-- ============================================= -->
+<section id="ydih">
+<h2>9. YOUNGER DRYAS IMPACT HYPOTHESIS</h2>
+
+<p>Proposed by Firestone et al. (2007, <em>PNAS</em>): fragments of a large comet struck or exploded over North America ~12,800 Cal BP, triggering the ~1,200-year Younger Dryas cold reversal, megafaunal extinction, and Clovis culture disappearance.</p>
+
+<h3>Evidence Summary</h3>
+<div class="overflow-x">
+<table>
+  <thead><tr><th>Evidence</th><th>Strength</th><th>Status</th></tr></thead>
+  <tbody>
+    <tr><td>Abu Hureyra melt glass</td><td style="color:#33ff88">Strong</td><td>Temps >2,200°C rule out all terrestrial processes except impact/airburst. Melted quartz (1720°C), chromite (2265°C), magnetite boiling (~2623°C).</td></tr>
+    <tr><td>Microspherules</td><td style="color:#33ff88">Strong</td><td>Replicated at 13+ sites after methodological corrections. LeCompte (2012) identified errors in Surovell's failed replication.</td></tr>
+    <tr><td>Platinum anomaly</td><td style="color:#33ff88">Strong</td><td>~40 of 60 YDB sites. But Green et al. (2025): GISP2 Pt spike is ~45 yr AFTER YD onset — volcanic origin proposed.</td></tr>
+    <tr><td>Nanodiamonds</td><td style="color:#44ccff">Moderate</td><td>Replicated at 8 sites. But Daulton et al. (2017): "no lonsdaleite" — graphene/graphane-oxide misidentified.</td></tr>
+    <tr><td>Biomass burning</td><td style="color:#44ccff">Moderate</td><td>Wolbach: 152-site dataset. But Marlon (2009): 35-site analysis shows no continent-wide fire spike.</td></tr>
+    <tr><td>Iridium</td><td style="color:#ff9933">Weak</td><td>Inconsistent across sites. Paquay: authigenesis, not impact.</td></tr>
+    <tr><td>Black mats</td><td style="color:#ff9933">Weak</td><td>Pigati (2012): form through normal wetland processes at all ages.</td></tr>
+    <tr><td>Carolina Bays</td><td style="color:#ff4466">Very weak</td><td>Diverse ages, no shocked quartz. Alternative formation mechanisms viable.</td></tr>
+    <tr><td>Shocked quartz</td><td style="color:#ff4466">Absent</td><td>Critical gap. Only irregular fractures (lower pressure), not diagnostic PDFs.</td></tr>
+    <tr><td>Impact crater</td><td style="color:#ff4466">Absent</td><td>No crater found. Hiawatha dated to 58 Ma — ruled out.</td></tr>
+  </tbody>
+</table>
+</div>
+
+<details>
+  <summary>Key Criticisms</summary>
+  <div class="inner">
+    <p><strong>Holliday et al. (2023, <em>Earth-Science Reviews</em>):</strong> 17 co-authors, most thorough critique. Concluded evidence "involves flawed methodologies, inappropriate assumptions, questionable conclusions, misstatements of fact, misleading information, unsupported claims, irreproducible observations, logical fallacies."</p>
+    <p><strong>Green et al. (2025, <em>PLOS ONE</em>):</strong> GISP2 Pt spike occurred ~45-50 years AFTER YD onset — attributed to Icelandic fissure eruption.</p>
+    <p><strong>Reproducibility failures:</strong> Surovell (2009) could not replicate magnetic mineral spike. Blind test at Lubbock Lake (2016): two labs got different results from identical samples.</p>
+    <p><strong>Chronological synchroneity fails:</strong> Meltzer et al. (2014): markers don't form temporally synchronous layer. Jorgeson et al. (2020): radiocarbon simulation shows synchronous deposition "extremely unlikely."</p>
+    <p><strong>Mainstream explanation:</strong> Meltwater disruption of Atlantic thermohaline circulation (Broecker 1989). Similar cold reversals (Older Dryas, 8.2 kyr event) occurred without any impact.</p>
+    <p><strong>Data integrity:</strong> Allen West convicted of fraud for falsely claiming geologist credentials. Tell el-Hammam paper retracted April 2025 for image manipulation.</p>
+  </div>
+</details>
+</section>
+
+<!-- ============================================= -->
+<section id="holocene">
+<h2>10. HOLOCENE SUB-CYCLE (~4,000 yr)</h2>
+
+<p>If the 36 Myr fundamental has harmonic overtones, a ~4,000 yr sub-cycle fits several abrupt Holocene climate events:</p>
+
+<table>
+  <thead><tr><th>Event</th><th>Age (BP)</th><th>Nearest 4 kyr Grid</th><th>Notes</th></tr></thead>
+  <tbody>
+    <tr><td style="color:#44ccff">Younger Dryas</td><td>12,800</td><td>12,000</td><td>Clovis collapse, YDIH debate, 1,200 yr cold reversal</td></tr>
+    <tr><td style="color:#44ccff">8.2 kyr event</td><td>8,200</td><td>8,000</td><td>Abrupt N. Atlantic cooling, Laurentide meltwater pulse</td></tr>
+    <tr><td style="color:#44ccff">Burckle crater</td><td>4,800</td><td>4,000</td><td>Indian Ocean, <span class="green">3.6° from Centaurus A</span> bhole</td></tr>
+    <tr><td style="color:#44ccff">4.2 kyr collapse</td><td>4,200</td><td>4,000</td><td>Akkadian Empire / Old Kingdom Egypt fall</td></tr>
+    <tr><td style="color:#44ccff">Bronze Age Collapse</td><td>3,200</td><td>4,000</td><td>Mediterranean-wide civilizational collapse</td></tr>
+    <tr><td style="color:#44ccff">536 CE</td><td>1,490</td><td>0</td><td>Volcanic winter / possible Chiemgau connection</td></tr>
+  </tbody>
+</table>
+
+<p>The sub-cycle is speculative — these events have well-documented terrestrial causes (meltwater, volcanism, drought). The pattern may reflect harmonic sensitivity in climate systems rather than periodic external forcing. The <span class="accent">Burckle-Centaurus A proximity (3.6°)</span> is the tightest impact-bhole pair in the entire catalog.</p>
+</section>
+
+<!-- ============================================= -->
+<section id="refs">
+<h2>11. KEY REFERENCES</h2>
+
+<h3>Periodicity</h3>
+<ul>
+  <li>Raup, D.M. & Sepkoski, J.J. (1984). "Periodicity of extinctions in the geologic past." <em>PNAS</em>, 81, 801-805.</li>
+  <li>Alvarez, W. & Muller, R.A. (1984). "Evidence from crater ages for periodic impacts." <em>Nature</em>, 308, 718-720.</li>
+  <li>Rohde, R.A. & Muller, R.A. (2005). "Cycles in fossil diversity." <em>Nature</em>, 434, 208-210.</li>
+  <li>Rampino, M.R. & Caldeira, K. (2015). "Periodic impact cratering and extinction events over the last 260 Myr." <em>MNRAS</em>, 454, 3480-3484.</li>
+  <li>Melott, A.L. (2008). "Long-term cycles in the history of life." <em>PLOS ONE</em>, 3, e4044.</li>
+  <li>Whitmire, D.P. (2016). "Periodic mass extinctions and the Planet X model reconsidered." <em>MNRAS Letters</em>, 455, L114-L117.</li>
+</ul>
+
+<h3>Antipodal Focusing</h3>
+<ul>
+  <li>Hagstrum, J.T. (2005). "Antipodal hotspots and bipolar catastrophes." <em>EPSL</em>.</li>
+  <li>Meschede, M.A. et al. (2011). "Antipodal focusing of seismic waves." <em>GJI</em>, 187, 529-537.</li>
+  <li>Richards, M.A. et al. (2015). "Triggering of the largest Deccan eruptions by the Chicxulub impact." <em>GSA Bulletin</em>.</li>
+  <li>Boslough, M.B. et al. (1994). "Axial focusing of impact energy in the Earth's interior." Sandia.</li>
+</ul>
+
+<h3>Mass Extinctions</h3>
+<ul>
+  <li>Alvarez, L.W. et al. (1980). "Extraterrestrial cause for the Cretaceous-Tertiary extinction." <em>Science</em>, 208, 1095-1108.</li>
+  <li>Rampino, M.R. et al. (2024). "Sixteen mass extinctions correlated with LIP volcanism and the 4 largest impacts." <em>Earth-Sci Rev</em>.</li>
+  <li>Finnegan, S. et al. (2011). "Magnitude and duration of Late Ordovician-Early Silurian glaciation." <em>Science</em>, 331, 903-906.</li>
+  <li>Bartlett, R. et al. (2018). "Abrupt global-ocean anoxia during the Late Ordovician." <em>PNAS</em>, 115, 5896-5901.</li>
+  <li>Algeo, T.J. & Scheckler, S.E. (1998). "Terrestrial-marine teleconnections in the Devonian." <em>Phil. Trans. R. Soc. B</em>.</li>
+  <li>Bond, D.P.G. & Grasby, S.E. (2018). "Mercury enrichments at the F-F boundary." <em>Geology</em>.</li>
+  <li>Harper, D.A.T. (2023). "Late Ordovician Mass Extinction: Earth, fire and ice." <em>NSR</em>, 11, nwad319.</li>
+</ul>
+
+<h3>YDIH</h3>
+<ul>
+  <li>Firestone, R.B. et al. (2007). "Evidence for an extraterrestrial impact 12,900 years ago." <em>PNAS</em>, 104, 16016-16021.</li>
+  <li>Holliday, V.T. et al. (2023). "Comprehensive refutation of the YDIH." <em>Earth-Sci Rev</em>, 104502.</li>
+  <li>Moore, A.M.T. et al. (2020). "Abu Hureyra melt glass." <em>Scientific Reports</em>.</li>
+  <li>Green, C.P. et al. (2025). "Volcanic origin for Greenland Pt anomaly." <em>PLOS ONE</em>.</li>
+  <li>Daulton, T.L. et al. (2017). "Comprehensive nanodiamond analysis." <em>J. Quat. Sci.</em>, 32, 7-34.</li>
+</ul>
+
+<h3>Galactic Mechanisms</h3>
+<ul>
+  <li>Rampino, M.R. & Stothers, R.B. (1984). Galactic plane oscillation hypothesis.</li>
+  <li>Medvedev, M.V. & Melott, A.L. (2007). "Extragalactic cosmic ray hypothesis." <em>ApJ</em>, 664.</li>
+  <li>Melott, A.L. & Thomas, B.C. (2004). "Did a GRB initiate the Late Ordovician extinction?" <em>Int. J. Astrobiol.</em>, 3, 55-61.</li>
+  <li>Piran, T. & Jimenez, R. (2014). "Possible role of GRBs on life extinction." <em>PRL</em>, 113, 231102.</li>
+</ul>
+</section>
+
+<footer>
+  Compiled July 2026. Research agents queried primary literature via web search.<br>
+  <a href="globe.html" style="color:var(--link)">Globe</a> · <a href="lattice.html" style="color:var(--link)">Lattice</a> · <a href="timeline.html" style="color:var(--link)">Timeline</a>
+</footer>
+
+</div>
+</body>
+</html>
