@@ -6,8 +6,13 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <style>
   html,body{margin:0;padding:0;height:100%;background:#060a12;overflow:hidden;font-family:'Courier New',monospace}
-  #globe{position:absolute;inset:0}
-  #sidebar{position:absolute;top:0;right:0;width:270px;height:100%;overflow-y:auto;background:rgba(8,14,24,0.92);border-left:1px solid #1a3050;padding:12px;box-sizing:border-box;color:#a0c0d8;font-size:11px;z-index:10}
+  #topnav{position:absolute;top:0;left:0;right:0;height:28px;background:rgba(8,14,24,0.95);border-bottom:1px solid #1a3050;display:flex;align-items:center;gap:2px;padding:0 10px;z-index:25;overflow-x:auto}
+  #topnav a{color:#6699bb;text-decoration:none;font-size:10px;padding:4px 8px;border-radius:3px;white-space:nowrap;transition:color 0.15s,background 0.15s}
+  #topnav a:hover{color:#88ccff;background:rgba(30,60,100,0.4)}
+  #topnav a.active{color:#ffaa00;background:rgba(60,40,10,0.4)}
+  #topnav .sep{color:#1a3050;font-size:10px;padding:0 2px}
+  #globe{position:absolute;inset:28px 0 0 0}
+  #sidebar{position:absolute;top:28px;right:0;width:270px;height:calc(100% - 28px);overflow-y:auto;background:rgba(8,14,24,0.92);border-left:1px solid #1a3050;padding:12px;box-sizing:border-box;color:#a0c0d8;font-size:11px;z-index:10}
   #sidebar h1{font-size:14px;color:#ffaa00;letter-spacing:2px;margin:0 0 2px 0}
   #sidebar .sub{font-size:9px;color:#557799;margin-bottom:10px}
   #sidebar h2{font-size:10px;color:#88ccff;letter-spacing:1px;margin:12px 0 4px 0;border-bottom:1px solid #1a3050;padding-bottom:2px}
@@ -43,12 +48,12 @@
   #sim-log{max-height:180px}
 
   /* HUD panel — left side, collapsible */
-  #hud{position:absolute;top:0;left:0;width:340px;height:100%;overflow-y:auto;
+  #hud{position:absolute;top:28px;left:0;width:340px;height:calc(100% - 28px);overflow-y:auto;
     background:rgba(6,10,18,0.94);border-right:1px solid #1a3050;
     padding:16px 18px;box-sizing:border-box;color:#8eaabb;font-size:11px;
     z-index:10;transition:transform 0.3s ease;line-height:1.55}
   #hud.collapsed{transform:translateX(-340px)}
-  #hud-toggle{position:absolute;top:10px;left:10px;z-index:12;width:32px;height:32px;
+  #hud-toggle{position:absolute;top:38px;left:10px;z-index:12;width:32px;height:32px;
     background:rgba(8,14,24,0.85);border:1px solid #1a3050;border-radius:4px;
     color:#88ccff;font-size:16px;cursor:pointer;display:flex;align-items:center;
     justify-content:center;transition:left 0.3s ease;font-family:inherit}
@@ -91,6 +96,19 @@
 </style>
 </head>
 <body>
+<div id="topnav">
+  <a class="active" href="globe.html">Globe</a>
+  <a href="lattice.html">Lattice Map</a>
+  <a href="lattice-shells.html">Shell Explorer</a>
+  <span class="sep">|</span>
+  <a href="unification.html">I. Unification</a>
+  <a href="deductions.html">II. Deductions</a>
+  <a href="lattice-thesis.html">III. Lattice Thesis</a>
+  <a href="synopsis.html">Synopsis</a>
+  <span class="sep">|</span>
+  <a href="prism.html">Prism</a>
+  <a href="landing.html">All</a>
+</div>
 <div id="globe"></div>
 <div id="tip"></div>
 <div id="err"></div>
@@ -246,7 +264,12 @@
     <a href="unification.html">I. Unification</a> &mdash; algebra (the why)<br>
     <a href="deductions.html">II. Deductions</a> &mdash; astronomy (the what)<br>
     <a href="lattice-thesis.html">III. Lattice Thesis</a> &mdash; geography (the where)<br>
-    <a href="synopsis.html">Synopsis of all three</a>
+    <a href="synopsis.html">Synopsis of all three</a><br>
+    <strong style="color:#88ccff;margin-top:6px;display:inline-block">Visualisations</strong><br>
+    <a href="lattice.html">Lattice Map</a> &mdash; flat Google Maps view<br>
+    <a href="lattice-shells.html">Shell Explorer</a> &mdash; &phi;-shell intersections<br>
+    <a href="prism.html">210-gon Prism</a> &mdash; primorial container<br>
+    <a href="landing.html">All pages</a>
   </div>
 </div>
 <div id="inspect">
@@ -1818,8 +1841,9 @@ var sweReady=false,sweActive=false,sweSimT=0;
 var sweInjected=[false,false,false,false];
 
 fetch('bathymetry_360x180.bin')
-  .then(function(r){return r.arrayBuffer()})
+  .then(function(r){if(!r.ok) throw new Error(r.status);return r.arrayBuffer()})
   .then(function(buf){
+    if(buf.byteLength%4!==0||buf.byteLength<SWE_N*4) throw new Error('bad size');
     var raw=new Float32Array(buf);
     for(var ii=0;ii<SWE_N;ii++){sweElev[ii]=raw[ii];sweH[ii]=raw[ii]<0?-raw[ii]:0;}
     sweReady=true;

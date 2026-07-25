@@ -70,7 +70,29 @@ li{margin:.35rem 0}
 .refs{font-size:.8rem; line-height:1.6}
 .refs li{margin:.45rem 0}
 @media (max-width:600px){ .toc{columns:1} body{font-size:16px} }
+
+#topnav{position:fixed;top:0;left:0;right:0;height:28px;background:rgba(8,14,24,0.95);border-bottom:1px solid #1a3050;display:flex;align-items:center;gap:2px;padding:0 10px;z-index:9999;overflow-x:auto}
+#topnav a{color:#6699bb;text-decoration:none;font-size:10px;padding:4px 8px;border-radius:3px;white-space:nowrap;transition:color 0.15s,background 0.15s}
+#topnav a:hover{color:#88ccff;background:rgba(30,60,100,0.4)}
+#topnav a.active{color:#ffaa00;background:rgba(60,40,10,0.4)}
+#topnav .sep{color:#1a3050;font-size:10px;padding:0 2px}
+
+body{padding-top:28px !important}
 </style>
+<div id="topnav">
+  <a href="globe.html">Globe</a>
+  <a href="lattice.html">Lattice Map</a>
+  <a href="lattice-shells.html">Shell Explorer</a>
+  <span class="sep">|</span>
+  <a href="unification.html">I. Unification</a>
+  <a href="deductions.html">II. Deductions</a>
+  <a class="active" href="lattice-thesis.html">III. Lattice Thesis</a>
+  <a href="synopsis.html">Synopsis</a>
+  <span class="sep">|</span>
+  <a href="prism.html">Prism</a>
+  <a href="landing.html">All</a>
+</div>
+
 
 <div class="page">
 <header class="tp">
@@ -429,7 +451,7 @@ We present a single geometric framework — one origin (Giza, 29.9792°N 31.1342
 <tr><td class="num">ei_fan.py · akivi_bearings.py · ei_giza_bearing.py</td><td>five roads; Akivi geometry (§12)</td></tr>
 <tr><td class="num">reverb_shells.py</td><td>present-day feature shell fits (§13)</td></tr>
 <tr><td class="num">giza_three.py</td><td>pyramid vs train geometry (§14)</td></tr>
-<tr><td class="num">add_impact.py · add_backwash.py · add_roads_reverb.py</td><td>the live visualizations: lattice.html &amp; globe.html (impact simulation with computed timeline, sailing roads, reverb layer)</td></tr>
+<tr><td class="num">add_impact.py · add_backwash.py · add_roads_reverb.py</td><td>the live visualizations: lattice.html &amp; globe.html at scanner.rito.one/solver/ (impact simulation with computed timeline, sailing roads, reverb layer)</td></tr>
 <tr><td class="num">line_length_test.py</td><td>star-richness vs glyph count per line; permutation null (§5.5)</td></tr>
 <tr><td class="num">synodic_search.py</td><td>synodic-period clustering for all tablets; 1,000-shuffle null (§5.7)</td></tr>
 <tr><td class="num">extract_planet_bearings.py</td><td>planet-bearing constraint extraction from synodic associations (§5.7–5.8)</td></tr>
