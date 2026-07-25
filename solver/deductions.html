@@ -1,4 +1,5 @@
 <title>From Identity to Measurement</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>≡</text></svg>">
 <style>
 :root {
   --bg: #faf9f6;
@@ -1285,12 +1286,14 @@ function drawScatter() {
 }
 
 drawScatter();
+runMonteCarlo();
 // Redraw on theme change
-const observer = new MutationObserver(() => drawScatter());
+const observer = new MutationObserver(() => { drawScatter(); runMonteCarlo(); });
 observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
-window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', drawScatter);
+window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', () => { drawScatter(); runMonteCarlo(); });
 
 // Monte Carlo simulation
+var mcRunCount = 0;
 function runMonteCarlo() {
   const N = 10000, K = 8;
   const logMin = -5, logMax = 10.7;
@@ -1299,8 +1302,8 @@ function runMonteCarlo() {
   const means = new Float64Array(N);
   let countBelow = 0;
 
-  // seeded xorshift for reproducibility
-  let seed = 42;
+  let seed = mcRunCount === 0 ? 42 : (Date.now() ^ 0xDEADBEEF);
+  mcRunCount++;
   function rand() {
     seed ^= seed << 13; seed ^= seed >> 17; seed ^= seed << 5;
     return (seed >>> 0) / 4294967296;
