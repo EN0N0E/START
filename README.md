@@ -39,9 +39,6 @@ The geographic layer provides the sharpest test. 109 ancient sites across six co
 | `timeline.html` | Chronological framework development. |
 | `research.html` | Research notes and references. |
 
-### Live Deployment
-
-
 ## License
 
 This work is released into the public domain. Use it, test it, break it.
