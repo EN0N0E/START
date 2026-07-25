@@ -41,7 +41,6 @@ The geographic layer provides the sharpest test. 109 ancient sites across six co
 
 ### Live Deployment
 
-These files are served at [scanner.rito.one/solver/](https://scanner.rito.one/solver/landing.html).
 
 ## License
 
