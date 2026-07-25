@@ -1,0 +1,2678 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fibonacci Lattice Predictor</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:#0a0e1a;color:#c8d0e0;font-family:'SF Mono','Fira Code','Consolas',monospace;overflow:hidden;height:100vh}
+#app{display:grid;grid-template-columns:1fr 360px;height:100vh}
+#map-container{position:relative;overflow:hidden}
+#map{width:100%;height:100%}
+#sidebar{background:#0f1525;border-left:1px solid rgba(100,120,160,0.2);overflow-y:auto;padding:12px;font-size:10px}
+#sidebar h1{font-size:13px;color:#ff9944;letter-spacing:0.06em;text-transform:uppercase;margin-bottom:2px}
+#sidebar .sub{color:#5a6680;font-size:9px;margin-bottom:12px}
+.section{font-size:10px;font-weight:700;color:#ff9944;letter-spacing:0.04em;text-transform:uppercase;margin:14px 0 6px;border-bottom:1px solid rgba(100,120,160,0.2);padding-bottom:3px}
+.toggle-row{display:flex;align-items:center;gap:6px;margin:3px 0;cursor:pointer;user-select:none}
+.toggle-row input{accent-color:#ff9944}
+.toggle-row label{cursor:pointer;font-size:10px}
+.result-box{background:rgba(20,28,48,0.85);border:1px solid rgba(100,120,160,0.2);border-radius:6px;padding:8px 10px;margin:6px 0;line-height:1.6}
+.result-box .val{color:#44bbff;font-weight:700}
+.result-box .good{color:#44ff88}
+.result-box .warn{color:#ffaa33}
+.result-box .bad{color:#ff4466}
+.result-box .label{color:#5a6680}
+.pred-list{max-height:220px;overflow-y:auto}
+.pred-item{display:flex;justify-content:space-between;align-items:center;padding:4px 6px;margin:2px 0;background:rgba(255,100,100,0.08);border:1px solid rgba(255,100,100,0.15);border-radius:4px;font-size:9px;cursor:pointer}
+.pred-item:hover{background:rgba(255,100,100,0.15)}
+.pred-item .coords{color:#ff6688;font-weight:600}
+.pred-item button{background:none;border:none;color:#ff4466;cursor:pointer;font-size:11px;padding:0 4px}
+.pred-item button:hover{color:#ff8888}
+#click-info{min-height:220px}
+.site-list{max-height:180px;overflow-y:auto;font-size:9px}
+.site-row{display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid rgba(100,120,160,0.08);cursor:pointer}
+.site-row:hover{background:rgba(68,187,255,0.05)}
+.site-row .sname{color:#44ddff}
+.site-row .serr{color:#5a6680}
+.btn{background:rgba(255,153,68,0.15);border:1px solid rgba(255,153,68,0.3);color:#ff9944;padding:5px 12px;border-radius:4px;cursor:pointer;font-size:9px;text-transform:uppercase;letter-spacing:0.04em}
+.btn:hover{background:rgba(255,153,68,0.25)}
+.btn-sm{padding:3px 8px;font-size:8px}
+.btn-grp{display:flex;gap:4px;margin-top:6px;flex-wrap:wrap}
+.convergence-bar{height:5px;background:rgba(100,120,160,0.2);border-radius:3px;margin:3px 0}
+.convergence-fill{height:100%;border-radius:3px;transition:width 0.3s}
+#coords-bar{position:absolute;bottom:0;left:0;right:0;background:rgba(10,14,26,0.9);padding:4px 12px;font-size:11px;color:#ff9944;display:flex;justify-content:space-between;pointer-events:none;z-index:10}
+.filter-row{display:flex;gap:4px;margin:4px 0}
+.filter-row select{background:#0a0e1a;border:1px solid rgba(100,120,160,0.3);color:#c8d0e0;padding:2px 4px;border-radius:3px;font-size:9px;font-family:inherit}
+
+#counter-hud{position:relative;margin:4px 0;padding:6px 8px;background:rgba(20,60,80,0.85);border:1px solid #1a8a6a;border-radius:4px;font-size:8px;line-height:1.5;display:none;color:#b0e0d0}
+#counter-hud .ch-title{font-size:9px;font-weight:bold;color:#4aeaaa;margin-bottom:3px}
+#counter-hud .ch-row{display:flex;justify-content:space-between;padding:1px 0;border-bottom:1px solid rgba(74,234,170,0.1)}
+#counter-hud .ch-dual{color:#ffe066;font-weight:bold}
+#counter-hud .ch-shell{color:#4aeaaa}
+#counter-hud .ch-brg{color:#88ccff}
+#maya-hud{position:relative;margin:4px 0;padding:6px 8px;background:rgba(20,70,50,0.85);border:1px solid #2a9a6a;border-radius:4px;font-size:8px;line-height:1.6;display:none;color:#c0e8d0}
+#maya-hud .mh-title{font-size:9px;font-weight:bold;color:#44cc88;margin-bottom:3px}
+#maya-hud .mh-row{display:flex;justify-content:space-between;padding:1px 0;border-bottom:1px solid rgba(68,204,136,0.12)}
+#maya-hud .mh-big{color:#ffd700;font-weight:bold;font-size:10px}
+#maya-hud .mh-g{color:#88ccff}
+#roads-hud{position:relative;margin:4px 0;padding:6px 8px;background:rgba(20,40,70,0.85);border:1px solid #2a6a9a;border-radius:4px;font-size:8px;line-height:1.6;display:none;color:#c0d8e8}
+#roads-hud .rh-title{font-size:9px;font-weight:bold;color:#66ccff;margin-bottom:3px}
+#roads-hud .rh-row{display:flex;justify-content:space-between;gap:6px;padding:1px 0;border-bottom:1px solid rgba(102,204,255,0.12)}
+#solar-hud{display:none;background:rgba(10,14,26,0.92);border:1px solid rgba(255,153,68,0.3);border-radius:6px;padding:8px 10px;margin:6px 0;font-size:9px;line-height:1.7}
+#solar-hud .sh-title{color:#FFD700;font-size:10px;font-weight:700;letter-spacing:0.04em;text-transform:uppercase;margin-bottom:4px}
+#solar-hud .sh-cycle{color:#ff9944;font-size:9px;margin-bottom:4px}
+#solar-hud .sh-row{display:flex;justify-content:space-between;align-items:center;padding:2px 0;border-bottom:1px solid rgba(100,120,160,0.08)}
+#solar-hud .sh-row.active{background:rgba(255,215,0,0.12);border-radius:3px;padding:2px 4px;border:1px solid rgba(255,215,0,0.25)}
+#solar-hud .sh-time{color:#5a6680;width:36px}
+#solar-hud .sh-brg{color:#44bbff;font-weight:600;width:30px}
+#solar-hud .sh-site{color:#ff9944;font-size:8px;flex:1;text-align:right}
+#solar-hud .sh-star{color:#FFD700;font-size:8px}
+.solar-legend{display:flex;gap:8px;margin-top:6px;font-size:8px;color:#5a6680}
+.solar-legend span{display:flex;align-items:center;gap:3px}
+.solar-legend .dot{width:6px;height:6px;border-radius:50%;display:inline-block}
+</style>
+</head>
+<body>
+<div id="app">
+<div id="map-container">
+  <div id="map"></div>
+  <div id="coords-bar"><span id="coords-display">—</span><span id="phase-display"></span></div>
+</div>
+<div id="sidebar">
+  <h1>Lattice Predictor</h1>
+  <div class="sub">Click map to analyze lattice alignment</div>
+
+  <div class="section">Layers</div>
+  <div class="toggle-row"><input type="checkbox" id="cb-shells" checked><label for="cb-shells">Orbital shells (Giza)</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-phi"><label for="cb-phi">Phi-ratio shells</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-bearings"><label for="cb-bearings">All 44 lattice bearings</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-corridors" checked><label for="cb-corridors">US/MX corridors (G18/G5/S9)</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-sites" checked><label for="cb-sites">Known ancient sites</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-preds" checked><label for="cb-preds">Predictions</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-shipping"><label for="cb-shipping">Shipping/navigation routes</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-bhproj"><label for="cb-bhproj">Black hole projections</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-bhpaths"><label for="cb-bhpaths">BH sky paths + Orion Belt</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-catalog"><label for="cb-catalog">Full sky catalog (k-sorted)</label></div>
+  <div id="k-legend" style="display:none;margin:4px 0 4px 20px;font-size:8px;line-height:1.8"></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-intersite"><label for="cb-intersite">Inter-site lattice lines</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-graticule" checked><label for="cb-graticule">Lat/Lon grid</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-ecliptic"><label for="cb-ecliptic">Solar ecliptic path</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-moai"><label for="cb-moai">Moai facing bearings</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-solar"><label for="cb-solar">Solar Clock (Easter Island)</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-counter"><label for="cb-counter">Counter Lattice (EI Antipole)</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-ribs" checked><label for="cb-ribs">Spindle Ribs (Giza&rarr;Site&rarr;SPac)</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-ribs-ei" checked><label for="cb-ribs-ei">Spindle Ribs (EI&rarr;Site&rarr;Pakistan)</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-antipoles" checked><label for="cb-antipoles">Antipode Poles + Shells (SPac/Indus)</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-solstice" checked><label for="cb-solstice">Solstice Sunsets (G7 Dec / G10 Jun)</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-maya" checked><label for="cb-maya">Maya Calendar (Chichen Itza)</label></div>
+  <div id="maya-hud"></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-roads" checked><label for="cb-roads">Sailing Roads (EI five-fan + Akivi)</label></div>
+  <div id="roads-hud"></div>
+    <div class="toggle-row"><input type="checkbox" id="cb-compass"><label for="cb-compass">Compass Rose (8-dir cycle)</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-reverb" checked><label for="cb-reverb">Active Geophysics (reverb shells)</label></div>
+  <div class="toggle-row"><input type="checkbox" id="cb-antipodal" checked><label for="cb-antipodal">Antipodal Impacts (Wilkes/Chicxulub)</label></div>
+  <div id="antipodal-hud"></div>
+  <div id="counter-hud"></div>
+  <div id="solar-hud"></div>
+
+  <div class="section">K-Class Search</div>
+  <div class="filter-row">
+    <select id="k-select" onchange="filterByK(this.value)" style="flex:1">
+      <option value="">All k-classes</option>
+      <option value="1">k=1 (identity)</option>
+      <option value="3">k=3 (F₄)</option>
+      <option value="6">k=6 (2×3)</option>
+      <option value="9">k=9 (3²) — Orion</option>
+      <option value="11">k=11 (φ⁵)</option>
+      <option value="16">k=16 (2⁴)</option>
+      <option value="19">k=19 (prime)</option>
+      <option value="26">k=26 (rev62)</option>
+      <option value="62">k=62 (RITO)</option>
+      <option value="65">k=65 (F₅F₇)</option>
+      <option value="1612">k=1612 (BH only)</option>
+    </select>
+  </div>
+  <div id="k-results" style="font-size:9px;margin:4px 0;max-height:180px;overflow-y:auto"></div>
+
+  <div class="section">Click Analysis</div>
+  <div id="click-info" class="result-box">
+    <span class="label">Click any point on the map to get full lattice alignment analysis...</span>
+  </div>
+  <button class="btn" onclick="markPrediction()" id="btn-mark" style="display:none">Mark as Prediction</button>
+
+  <div class="section">Predictions <span id="pred-count">(0)</span></div>
+  <div id="pred-list" class="pred-list"></div>
+  <div class="btn-grp">
+    <button class="btn btn-sm" onclick="exportPreds()">Export CSV</button>
+    <button class="btn btn-sm" onclick="exportKML()">Export KML</button>
+    <button class="btn btn-sm" onclick="clearPreds()">Clear All</button>
+  </div>
+
+  <div class="section">Known Sites</div>
+  <div class="filter-row">
+    <select id="site-filter" onchange="renderSiteList()">
+      <option value="all">All types</option>
+      <option value="anchor">Anchors</option>
+      <option value="meso">Mesoamerican</option>
+      <option value="mound">Mound Builder</option>
+      <option value="pueblo">Pueblo</option>
+      <option value="other">Other</option>
+      <option value="pred">Predicted</option>
+    </select>
+  </div>
+  <div id="site-list" class="site-list"></div>
+</div>
+</div>
+
+<script>
+// === LATTICE CONSTANTS ===
+const R = 6371;
+const GIZA = {lat: 29.9792, lng: 31.1342};
+const KM_PER_AU = 617;
+const PHI = (1 + Math.sqrt(5)) / 2;
+const GA = 360 / (PHI * PHI); // golden angle = 137.508°
+const FIB = [1,2,3,5,8,13,21,34,55,89,144,233,377,610,987,1597,2584,4181,6765,10946,17711];
+
+// === ORBITAL SHELLS ===
+const ORBITS = {
+  Mercury: {km: 0.387*KM_PER_AU, color:'#aaaaaa'},
+  Venus:   {km: 0.723*KM_PER_AU, color:'#ffcc44'},
+  Earth:   {km: 1.0*KM_PER_AU,   color:'#4488ff'},
+  Mars:    {km: 1.524*KM_PER_AU,  color:'#ff4422'},
+  Jupiter: {km: 5.203*KM_PER_AU,  color:'#ff8844'},
+  Saturn:  {km: 9.537*KM_PER_AU,  color:'#ddaa44'},
+  Uranus:  {km: 19.19*KM_PER_AU,  color:'#44dddd'},
+  Neptune: {km: 30.07*KM_PER_AU,  color:'#4466ff'}
+};
+
+// === PHI-RATIO SHELLS ===
+const PHI_SHELLS = {};
+const oNames = Object.keys(ORBITS);
+for(let i=0; i<oNames.length; i++){
+  const km = ORBITS[oNames[i]].km;
+  PHI_SHELLS[oNames[i]+'/φ'] = km/PHI;
+  PHI_SHELLS[oNames[i]+'×√φ'] = km*Math.sqrt(PHI);
+  PHI_SHELLS[oNames[i]+'×φ'] = km*PHI;
+  if(i<oNames.length-1){
+    const nkm = ORBITS[oNames[i+1]].km;
+    PHI_SHELLS[oNames[i]+'→'+oNames[i+1]+' φ-div'] = km+(nkm-km)/PHI;
+  }
+}
+
+// === BEARING SET (44 unique) ===
+const lattice = {};
+for(let n=0;n<30;n++){ const b=+((n*GA)%360).toFixed(1); lattice[b]='G'+n; }
+for(let n=0;n<10;n++){ const b=+((n*72.97)%360).toFixed(1); if(!lattice[b]) lattice[b]='S'+n; }
+for(let n=0;n<10;n++){ const b=+((n*GA/2)%360).toFixed(1); if(!lattice[b]) lattice[b]='H'+n; }
+const brgs = Object.keys(lattice).map(Number).sort((a,b)=>a-b);
+
+// === KNOWN SITES ===
+const SITES = [
+  {n:'Giza',lat:29.9792,lng:31.1342,t:'anchor'},
+  {n:'Tiwanaku',lat:-16.5546,lng:-68.6735,t:'anchor'},
+  {n:'Angkor Wat',lat:13.4125,lng:103.867,t:'anchor'},
+  {n:'Easter Island',lat:-27.1127,lng:-109.3497,t:'anchor'},
+  {n:'Göbekli Tepe',lat:37.2233,lng:38.9224,t:'anchor'},
+  {n:'Stonehenge',lat:51.1789,lng:-1.8262,t:'anchor'},
+  {n:'Mohenjo-daro',lat:27.324,lng:68.1385,t:'anchor'},
+  {n:'Nok Nigeria',lat:9.715,lng:9.094,t:'anchor'},
+  {n:'Nan Madol',lat:6.843,lng:158.336,t:'anchor'},
+  {n:'Great Zimbabwe',lat:-20.267,lng:30.933,t:'anchor'},
+  {n:'Nabta Playa',lat:22.51,lng:30.73,t:'anchor'},
+  {n:'Newgrange',lat:53.6947,lng:-6.4755,t:'anchor'},
+  {n:'Carnac',lat:47.5836,lng:-3.0775,t:'anchor'},
+  {n:'Dwarka',lat:22.238,lng:68.968,t:'anchor'},
+  {n:'Teotihuacan',lat:19.6925,lng:-98.8438,t:'meso'},
+  {n:'Chichen Itza',lat:20.6843,lng:-88.5678,t:'meso'},
+  {n:'Tikal',lat:17.222,lng:-89.6237,t:'meso'},
+  {n:'Copan',lat:14.84,lng:-89.14,t:'meso'},
+  {n:'Palenque',lat:17.4838,lng:-92.0461,t:'meso'},
+  {n:'Monte Alban',lat:17.0431,lng:-96.7676,t:'meso'},
+  {n:'La Venta',lat:18.1033,lng:-94.0439,t:'meso'},
+  {n:'Uxmal',lat:20.3594,lng:-89.7714,t:'meso'},
+  {n:'Quirigua',lat:15.27,lng:-89.04,t:'meso'},
+  {n:'El Mirador',lat:17.755,lng:-89.92,t:'meso'},
+  {n:'Calakmul',lat:18.1058,lng:-89.8108,t:'meso'},
+  {n:'Cholula',lat:19.0575,lng:-98.3017,t:'meso'},
+  {n:'Bonampak',lat:16.704,lng:-91.065,t:'meso'},
+  {n:'Tulum',lat:20.2146,lng:-87.4291,t:'meso'},
+  {n:'Cahokia',lat:38.6606,lng:-90.0622,t:'mound'},
+  {n:'Poverty Point',lat:32.6345,lng:-91.4087,t:'mound'},
+    {n:'Lower Jackson Mound',lat:32.6372,lng:-91.4069,t:'mound'},
+  {n:'Serpent Mound',lat:39.0253,lng:-83.4303,t:'mound'},
+  {n:'Moundville',lat:33.0056,lng:-87.6292,t:'mound'},
+  {n:'Newark Earthworks',lat:40.0517,lng:-82.4214,t:'mound'},
+  {n:'Watson Brake',lat:32.63,lng:-92.34,t:'mound'},
+  {n:'Pinson Mounds',lat:35.4836,lng:-88.7417,t:'mound'},
+  {n:'Winterville',lat:33.52,lng:-91.0567,t:'mound'},
+  {n:'Emerald Mound',lat:31.9053,lng:-90.995,t:'mound'},
+  {n:'Spiro Mounds',lat:35.25,lng:-94.6167,t:'mound'},
+  {n:'Angel Mounds',lat:37.9286,lng:-87.4511,t:'mound'},
+  {n:'Grave Creek',lat:39.9167,lng:-80.7478,t:'mound'},
+  {n:'Meadowcroft',lat:40.285,lng:-80.522,t:'mound'},
+  {n:'Crystal River',lat:28.9025,lng:-82.6317,t:'mound'},
+  {n:'Town Creek',lat:35.4392,lng:-80.0811,t:'mound'},
+  {n:'Marietta Earthworks',lat:39.4142,lng:-81.455,t:'mound'},
+  {n:'Chaco Canyon',lat:36.0604,lng:-107.9617,t:'pueblo'},
+  {n:'Mesa Verde',lat:37.1668,lng:-108.4868,t:'pueblo'},
+  {n:'Casa Grande',lat:32.9956,lng:-111.5331,t:'pueblo'},
+  {n:'Wupatki',lat:35.5189,lng:-111.3681,t:'pueblo'},
+  {n:'Montezuma Castle',lat:34.6114,lng:-111.8356,t:'pueblo'},
+  {n:'Canyon de Chelly',lat:36.1325,lng:-109.4683,t:'pueblo'},
+  {n:'Aztec Ruins',lat:36.8356,lng:-107.9997,t:'pueblo'},
+  {n:'Paquimé',lat:30.37,lng:-107.9567,t:'pueblo'},
+  {n:'Baalbek',lat:34.0069,lng:36.2039,t:'other'},
+  {n:'Petra',lat:30.3285,lng:35.4444,t:'other'},
+  {n:'Persepolis',lat:29.9352,lng:52.8917,t:'other'},
+  {n:'Ellora',lat:20.0258,lng:75.178,t:'other'},
+  {n:'Borobudur',lat:-7.6079,lng:110.2038,t:'other'},
+  {n:'Yonaguni',lat:24.435,lng:123.012,t:'other'},
+  {n:'Caral',lat:-10.893,lng:-77.52,t:'other'},
+  {n:'Sanxingdui',lat:31.0,lng:104.2,t:'other'},
+  {n:'Machu Picchu',lat:-13.1631,lng:-72.545,t:'other'},
+  {n:'Doggerland',lat:52.5,lng:6.5,t:'other'},
+  {n:'Serranía de la Lindosa',lat:2.4833,lng:-72.6333,t:'other'},
+  {n:'Candelabra of Paracas',lat:-13.7638,lng:-76.1322,t:'other'},
+  {n:'Nazca Lines',lat:-14.739,lng:-75.13,t:'other'},
+  {n:'Puma Punku',lat:-16.5616,lng:-68.6803,t:'other'},
+  {n:'Sacsayhuamán',lat:-13.5094,lng:-71.9828,t:'other'},
+  {n:'Ollantaytambo',lat:-13.2588,lng:-72.2636,t:'other'},
+  {n:'Chavín de Huántar',lat:-9.5939,lng:-77.1772,t:'other'},
+  {n:'Chan Chan',lat:-8.1058,lng:-79.0747,t:'other'},
+
+  // === PREDICTED SITES (lattice-derived) ===
+  {n:'Arnhem Land (Injalak Hill)',lat:-12.366,lng:133.188,t:'pred'},
+  {n:'Yenisei River',lat:71.925,lng:92.712,t:'pred'},
+  {n:'Altai Mountains',lat:48.200,lng:97.610,t:'pred'},
+  {n:'Owens Valley',lat:37.660,lng:-118.070,t:'pred'},
+  {n:'Cochasquí',lat:0.140,lng:-78.070,t:'pred'},
+  {n:'Cameroon (Bantu origin)',lat:5.451,lng:14.981,t:'pred'},
+  {n:'Madagascar coast',lat:-20.370,lng:48.060,t:'pred'},
+  {n:'SW Australia (submerged)',lat:-42.507,lng:116.291,t:'pred'},
+  {n:'Gulf of Guinea (Hausa)',lat:13.207,lng:5.698,t:'pred'},
+  {n:'Atlas Morocco',lat:28.296,lng:-1.977,t:'pred'},
+  {n:'Lake Victoria',lat:1.130,lng:32.293,t:'pred'},
+  {n:'Qinghai',lat:33.448,lng:94.187,t:'pred'},
+  {n:'Etosha',lat:-20.919,lng:16.084,t:'pred'},
+  {n:'Makgadikgadi',lat:-22.288,lng:22.524,t:'pred'},
+  {n:'Paraná',lat:-31.602,lng:-60.564,t:'pred'},
+  {n:'Gibson Desert',lat:-27.536,lng:125.069,t:'pred'},
+  {n:'Mogollon Rim',lat:33.971,lng:-110.458,t:'pred'},
+  {n:'Nuevo León',lat:26.525,lng:-99.709,t:'pred'},
+  {n:'Tlemcen',lat:31.974,lng:-2.594,t:'pred'},
+  {n:'Land of Punt',lat:7.425,lng:50.340,t:'pred'},
+  {n:'Congo Basin',lat:1.473,lng:26.323,t:'pred'},
+  {n:'Belozersk',lat:58.434,lng:38.233,t:'pred'},
+  {n:'Tanami',lat:-20.900,lng:128.622,t:'pred'},
+  {n:'Kyiv',lat:58.850,lng:31.134,t:'pred'},
+  {n:'Kola Peninsula',lat:69.792,lng:31.134,t:'pred'},
+  {n:'Aleutian Islands',lat:43.539,lng:-148.866,t:'pred'},
+  {n:'Sunda Strait (Java)',lat:-7.641,lng:104.759,t:'pred'},
+  {n:'Oklo (Gabon)',lat:-13.637,lng:0.028,t:'pred'},
+  {n:'Southern Tabasco',lat:21.0,lng:-93.0,t:'pred'},
+  {n:'Northern Veracruz',lat:21.5,lng:-94.0,t:'pred'},
+  {n:'Huasteca',lat:22.5,lng:-97.5,t:'pred'},
+  {n:'Coahuila border',lat:30.5,lng:-100.0,t:'pred'},
+  {n:'Abu Hureyra',lat:35.866,lng:38.387,t:'pred'},
+  {n:'Tell Qaramel',lat:36.543,lng:37.052,t:'pred'},
+  {n:'Taputapuatea (Raiatea)',lat:-16.833,lng:-151.432,t:'pred'},
+  {n:'Azores (São Miguel)',lat:37.765,lng:-25.491,t:'pred'},
+  {n:'Azores (Terceira)',lat:38.688,lng:-27.156,t:'pred'},
+  {n:'Honduras clearing',lat:13.453,lng:-87.058,t:'pred'},
+  {n:'Nuevo León starburst',lat:26.592,lng:-99.647,t:'pred'},
+  {n:"Taputapuatea (Raiatea)",lat:-16.833,lng:-151.432,t:"pred"},  {n:"Azores (São Miguel)",lat:37.765,lng:-25.491,t:"pred"},  {n:"Azores (Terceira)",lat:38.688,lng:-27.156,t:"pred"},  {n:"Honduras clearing",lat:13.453,lng:-87.058,t:"pred"},  {n:"Nuevo León starburst",lat:26.592,lng:-99.647,t:"pred"},
+];
+
+const SITE_COLORS = {
+  anchor:{fill:'#ff9944',stroke:'#cc6600'},
+  meso:{fill:'#cc88ff',stroke:'#9944cc'},
+  mound:{fill:'#ff6644',stroke:'#cc3322'},
+  pueblo:{fill:'#44cc88',stroke:'#228855'},
+  other:{fill:'#44bbff',stroke:'#2288cc'},
+  pred:{fill:'#ff6688',stroke:'#ff4466'}
+};
+
+// === GEODESIC MATH ===
+function hav(lat1,lon1,lat2,lon2){
+  const d2r=Math.PI/180,dl=d2r*(lat2-lat1),dn=d2r*(lon2-lon1);
+  const a=Math.sin(dl/2)**2+Math.cos(d2r*lat1)*Math.cos(d2r*lat2)*Math.sin(dn/2)**2;
+  return R*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+function bear(lat1,lon1,lat2,lon2){
+  const d2r=Math.PI/180,la1=d2r*lat1,la2=d2r*lat2,dlo=d2r*(lon2-lon1);
+  const x=Math.sin(dlo)*Math.cos(la2),y=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dlo);
+  return((Math.atan2(x,y)*180/Math.PI)+360)%360;
+}
+// Arc of the unique circle through A and B that departs A at bearing brg.
+// Returns sampled lat/lng points A -> B. Every such arc terminates at B.
+function pencilArc(A,B,brg){
+  const R=Math.PI/180;
+  const x=(la,lo)=>[Math.cos(la*R)*Math.cos(lo*R),Math.cos(la*R)*Math.sin(lo*R),Math.sin(la*R)];
+  const sub=(a,b)=>[a[0]-b[0],a[1]-b[1],a[2]-b[2]];
+  const dt=(a,b)=>a[0]*b[0]+a[1]*b[1]+a[2]*b[2];
+  const cr=(a,b)=>[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];
+  const nm=a=>{const m=Math.sqrt(dt(a,a));return m<1e-12?null:[a[0]/m,a[1]/m,a[2]/m];};
+  const Ax=x(A.lat,A.lng), Bx=x(B.lat,B.lng);
+  const la=A.lat*R, lo=A.lng*R;
+  const east=[-Math.sin(lo),Math.cos(lo),0];
+  const north=[-Math.sin(la)*Math.cos(lo),-Math.sin(la)*Math.sin(lo),Math.cos(la)];
+  const b=brg*R;
+  const t=[north[0]*Math.cos(b)+east[0]*Math.sin(b),north[1]*Math.cos(b)+east[1]*Math.sin(b),north[2]*Math.cos(b)+east[2]*Math.sin(b)];
+  const n=nm(cr(t,sub(Bx,Ax)));
+  if(!n) return null;
+  const d=dt(n,Ax);
+  const cc=[n[0]*d,n[1]*d,n[2]*d];
+  const rr=Math.sqrt(Math.max(0,1-d*d));
+  if(rr<1e-6) return null;
+  const u=nm(sub(Ax,cc)); if(!u) return null;
+  const v=cr(n,u);
+  const wB=sub(Bx,cc);
+  let tB=Math.atan2(dt(wB,v),dt(wB,u));
+  const fwd=dt(v,t)>=0;
+  if(fwd&&tB<0) tB+=2*Math.PI;
+  if(!fwd&&tB>0) tB-=2*Math.PI;
+  const N=Math.max(24,Math.ceil(Math.abs(tB)/0.026));
+  const pts=[];
+  for(let i=0;i<=N;i++){
+    const tt=tB*i/N;
+    const ct=Math.cos(tt),st=Math.sin(tt);
+    const p=[cc[0]+rr*(u[0]*ct+v[0]*st),cc[1]+rr*(u[1]*ct+v[1]*st),cc[2]+rr*(u[2]*ct+v[2]*st)];
+    pts.push({lat:Math.asin(Math.max(-1,Math.min(1,p[2])))/R,lng:Math.atan2(p[1],p[0])/R});
+  }
+  return pts;
+}
+
+function destPt(lat1,lon1,brng,dist){
+  const d2r=Math.PI/180,la1=d2r*lat1,lo1=d2r*lon1,br=d2r*brng,dr=dist/R;
+  const la2=Math.asin(Math.sin(la1)*Math.cos(dr)+Math.cos(la1)*Math.sin(dr)*Math.cos(br));
+  const lo2=lo1+Math.atan2(Math.sin(br)*Math.sin(dr)*Math.cos(la1),Math.cos(dr)-Math.sin(la1)*Math.sin(la2));
+  return{lat:la2*180/Math.PI,lng:((lo2*180/Math.PI+540)%360)-180};
+}
+function nearestBrg(b){
+  let best=null,err=360;
+  for(const lb of brgs){let d=Math.abs(b-lb);if(d>180)d=360-d;if(d<err){err=d;best=lb;}}
+  return{brg:best,line:lattice[best],err};
+}
+function bestShell(dist){
+  let best=null,err=100;
+  for(const[sn,o] of Object.entries(ORBITS)){const e=Math.abs(dist-o.km)/o.km*100;if(e<err){err=e;best=sn;}}
+  return{name:best,err,km:ORBITS[best].km};
+}
+function bestPhi(dist){
+  let best=null,err=100;
+  for(const[pn,pkm] of Object.entries(PHI_SHELLS)){if(pkm>20200)continue;const e=Math.abs(dist-pkm)/pkm*100;if(e<err){err=e;best=pn;}}
+  return{name:best,err};
+}
+function bestFib(dist){
+  let best='',err=100;
+  for(const f of FIB)for(const k of[1,2,3,5,8,10,13,21,34,50,55,89,100,144,233,500,1000]){
+    const target=k*f;if(target<10||target>25000)continue;
+    const e=Math.abs(dist-target)/Math.max(dist,1)*100;
+    if(e<err){err=e;best=k+'×'+f+'='+target;}
+  }
+  return{match:best,err};
+}
+
+// === CONVERGENCE SCORING ===
+function analyzePoint(lat,lon){
+  const dist=hav(GIZA.lat,GIZA.lng,lat,lon);
+  const brg_=bear(GIZA.lat,GIZA.lng,lat,lon);
+  const lb=nearestBrg(brg_);
+  const sh=bestShell(dist);
+  const ph=bestPhi(dist);
+  const fb=bestFib(dist);
+  let score=0, details=[];
+
+  if(sh.err<=1){score+=5;details.push({t:'★ SHELL '+sh.name,v:sh.err.toFixed(2)+'%',c:'good'});}
+  else if(sh.err<=3){score+=3;details.push({t:'Shell '+sh.name,v:sh.err.toFixed(1)+'%',c:'good'});}
+  else if(sh.err<=7){score+=1;details.push({t:'shell~ '+sh.name,v:sh.err.toFixed(1)+'%',c:'warn'});}
+
+  if(ph.err<=2){score+=4;details.push({t:'★ PHI '+ph.name,v:ph.err.toFixed(2)+'%',c:'good'});}
+  else if(ph.err<=5){score+=2;details.push({t:'phi '+ph.name,v:ph.err.toFixed(1)+'%',c:'val'});}
+
+  if(lb.err<=1){score+=5;details.push({t:'★ BRG '+lb.line+' ('+lb.brg+'°)',v:lb.err.toFixed(2)+'°',c:'good'});}
+  else if(lb.err<=3){score+=3;details.push({t:'Brg '+lb.line+' ('+lb.brg+'°)',v:lb.err.toFixed(1)+'°',c:'good'});}
+  else if(lb.err<=5){score+=1;details.push({t:'brg~ '+lb.line,v:lb.err.toFixed(1)+'°',c:'warn'});}
+
+  if(fb.err<=1){score+=3;details.push({t:'FIB '+fb.match,v:fb.err.toFixed(2)+'%',c:'good'});}
+  else if(fb.err<=3){score+=2;details.push({t:'Fib '+fb.match,v:fb.err.toFixed(1)+'%',c:'val'});}
+  else if(fb.err<=5){score+=1;details.push({t:'fib~ '+fb.match,v:fb.err.toFixed(1)+'%',c:'warn'});}
+
+  // Multi-anchor convergence
+  const anchors=SITES.filter(s=>s.t==='anchor');
+  let conv=0,convList=[];
+  for(const a of anchors){
+    const d2=hav(a.lat,a.lng,lat,lon);
+    if(d2<50)continue;
+    const b2=bear(a.lat,a.lng,lat,lon);
+    const lb2=nearestBrg(b2);
+    if(lb2.err<=3){conv++;convList.push({from:a.n,line:lb2.line,err:lb2.err});}
+    else if(lb2.err<=5){conv+=0.5;convList.push({from:a.n,line:lb2.line,err:lb2.err});}
+  }
+  if(conv>=6){score+=5;details.push({t:'★ CONVERGENCE',v:Math.floor(conv)+' anchors',c:'good'});}
+  else if(conv>=4){score+=3;details.push({t:'Convergence',v:Math.floor(conv)+' anchors',c:'val'});}
+  else if(conv>=2){score+=1;details.push({t:'conv~',v:Math.floor(conv)+' anchors',c:'warn'});}
+
+  let nearest={n:'?',d:99999};
+  for(const s of SITES){const d=hav(s.lat,s.lng,lat,lon);if(d<nearest.d)nearest={n:s.n,d:d};}
+  return{dist,brg:brg_,lb,sh,ph,fb,score,details,conv,convList,nearest};
+}
+
+// === MAP STATE ===
+let map, clickMarker, shellCircles=[], bearingLines=[], corridorLines=[], siteMarkers=[], shippingLines=[];
+let predMarkers=[], intersiteLines=[], phiCircles=[], bhMarkers=[], bhLines=[];
+let graticuleLines=[], graticuleLabels=[];
+let eclipticLines=[], eclipticMarkers=[];
+let moaiLines=[], moaiMarkers=[];
+let bhPathLines=[], orionMarkers=[], catalogMarkers=[];
+let lastClick=null;
+let solarLines=[], solarMarkers=[], solarGizaLines=[];
+let solarAnimFrame=null;
+let predictions=JSON.parse(localStorage.getItem('lattice_preds')||'[]');
+
+// === MAP DARK STYLE ===
+const DARK_STYLE = [
+  {elementType:'geometry',stylers:[{color:'#0a0e1a'}]},
+  {elementType:'labels.text.fill',stylers:[{color:'#5a6680'}]},
+  {elementType:'labels.text.stroke',stylers:[{color:'#0a0e1a'}]},
+  {featureType:'water',elementType:'geometry',stylers:[{color:'#060a14'}]},
+  {featureType:'landscape',elementType:'geometry',stylers:[{color:'#0f1525'}]},
+  {featureType:'road',stylers:[{visibility:'off'}]},
+  {featureType:'poi',stylers:[{visibility:'off'}]},
+  {featureType:'transit',stylers:[{visibility:'off'}]},
+  {featureType:'administrative.country',elementType:'geometry.stroke',stylers:[{color:'#1a2540'},{weight:0.5}]},
+  {featureType:'administrative.province',stylers:[{visibility:'off'}]},
+];
+
+function initMap(){
+  map = new google.maps.Map(document.getElementById('map'),{
+    center: GIZA,
+    zoom: 3,
+    styles: DARK_STYLE,
+    disableDefaultUI: true,
+    zoomControl: true,
+    mapTypeControl: true,
+    mapTypeControlOptions: {
+      style: google.maps.MapTypeControlStyle.DROPDOWN_MENU,
+      position: google.maps.ControlPosition.TOP_LEFT,
+      mapTypeIds: ['roadmap','satellite','terrain','hybrid']
+    },
+    gestureHandling: 'greedy',
+    minZoom: 2,
+    maxZoom: 18,
+  });
+
+  // Giza marker (golden, always visible)
+  new google.maps.Marker({
+    position: GIZA,
+    map: map,
+    icon: {
+      path: google.maps.SymbolPath.CIRCLE,
+      scale: 8,
+      fillColor: '#ff9944',
+      fillOpacity: 1,
+      strokeColor: '#ffcc88',
+      strokeWeight: 2
+    },
+    title: 'Giza (Origin)',
+    zIndex: 1000
+  });
+
+  // Click handler
+  map.addListener('click', (e) => {
+    const lat=e.latLng.lat(), lon=e.latLng.lng();
+    showAnalysis(lat, lon);
+  });
+
+  // Mousemove for coords display
+  map.addListener('mousemove', (e) => {
+    const lat=e.latLng.lat(), lon=e.latLng.lng();
+    document.getElementById('coords-display').textContent=
+      Math.abs(lat).toFixed(4)+'°'+(lat>=0?'N':'S')+' '+Math.abs(lon).toFixed(4)+'°'+(lon>=0?'E':'W');
+  });
+
+  // Layer toggle listeners
+  document.querySelectorAll('#sidebar input[type=checkbox]').forEach(cb=>{
+    cb.addEventListener('change', refreshLayers);
+  });
+
+  refreshLayers();
+  renderPreds();
+  map.addListener('zoom_changed',()=>{drawGraticule();});
+  renderSiteList();
+}
+
+// === LAYER RENDERING ===
+function refreshLayers(){
+  drawMoai();
+  drawEcliptic();
+  drawGraticule();
+  drawShells();
+  drawPhiShells();
+  drawBearings();
+  drawCorridors();
+  drawShipping();
+  drawBHProjections();
+  drawBHPaths();
+  drawCatalog();
+  drawSites();
+  drawPredictions();
+  drawIntersite();
+  drawSolarClock();
+  drawCounterLattice();
+  drawRibs();
+  drawRibsEI();
+  drawAntipodePoles();
+  drawSolstice();
+  drawMaya();
+  drawRoads();
+  drawReverb();
+  drawAntipodal();
+  drawCompass();
+}
+
+function drawMoai(){
+  moaiLines.forEach(l=>l.setMap(null));
+  moaiMarkers.forEach(m=>m.setMap(null));
+  moaiLines=[];
+  moaiMarkers=[];
+  if(!document.getElementById('cb-moai').checked) return;
+
+  const AHUS=[
+    {n:'Ahu Akivi',lat:-27.115,lng:-109.395,facing:262,desc:'7 Moai face sea (equinox sunset)',seaFacing:true,
+     target:'Giza (reverse)',targetBrg:75.7,targetDist:16161},
+    {n:'Ahu Vinapu',lat:-27.1727,lng:-109.399,facing:45,desc:'Faces Stonehenge (0.4° off)',
+     target:'Stonehenge',targetBrg:44.6,targetDist:13523},
+    {n:'Ahu Tahai',lat:-27.1167,lng:-109.3817,facing:90,desc:'Faces E toward Mohenjo-daro',
+     target:'Mohenjo-daro',targetBrg:83.9,targetDist:19769},
+    {n:'Ahu Tongariki',lat:-27.1256,lng:-109.2773,facing:330,desc:'15 Moai face NW inland',
+     target:null,targetBrg:0,targetDist:0},
+    {n:'Ahu Nau Nau',lat:-27.074,lng:-109.322,facing:195,desc:'Anakena — faces S inland',
+     target:null,targetBrg:0,targetDist:0},
+    {n:'Ahu Te Pito Kura',lat:-27.083,lng:-109.314,facing:225,desc:'Faces SW inland',
+     target:null,targetBrg:0,targetDist:0},
+  ];
+
+  for(const ahu of AHUS){
+    // Facing direction line
+    const pts=[];
+    const len=ahu.seaFacing?800:400;
+    for(let d=0;d<=len;d+=20){
+      pts.push(destPt(ahu.lat,ahu.lng,ahu.facing,d));
+    }
+    const col=ahu.seaFacing?'#FF4444':'#44DDFF';
+    const line=new google.maps.Polyline({
+      path:pts, map:map, strokeColor:col, strokeOpacity:0.9, strokeWeight:2.5, clickable:false, zIndex:30,
+      icons:[{icon:{path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,fillColor:col,fillOpacity:1,strokeWeight:1,strokeColor:'#fff',scale:4},offset:'100%'}]
+    });
+    moaiLines.push(line);
+
+    // Reverse bearing line (what the backs point to)
+    const rev=(ahu.facing+180)%360;
+    const revPts=[];
+    for(let d=0;d<=300;d+=20){
+      revPts.push(destPt(ahu.lat,ahu.lng,rev,d));
+    }
+    const revLine=new google.maps.Polyline({
+      path:revPts, map:map, strokeColor:col, strokeOpacity:0.3, strokeWeight:1.5, clickable:false, zIndex:29,
+      icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.4,scale:1,strokeColor:col},offset:'0',repeat:'6px'}]
+    });
+    moaiLines.push(revLine);
+
+    // If this ahu has a target, draw the full bearing line to it
+    if(ahu.target){
+      const farPts=[];
+      const farDist=ahu.seaFacing?20000:18000;
+      for(let d=0;d<=farDist;d+=400){
+        farPts.push(destPt(ahu.lat,ahu.lng,ahu.facing,d));
+      }
+      const farLine=new google.maps.Polyline({
+        path:farPts, map:map, strokeColor:col, strokeOpacity:0.2, strokeWeight:1.2, clickable:false, zIndex:28,
+        icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.3,scale:1,strokeColor:col},offset:'0',repeat:'10px'}]
+      });
+      moaiLines.push(farLine);
+    }
+
+    // Ahu marker
+    const lb=nearestBrg(ahu.facing);
+    const fb=ahu.targetDist>0?bestFib(ahu.targetDist):{match:'—',err:0};
+    const mk=new google.maps.Marker({
+      position:{lat:ahu.lat,lng:ahu.lng}, map:map, zIndex:35,
+      icon:{
+        path:'M -6,-8 L 0,-12 L 6,-8 L 6,4 L 3,8 L -3,8 L -6,4 Z',
+        fillColor:ahu.seaFacing?'#FF4444':'#44DDFF', fillOpacity:0.9,
+        strokeColor:'#ffffff', strokeWeight:1.5,
+        scale:1.8, anchor:new google.maps.Point(0,0)
+      },
+      title:ahu.n
+    });
+    mk.addListener('click',function(){
+      let html=
+        '<div style="margin-bottom:4px"><span class="val" style="color:'+(ahu.seaFacing?'#FF4444':'#44DDFF')+';font-size:12px">\u{1F5FF} '+ahu.n+'</span></div>'+
+        '<div><span class="label">Facing:</span> <span class="val">'+ahu.facing+'°</span> — '+ahu.desc+'</div>'+
+        '<div><span class="label">Lattice bearing:</span> <span class="'+(lb.err<=2?'good':'val')+'">'+lb.line+' ('+lb.err.toFixed(1)+'°)</span></div>';
+      if(ahu.target){
+        html+='<div style="margin-top:6px"><span class="label">Target:</span> <span class="val">'+ahu.target+'</span></div>'+
+          '<div><span class="label">Distance:</span> <span class="val">'+ahu.targetDist.toFixed(0)+' km</span></div>'+
+          '<div><span class="label">Fibonacci:</span> <span class="'+(fb.err<=7?'good':'warn')+'">'+fb.match+' ('+fb.err.toFixed(1)+'%)</span></div>';
+      }
+      if(ahu.seaFacing){
+        html+='<div style="margin-top:6px;font-size:9px;color:#FF4444">The ONLY 7 Moai facing the sea</div>'+
+          '<div style="font-size:9px;color:#FF4444">Aligned to equinox sunset along G15</div>'+
+          '<div style="font-size:9px;color:#FF4444">Backs point 82° → bearing S10 (1.8°) toward Giza</div>';
+      }
+      document.getElementById('click-info').innerHTML=html;
+    });
+    moaiMarkers.push(mk);
+  }
+
+  // Draw Giza connection line (G15 bearing)
+  const gizaPts=[];
+  const gizaBrg=bear(-27.115,-109.395,GIZA.lat,GIZA.lng);
+  for(let d=0;d<=20200;d+=400){
+    gizaPts.push(destPt(-27.115,-109.395,gizaBrg,d));
+  }
+  const gizaLine=new google.maps.Polyline({
+    path:gizaPts, map:map, strokeColor:'#FF4444', strokeOpacity:0.15, strokeWeight:1.5, clickable:true, zIndex:27,
+    icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.25,scale:1.2,strokeColor:'#FF4444'},offset:'0',repeat:'12px'}]
+  });
+  gizaLine.addListener('click',function(){
+    document.getElementById('click-info').innerHTML=
+      '<div style="margin-bottom:4px"><span class="val" style="color:#FF4444;font-size:12px">Easter Island → Giza</span></div>'+
+      '<div><span class="label">Bearing:</span> <span class="val">75.7°</span> → <span class="good">G11 (3.1°)</span></div>'+
+      '<div><span class="label">Reverse:</span> <span class="val">264.8°</span> → <span class="good">G15 (2.2°)</span></div>'+
+      '<div><span class="label">Distance:</span> <span class="val">16,161 km</span></div>'+
+      '<div><span class="label">Fibonacci:</span> <span class="good">k=26 × F(14) = 15,860 (1.9%)</span></div>'+
+      '<div style="margin-top:6px;font-size:9px;color:#FF4444">Ahu Akivi 7 face 262° (G15) — the Giza bearing reversed</div>';
+  });
+  moaiLines.push(gizaLine);
+
+  // Vinapu → Stonehenge connection
+  const shBrg=44.6;
+  const shPts=[];
+  for(let d=0;d<=14000;d+=400){
+    shPts.push(destPt(-27.1727,-109.399,shBrg,d));
+  }
+  const shLine=new google.maps.Polyline({
+    path:shPts, map:map, strokeColor:'#44DDFF', strokeOpacity:0.15, strokeWeight:1.2, clickable:true, zIndex:26,
+    icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.2,scale:1,strokeColor:'#44DDFF'},offset:'0',repeat:'10px'}]
+  });
+  shLine.addListener('click',function(){
+    document.getElementById('click-info').innerHTML=
+      '<div style="margin-bottom:4px"><span class="val" style="color:#44DDFF;font-size:12px">Ahu Vinapu → Stonehenge</span></div>'+
+      '<div><span class="label">Bearing:</span> <span class="val">44.6°</span> → <span class="good">S15 (off 0.4°)</span></div>'+
+      '<div><span class="label">Distance:</span> <span class="val">13,523 km</span></div>'+
+      '<div><span class="label">Fibonacci:</span> <span class="good">k=1612 × F(5) (4.9%)</span></div>'+
+      '<div style="margin-top:6px;font-size:9px;color:#44DDFF">k=1612 is the black hole exclusive class</div>';
+  });
+  moaiLines.push(shLine);
+}
+
+function drawEcliptic(){
+  eclipticLines.forEach(l=>l.setMap(null));
+  eclipticMarkers.forEach(m=>m.setMap(null));
+  eclipticLines=[];
+  eclipticMarkers=[];
+  if(!document.getElementById('cb-ecliptic').checked) return;
+
+  const EPS=23.44;
+  const epsRad=EPS*Math.PI/180;
+
+  // Ecliptic great circle anchored with ascending node at Giza longitude
+  const ecPts=[];
+  for(let t=0;t<=360;t+=0.5){
+    const tRad=t*Math.PI/180;
+    const lat=Math.asin(Math.sin(epsRad)*Math.sin(tRad))*180/Math.PI;
+    let lng=Math.atan2(Math.cos(epsRad)*Math.sin(tRad),Math.cos(tRad))*180/Math.PI+GIZA.lng;
+    if(lng>180) lng-=360;
+    if(lng<-180) lng+=360;
+    ecPts.push({lat,lng});
+  }
+
+  // Split at antimeridian to avoid cross-map lines
+  const segments=[];
+  let seg=[ecPts[0]];
+  for(let i=1;i<ecPts.length;i++){
+    if(Math.abs(ecPts[i].lng-ecPts[i-1].lng)>180){
+      segments.push(seg);
+      seg=[];
+    }
+    seg.push(ecPts[i]);
+  }
+  segments.push(seg);
+
+  // Draw glow underlay
+  for(const s of segments){
+    const glow=new google.maps.Polyline({
+      path:s, map:map, strokeColor:'#FF6600', strokeOpacity:0.12, strokeWeight:10, clickable:false, zIndex:3
+    });
+    eclipticLines.push(glow);
+  }
+
+  // Draw main ecliptic line
+  for(const s of segments){
+    const line=new google.maps.Polyline({
+      path:s, map:map, strokeColor:'#FFD700', strokeOpacity:0.75, strokeWeight:2.5, clickable:true, zIndex:4,
+      icons:[{icon:{path:'M -2,0 A 2,2 0 1,1 2,0 A 2,2 0 1,1 -2,0',fillColor:'#FFD700',fillOpacity:0.9,strokeWeight:0,scale:1.2},offset:'0',repeat:'60px'}]
+    });
+    line.addListener('click',function(e){
+      const clat=e.latLng.lat(), clng=e.latLng.lng();
+      const cd=hav(GIZA.lat,GIZA.lng,clat,clng);
+      const cb=bear(GIZA.lat,GIZA.lng,clat,clng);
+      const lb=nearestBrg(cb);
+      const fb=bestFib(cd);
+      document.getElementById('click-info').innerHTML=
+        '<div style="margin-bottom:4px"><span class="val" style="color:#FFD700;font-size:12px">Solar Ecliptic</span></div>'+
+        '<div><span class="label">Lat:</span> <span class="val">'+clat.toFixed(2)+'°</span></div>'+
+        '<div><span class="label">Dist from Giza:</span> <span class="val">'+cd.toFixed(0)+' km</span></div>'+
+        '<div><span class="label">Bearing:</span> <span class="'+(lb.err<=2?'good':'val')+'">'+lb.line+' ('+lb.err.toFixed(1)+'°)</span></div>'+
+        '<div><span class="label">Fibonacci:</span> <span class="'+(fb.err<=7?'good':'warn')+'">'+fb.match+' ('+fb.err.toFixed(1)+'%)</span></div>';
+    });
+    eclipticLines.push(line);
+  }
+
+  // Tropic of Cancer
+  const tropCPts=[];
+  for(let lng=-180;lng<=180;lng+=2) tropCPts.push({lat:EPS,lng});
+  const tropC=new google.maps.Polyline({
+    path:tropCPts, map:map, strokeColor:'#FFD700', strokeOpacity:0.15, strokeWeight:0.8, clickable:false, zIndex:2,
+    icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.25,scale:1,strokeColor:'#FFD700'},offset:'0',repeat:'6px'}]
+  });
+  eclipticLines.push(tropC);
+
+  // Tropic of Capricorn
+  const tropSPts=[];
+  for(let lng=-180;lng<=180;lng+=2) tropSPts.push({lat:-EPS,lng});
+  const tropS=new google.maps.Polyline({
+    path:tropSPts, map:map, strokeColor:'#FFD700', strokeOpacity:0.15, strokeWeight:0.8, clickable:false, zIndex:2,
+    icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.25,scale:1,strokeColor:'#FFD700'},offset:'0',repeat:'6px'}]
+  });
+  eclipticLines.push(tropS);
+
+  // Key points: solstices and equinoxes
+  const keyPts=[
+    {t:0,   label:'Vernal Equinox',  sym:'Spring ↑'},
+    {t:90,  label:'Summer Solstice', sym:'☀ Max N'},
+    {t:180, label:'Autumnal Equinox',sym:'Fall ↓'},
+    {t:270, label:'Winter Solstice', sym:'☀ Max S'},
+  ];
+  for(const kp of keyPts){
+    const tRad=kp.t*Math.PI/180;
+    const lat=Math.asin(Math.sin(epsRad)*Math.sin(tRad))*180/Math.PI;
+    let lng=Math.atan2(Math.cos(epsRad)*Math.sin(tRad),Math.cos(tRad))*180/Math.PI+GIZA.lng;
+    if(lng>180) lng-=360;
+    if(lng<-180) lng+=360;
+
+    const d=hav(GIZA.lat,GIZA.lng,lat,lng);
+    const b=bear(GIZA.lat,GIZA.lng,lat,lng);
+    const lb=nearestBrg(b);
+    const fb=bestFib(d);
+
+    const isSolstice=kp.t===90||kp.t===270;
+    const m=new google.maps.Marker({
+      position:{lat,lng}, map:map,
+      icon:{
+        path: isSolstice
+          ? 'M 0,-10 L 3,-3 L 10,-3 L 5,2 L 7,10 L 0,6 L -7,10 L -5,2 L -10,-3 L -3,-3 Z'
+          : google.maps.SymbolPath.CIRCLE,
+        fillColor:'#FFD700', fillOpacity:0.9, strokeColor:'#FF6600', strokeWeight:1.5,
+        scale: isSolstice ? 1.6 : 8, anchor: isSolstice ? new google.maps.Point(0,0) : undefined
+      },
+      title: kp.label, zIndex:25
+    });
+    m.addListener('click',function(){
+      document.getElementById('click-info').innerHTML=
+        '<div style="margin-bottom:4px"><span class="val" style="color:#FFD700;font-size:12px">'+kp.sym+' '+kp.label+'</span></div>'+
+        '<div><span class="label">Position:</span> <span class="val">'+lat.toFixed(2)+'°, '+lng.toFixed(2)+'°</span></div>'+
+        '<div><span class="label">Dist from Giza:</span> <span class="val">'+d.toFixed(0)+' km</span></div>'+
+        '<div><span class="label">Bearing:</span> <span class="'+(lb.err<=2?'good':'val')+'">'+lb.line+' ('+lb.err.toFixed(1)+'°)</span></div>'+
+        '<div><span class="label">Fibonacci:</span> <span class="'+(fb.err<=7?'good':'warn')+'">'+fb.match+' ('+fb.err.toFixed(1)+'%)</span></div>'+
+        '<div style="margin-top:6px;font-size:9px;color:#FFD700">Obliquity: 23.44° — Sun\'s max declination</div>';
+    });
+    eclipticMarkers.push(m);
+  }
+
+  // Compute ecliptic × lattice bearing intersections
+  // Sample ecliptic densely, find where bearing from Giza matches each lattice line
+  const ecSamples=[];
+  for(let t=0;t<360;t+=0.25){
+    const tRad=t*Math.PI/180;
+    const lat=Math.asin(Math.sin(epsRad)*Math.sin(tRad))*180/Math.PI;
+    let lng=Math.atan2(Math.cos(epsRad)*Math.sin(tRad),Math.cos(tRad))*180/Math.PI+GIZA.lng;
+    if(lng>180) lng-=360;
+    if(lng<-180) lng+=360;
+    const d=hav(GIZA.lat,GIZA.lng,lat,lng);
+    const b=bear(GIZA.lat,GIZA.lng,lat,lng);
+    ecSamples.push({lat,lng,d,b,t});
+  }
+
+  const hits=[];
+  const usedBrgs=new Set();
+  for(const s of ecSamples){
+    if(s.d<200) continue;
+    const lb=nearestBrg(s.b);
+    if(lb.err<=1.5 && !usedBrgs.has(lb.line)){
+      const fb=bestFib(s.d);
+      if(fb.err<=7){
+        usedBrgs.add(lb.line);
+        hits.push({...s, bearing:lb, fib:fb});
+      }
+    }
+  }
+
+  // Mark Fibonacci-matching intersection points
+  for(const h of hits){
+    const im=new google.maps.Marker({
+      position:{lat:h.lat,lng:h.lng}, map:map,
+      icon:{
+        path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,
+        fillColor:'#FFD700', fillOpacity:0.7, strokeColor:'#FF6600', strokeWeight:1,
+        scale:4, rotation:h.b
+      },
+      title: h.bearing.line+' × Ecliptic: '+h.fib.match, zIndex:18
+    });
+    im.addListener('click',function(){
+      document.getElementById('click-info').innerHTML=
+        '<div style="margin-bottom:4px"><span class="val" style="color:#FFD700;font-size:11px">Ecliptic × Lattice</span></div>'+
+        '<div><span class="label">Bearing:</span> <span class="good">'+h.bearing.line+' ('+h.bearing.err.toFixed(1)+'°)</span></div>'+
+        '<div><span class="label">Distance:</span> <span class="val">'+h.d.toFixed(0)+' km</span></div>'+
+        '<div><span class="label">Fibonacci:</span> <span class="good">'+h.fib.match+' ('+h.fib.err.toFixed(1)+'%)</span></div>'+
+        '<div><span class="label">Ecliptic λ:</span> <span class="val">'+h.t.toFixed(1)+'°</span></div>'+
+        '<div style="margin-top:6px;font-size:9px;color:#FFD700">'+hits.length+' bearing×ecliptic intersections hit Fibonacci</div>';
+    });
+    eclipticMarkers.push(im);
+  }
+}
+
+function drawGraticule(){
+  graticuleLines.forEach(l=>l.setMap(null));
+  graticuleLabels.forEach(l=>l.setMap(null));
+  graticuleLines=[];
+  graticuleLabels=[];
+  if(!document.getElementById('cb-graticule').checked) return;
+  const z=map.getZoom();
+  const step = z>=6 ? 5 : z>=4 ? 10 : 30;
+  const col='#ffffff';
+  const op=0.08;
+  const wt=0.5;
+  for(let lat=-90+step;lat<90;lat+=step){
+    const pts=[];
+    for(let lng=-180;lng<=180;lng+=2) pts.push({lat:lat,lng:lng});
+    const line=new google.maps.Polyline({
+      path:pts, map:map, strokeColor:col, strokeOpacity:lat===0?0.2:op, strokeWeight:lat===0?1:wt, clickable:false
+    });
+    graticuleLines.push(line);
+    if(lat%30===0||z>=4){
+      const lbl=new google.maps.Marker({
+        position:{lat:lat,lng:-178},
+        map:map,
+        icon:{path:google.maps.SymbolPath.CIRCLE,scale:0},
+        label:{text:lat+'°',color:'#888888',fontSize:'9px',fontWeight:'400'},
+        clickable:false
+      });
+      graticuleLabels.push(lbl);
+    }
+  }
+  for(let lng=-180;lng<=180;lng+=step){
+    const pts=[];
+    for(let lat=-90;lat<=90;lat+=2) pts.push({lat:lat,lng:lng});
+    const line=new google.maps.Polyline({
+      path:pts, map:map, strokeColor:col, strokeOpacity:lng===0?0.2:op, strokeWeight:lng===0?1:wt, clickable:false
+    });
+    graticuleLines.push(line);
+    if(lng%30===0||z>=4){
+      const lbl=new google.maps.Marker({
+        position:{lat:-85,lng:lng},
+        map:map,
+        icon:{path:google.maps.SymbolPath.CIRCLE,scale:0},
+        label:{text:lng+'°',color:'#888888',fontSize:'9px',fontWeight:'400'},
+        clickable:false
+      });
+      graticuleLabels.push(lbl);
+    }
+  }
+}
+
+
+// === SOLAR CLOCK (Easter Island) ===
+function drawSolarClock(){
+  solarLines.forEach(l=>l.setMap(null));
+  solarMarkers.forEach(m=>m.setMap(null));
+  solarGizaLines.forEach(l=>l.setMap(null));
+  solarLines=[];solarMarkers=[];solarGizaLines=[];
+  if(solarAnimFrame){cancelAnimationFrame(solarAnimFrame);solarAnimFrame=null;}
+
+  const hud=document.getElementById('solar-hud');
+  if(!document.getElementById('cb-solar').checked){hud.style.display='none';return;}
+  hud.style.display='block';
+
+  const EI={lat:-27.1127,lng:-109.3497};
+  const PHI_RAD=-27.1*Math.PI/180;
+  const COS_PHI=Math.cos(PHI_RAD);
+  const SIN_PHI=Math.sin(PHI_RAD);
+  const GOLDEN=137.508;
+
+  // G-bearings
+  const GB={};
+  for(let i=1;i<=22;i++) GB['G'+i]=((GOLDEN*i)%360);
+
+  // Solar position math
+  function solarDec(doy){return 23.44*Math.sin((360*(doy-80)/365.25)*Math.PI/180);}
+  function sunriseAz(dec){
+    const r=Math.sin(dec*Math.PI/180)/COS_PHI;
+    if(Math.abs(r)>1)return null;
+    return Math.acos(r)*180/Math.PI;
+  }
+  function sunPos(ha,dec){
+    const h=ha*Math.PI/180, d=dec*Math.PI/180;
+    const sinAlt=SIN_PHI*Math.sin(d)+COS_PHI*Math.cos(d)*Math.cos(h);
+    const alt=Math.asin(Math.max(-1,Math.min(1,sinAlt)));
+    let cosAz=(Math.sin(d)-SIN_PHI*Math.sin(alt))/(COS_PHI*Math.cos(alt));
+    cosAz=Math.max(-1,Math.min(1,cosAz));
+    let az=Math.acos(cosAz)*180/Math.PI;
+    if(ha>0) az=360-az;
+    return{alt:alt*180/Math.PI, az};
+  }
+
+  // Today's date
+  const now=new Date();
+  const jan1=new Date(now.getFullYear(),0,0);
+  const doy=Math.floor((now-jan1)/86400000);
+  const dec=solarDec(doy);
+  const rise=sunriseAz(dec);
+  if(!rise)return;
+  const sset=360-rise;
+  const haRise=-Math.acos(-Math.tan(PHI_RAD)*Math.tan(dec*Math.PI/180))*180/Math.PI;
+  const haSet=-haRise;
+  const daylightHrs=(haSet-haRise)/15;
+
+  // 3-day cycle
+  const cycleNum=Math.floor((doy-1)/3)+1;
+  const m11=Math.floor((cycleNum-1)/11)+1;
+  const d11=(cycleNum-1)%11+1;
+
+  // Find G-bearing crossings during today's arc
+  const crossings=[];
+  let prevG=null;
+  const steps=Math.floor(daylightHrs*60);
+  for(let min=0;min<=steps;min++){
+    const t=haRise+(haSet-haRise)*min/steps;
+    const sp=sunPos(t,dec);
+    if(sp.alt<-0.5)continue;
+    let bestG=null,bestErr=999;
+    for(const[n,az] of Object.entries(GB)){
+      let e=Math.abs(sp.az-az);if(e>180)e=360-e;
+      if(e<bestErr){bestErr=e;bestG=n;}
+    }
+    if(bestG!==prevG && bestErr<1.0){
+      const solarHr=12+t/15;
+      const hh=Math.floor(solarHr);
+      const mm=Math.floor((solarHr-hh)*60);
+      const timeStr=(hh<10?'0':'')+hh+':'+(mm<10?'0':'')+mm;
+      crossings.push({time:timeStr,hr:solarHr,bearing:bestG,az:GB[bestG],err:bestErr});
+    }
+    if(bestErr<1.0)prevG=bestG;
+  }
+
+  // Determine which crossing is "active" based on current time
+  const nowHr=now.getHours()+now.getMinutes()/60;
+  // Approximate: Easter Island is UTC-6 (EAST), but we just use relative position
+  // Use fractional position through the day
+  const dayFrac=(nowHr-6)/daylightHrs; // rough sunrise at 6am local
+  const activeIdx=Math.max(0,Math.min(crossings.length-1,Math.floor(dayFrac*crossings.length)));
+
+  // Site proximity data (precomputed from our analysis)
+  const SITE_HITS_EI={
+    'Rise':['Knossos 45km','Baalbek 69km','Sidon 125km'],
+    'G3':[], 'G16':['Newgrange 116km'],
+    'G8':['Serpent Mound 107km'], 'G21':[],
+    'G13':[], 'G5':[], 'G18':[],
+    'G10':['Xi\'an 187km'], 'Set':['Xi\'an 51km']
+  };
+  const SITE_HITS_GIZA={
+    'G3':[], 'G16':['Göbekli Tepe 0.4°'],
+    'G8':['Derinkuyu 1.6°'], 'G21':[],
+    'G13':[], 'G5':[],
+    'G18':['Serpent Mound 0.1°','Poverty Point 0.8°','Carnac 1.5°'],
+    'G10':[]
+  };
+  const STAR_MAP={
+    'G3':'Castor','G11':'Aldebaran','G18':'Vega','G19':"Orion's Belt",
+    'G14':'Fomalhaut','G15':'Rigel/Giza','G2':'Procyon','G4':'α Centauri'
+  };
+
+  // Color palette: morning warm → afternoon cool
+  const morningCol='#FF8844';  // warm orange
+  const noonCol='#FFD700';     // gold
+  const afternoonCol='#44AAFF'; // cool blue
+  function crossingColor(idx,total){
+    const t=idx/(total-1||1);
+    if(t<0.5){
+      const f=t*2;
+      return lerpColor(morningCol,noonCol,f);
+    }else{
+      const f=(t-0.5)*2;
+      return lerpColor(noonCol,afternoonCol,f);
+    }
+  }
+  function lerpColor(c1,c2,t){
+    const r1=parseInt(c1.slice(1,3),16),g1=parseInt(c1.slice(3,5),16),b1=parseInt(c1.slice(5,7),16);
+    const r2=parseInt(c2.slice(1,3),16),g2=parseInt(c2.slice(3,5),16),b2=parseInt(c2.slice(5,7),16);
+    const r=Math.round(r1+(r2-r1)*t),g=Math.round(g1+(g2-g1)*t),b=Math.round(b1+(b2-b1)*t);
+    return '#'+(r<16?'0':'')+r.toString(16)+(g<16?'0':'')+g.toString(16)+(b<16?'0':'')+b.toString(16);
+  }
+
+  // Draw Easter Island marker
+  const eiMk=new google.maps.Marker({
+    position:EI, map:map, zIndex:50,
+    icon:{
+      path:google.maps.SymbolPath.CIRCLE,
+      scale:7, fillColor:'#FFD700', fillOpacity:0.9,
+      strokeColor:'#FF8844', strokeWeight:2
+    },
+    title:'Easter Island (Solar Observer)'
+  });
+  solarMarkers.push(eiMk);
+
+  // Draw great circle for each crossing
+  crossings.forEach((c,idx)=>{
+    const col=crossingColor(idx,crossings.length);
+    const isActive=idx===activeIdx;
+    const opacity=isActive?0.85:0.35;
+    const weight=isActive?3:1.5;
+
+    // FROM EASTER ISLAND
+    const pts=[];
+    for(let d=0;d<=20000;d+=300){
+      pts.push(destPt(EI.lat,EI.lng,c.az,d));
+    }
+    // Split at antimeridian
+    const segs=splitAtAntimeridian(pts);
+    for(const seg of segs){
+      const line=new google.maps.Polyline({
+        path:seg, map:map, strokeColor:col, strokeOpacity:opacity, strokeWeight:weight,
+        clickable:true, zIndex:isActive?42:40
+      });
+      if(isActive){
+        line.setOptions({
+          icons:[{icon:{path:google.maps.SymbolPath.CIRCLE,fillColor:col,fillOpacity:1,strokeWeight:0,scale:2.5},offset:'0',repeat:'40px'}]
+        });
+      }
+      line.addListener('click',function(){
+        const eiSites=(SITE_HITS_EI[c.bearing]||[]).join(', ')||'open ocean';
+        const gzSites=(SITE_HITS_GIZA[c.bearing]||[]).join(', ')||'none mapped';
+        const star=STAR_MAP[c.bearing]||'—';
+        document.getElementById('click-info').innerHTML=
+          '<div style="margin-bottom:4px"><span class="val" style="color:'+col+';font-size:12px">☀ Solar Clock — '+c.bearing+' ('+c.az.toFixed(1)+'°)</span></div>'+
+          '<div><span class="label">Time:</span> <span class="val">'+c.time+'</span> (Easter Island solar time)</div>'+
+          '<div><span class="label">Star bearing:</span> <span class="val">'+star+'</span></div>'+
+          '<div style="margin-top:6px"><span class="label">From Easter Island:</span> <span class="val">'+eiSites+'</span></div>'+
+          '<div><span class="label">From Giza (same angle):</span> <span class="val">'+gzSites+'</span></div>';
+      });
+      solarLines.push(line);
+    }
+
+    // FROM GIZA (dashed, same color) — pencil arc: departs Giza at the solar
+    // azimuth and terminates at Easter Island
+    const gzPts=pencilArc(GIZA,{lat:-27.1127,lng:-109.3497},c.az)||[];
+    const gzSegs=splitAtAntimeridian(gzPts);
+    for(const seg of gzSegs){
+      const gzLine=new google.maps.Polyline({
+        path:seg, map:map, strokeColor:col, strokeOpacity:opacity*0.5, strokeWeight:isActive?2:1,
+        clickable:false, zIndex:isActive?41:39,
+        icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:opacity*0.6,scale:1,strokeColor:col},offset:'0',repeat:'8px'}]
+      });
+      solarGizaLines.push(gzLine);
+    }
+
+    // Mark sites near this bearing from EI
+    const eiHits=SITE_HITS_EI[c.bearing]||[];
+    // We already have SITES array — find the ones that match
+    const hitNames=eiHits.map(h=>h.split(' ')[0]);
+    for(const s of SITES){
+      if(hitNames.some(h=>s.n.includes(h))){
+        const mk=new google.maps.Marker({
+          position:{lat:s.lat,lng:s.lng}, map:map, zIndex:45,
+          icon:{
+            path:google.maps.SymbolPath.DIAMOND,
+            scale:6, fillColor:col, fillOpacity:isActive?0.9:0.4,
+            strokeColor:'#fff', strokeWeight:1
+          },
+          title:s.n+' — on '+c.bearing+' from Easter Island'
+        });
+        solarMarkers.push(mk);
+      }
+    }
+  });
+
+  // Also draw sunrise and sunset bearing lines
+  [{az:rise,label:'Sunrise',col:'#FF6633'},{az:sset,label:'Sunset',col:'#4466CC'}].forEach(h=>{
+    const pts=[];
+    for(let d=0;d<=20000;d+=300){
+      pts.push(destPt(EI.lat,EI.lng,h.az,d));
+    }
+    const segs=splitAtAntimeridian(pts);
+    for(const seg of segs){
+      const line=new google.maps.Polyline({
+        path:seg, map:map, strokeColor:h.col, strokeOpacity:0.5, strokeWeight:2.5,
+        clickable:true, zIndex:43,
+        icons:[{icon:{path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,fillColor:h.col,fillOpacity:1,strokeWeight:1,strokeColor:'#fff',scale:3},offset:'100%'}]
+      });
+      line.addListener('click',function(){
+        const sites=h.label==='Sunrise'?'Knossos 45km, Baalbek 69km, Sidon 125km':'Xi\'an 51km';
+        document.getElementById('click-info').innerHTML=
+          '<div style="margin-bottom:4px"><span class="val" style="color:'+h.col+';font-size:12px">☀ '+h.label+' — '+h.az.toFixed(1)+'°</span></div>'+
+          '<div><span class="label">Sites along line of sight:</span> <span class="val">'+sites+'</span></div>';
+      });
+      solarLines.push(line);
+    }
+  });
+
+  // Build HUD
+  const dateStr=now.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+  let hudHtml='<div class="sh-title">☀ Solar Clock — '+dateStr+'</div>';
+  hudHtml+='<div class="sh-cycle">Cycle '+cycleNum+'/121 · 11×11: M'+m11+'C'+d11+' · δ='+dec.toFixed(1)+'°</div>';
+
+  // Sunrise row
+  hudHtml+='<div class="sh-row"><span class="sh-time" style="color:#FF6633">rise</span>';
+  hudHtml+='<span class="sh-brg" style="color:#FF6633">'+rise.toFixed(1)+'°</span>';
+  hudHtml+='<span class="sh-site">Knossos · Baalbek</span></div>';
+
+  // Crossing rows
+  crossings.forEach((c,idx)=>{
+    const col=crossingColor(idx,crossings.length);
+    const isActive=idx===activeIdx;
+    const star=STAR_MAP[c.bearing]?'<span class="sh-star">★'+STAR_MAP[c.bearing]+'</span>':'';
+    const gzSite=(SITE_HITS_GIZA[c.bearing]||[]).length>0?
+      '<span class="sh-site">'+(SITE_HITS_GIZA[c.bearing]||[])[0]+'</span>':'';
+    hudHtml+='<div class="sh-row'+(isActive?' active':'')+'">';
+    hudHtml+='<span class="sh-time">'+c.time+'</span>';
+    hudHtml+='<span class="sh-brg" style="color:'+col+'">'+c.bearing+'</span>';
+    hudHtml+=star+gzSite;
+    hudHtml+='</div>';
+  });
+
+  // Sunset row
+  hudHtml+='<div class="sh-row"><span class="sh-time" style="color:#4466CC">set</span>';
+  hudHtml+='<span class="sh-brg" style="color:#4466CC">'+sset.toFixed(1)+'°</span>';
+  hudHtml+='<span class="sh-site">Xi\'an</span></div>';
+
+  // Legend
+  hudHtml+='<div class="solar-legend">';
+  hudHtml+='<span><span class="dot" style="background:#FF6633"></span>EI solid</span>';
+  hudHtml+='<span><span class="dot" style="background:#FFD700"></span>Giza dashed</span>';
+  hudHtml+='</div>';
+
+  hud.innerHTML=hudHtml;
+}
+
+function splitAtAntimeridian(pts){
+  const segs=[];
+  let seg=[pts[0]];
+  for(let i=1;i<pts.length;i++){
+    if(Math.abs(pts[i].lng-pts[i-1].lng)>180){
+      segs.push(seg);
+      seg=[];
+    }
+    seg.push(pts[i]);
+  }
+  if(seg.length>1)segs.push(seg);
+  return segs;
+}
+
+function drawShells(){
+  shellCircles.forEach(c=>c.setMap(null));
+  shellCircles=[];
+  if(!document.getElementById('cb-shells').checked) return;
+  for(const[sn,o] of Object.entries(ORBITS)){
+    if(o.km>17000) continue; // wraps antipode -> phantom ring in empty ocean
+    const circle = new google.maps.Circle({
+      center: GIZA,
+      radius: o.km * 1000,
+      map: map,
+      fillOpacity: 0,
+      strokeColor: o.color,
+      strokeOpacity: 0.4,
+      strokeWeight: 1.5,
+      clickable: false
+    });
+    shellCircles.push(circle);
+  }
+}
+
+function drawPhiShells(){
+  phiCircles.forEach(c=>c.setMap(null));
+  phiCircles=[];
+  if(!document.getElementById('cb-phi').checked) return;
+  for(const[pn,pkm] of Object.entries(PHI_SHELLS)){
+    if(pkm>17000||pkm<100) continue;
+    const circle = new google.maps.Circle({
+      center: GIZA,
+      radius: pkm * 1000,
+      map: map,
+      fillOpacity: 0,
+      strokeColor: '#ff9944',
+      strokeOpacity: 0.35,
+      strokeWeight: 1,
+      clickable: false
+    });
+    phiCircles.push(circle);
+  }
+}
+
+function drawBearings(){
+  bearingLines.forEach(l=>l.setMap(null));
+  bearingLines=[];
+  if(!document.getElementById('cb-bearings').checked) return;
+  for(const b of brgs){
+    const pts=[];
+    for(let d=0;d<=16177;d+=400){
+      const p=destPt(GIZA.lat,GIZA.lng,b,d);
+      pts.push(p);
+    }
+    const line = new google.maps.Polyline({
+      path: pts,
+      map: map,
+      strokeColor: '#ff994420',
+      strokeWeight: 0.7,
+      clickable: false
+    });
+    bearingLines.push(line);
+  }
+}
+
+function drawCorridors(){
+  corridorLines.forEach(l=>l.setMap(null));
+  corridorLines=[];
+  if(!document.getElementById('cb-corridors').checked) return;
+  const corridors=[
+    {brg:315.1,color:'#ff6644',label:'G18 (Mound Builder)',dash:[8,4]},
+    {brg:327.5,color:'#44cc88',label:'G5 (Pueblo)',dash:[8,4]},
+    {brg:296.7,color:'#cc88ff',label:'S9 (Maya)',dash:[8,4]},
+  ];
+  for(const c of corridors){
+    const pts=[];
+    for(let d=0;d<=16177;d+=100){
+      pts.push(destPt(GIZA.lat,GIZA.lng,c.brg,d));
+    }
+    const line = new google.maps.Polyline({
+      path: pts,
+      map: map,
+      strokeColor: c.color,
+      strokeOpacity: 0.6,
+      strokeWeight: 2,
+      clickable: false,
+      icons: [{icon:{path:'M 0,-1 0,1',strokeOpacity:0.8,scale:2},offset:'0',repeat:'20px'}]
+    });
+    corridorLines.push(line);
+  }
+}
+
+const SHIPPING_ROUTES = [
+  {n:'Gibraltar → New York',from:{lat:36.0,lng:-5.6},to:{lat:40.7,lng:-74.0},brg:'S9',err:0.6,color:'#ffdd44'},
+  {n:'Canaries → Caribbean',from:{lat:28.1,lng:-15.4},to:{lat:15.4,lng:-61.5},brg:'G15',err:0.8,color:'#ffdd44'},
+  {n:'Cadiz → Havana (Columbus)',from:{lat:36.5,lng:-6.3},to:{lat:23.1,lng:-82.4},brg:'G23',err:1.1,color:'#ffdd44'},
+  {n:'Liverpool → Boston',from:{lat:53.4,lng:-3.0},to:{lat:42.4,lng:-71.1},brg:'G23',err:2.1,color:'#ffdd44'},
+  {n:'Lisbon → Rio de Janeiro',from:{lat:38.7,lng:-9.1},to:{lat:-22.9,lng:-43.2},brg:'G12',err:3.4,color:'#ffdd44'},
+  {n:'Manila → Acapulco (galleon)',from:{lat:14.6,lng:121.0},to:{lat:16.9,lng:-99.9},brg:'G3',err:1.0,color:'#88ddff'},
+  {n:'Tokyo → San Francisco',from:{lat:35.7,lng:139.7},to:{lat:37.8,lng:-122.4},brg:'G3',err:1.9,color:'#88ddff'},
+  {n:'Raiatea → Easter Island',from:{lat:-16.8,lng:-151.4},to:{lat:-27.1,lng:-109.3},brg:'G27',err:0.4,color:'#44ffaa'},
+  {n:'Raiatea → New Zealand',from:{lat:-16.8,lng:-151.4},to:{lat:-36.8,lng:174.8},brg:'G20',err:0.8,color:'#44ffaa'},
+  {n:'Raiatea → Hawaii',from:{lat:-16.8,lng:-151.4},to:{lat:21.3,lng:-157.8},brg:'G13',err:2.8,color:'#44ffaa'},
+  {n:'Dubai → São Paulo',from:{lat:25.3,lng:55.3},to:{lat:-23.5,lng:-46.6},brg:'G28',err:2.5,color:'#ff8866'},
+  {n:'Suez → Mumbai',from:{lat:30.0,lng:32.6},to:{lat:19.1,lng:72.9},brg:'G19',err:4.6,color:'#ff8866'},
+  {n:'Suez → Singapore',from:{lat:30.0,lng:32.6},to:{lat:1.3,lng:103.8},brg:'G19',err:5.9,color:'#ff8866'},
+];
+
+function drawShipping(){
+  shippingLines.forEach(l=>l.setMap(null));
+  shippingLines=[];
+  if(!document.getElementById('cb-shipping').checked) return;
+  for(const r of SHIPPING_ROUTES){
+    const pts=[];
+    const d=hav(r.from.lat,r.from.lng,r.to.lat,r.to.lng);
+    const b=bear(r.from.lat,r.from.lng,r.to.lat,r.to.lng);
+    for(let i=0;i<=60;i++){
+      pts.push(destPt(r.from.lat,r.from.lng,b,d*i/60));
+    }
+    const opacity = r.err <= 1.0 ? 0.8 : r.err <= 3.0 ? 0.5 : 0.3;
+    const weight = r.err <= 1.0 ? 2.5 : r.err <= 3.0 ? 1.8 : 1.2;
+    const line = new google.maps.Polyline({
+      path: pts,
+      map: map,
+      strokeColor: r.color,
+      strokeOpacity: opacity,
+      strokeWeight: weight,
+      clickable: true,
+      icons: [{icon:{path:'M -1,-1 1,0 -1,1',strokeOpacity:1,scale:2.5,strokeColor:r.color},offset:'50%'}]
+    });
+    line.addListener('click',()=>{
+      const info=document.getElementById('click-info');
+      info.innerHTML=`<div style="margin-bottom:6px"><span class="val" style="font-size:11px">${r.n}</span></div>`+
+        `<div><span class="label">Bearing:</span> <span class="val">${b.toFixed(1)}°</span></div>`+
+        `<div><span class="label">Lattice:</span> <span class="${r.err<=1?'good':r.err<=3?'val':'warn'}">${r.brg} (${r.err.toFixed(1)}° err)</span></div>`+
+        `<div><span class="label">Distance:</span> <span class="val">${d.toFixed(0)} km</span></div>`;
+    });
+    shippingLines.push(line);
+  }
+}
+
+const BH_PROJECTIONS = [
+  // Origin confirmations — BH scales back to known sites
+  {n:'M31 Andromeda',bh:'M31*',dist_ly:2.5e6,lat:31.4,lng:28.9,shell:'Mercury',shellErr:26,brg:'G18',brgErr:5.2,
+   foldKm:177,nearSite:'Giza',nearDist:177,cat:'confirm',note:'Nearest galaxy → origin'},
+  {n:'Markarian 231',bh:'Mrk 231',dist_ly:5.8e8,lat:39.6,lng:33.2,shell:'φ×Earth',shellErr:8.8,brg:'G21',brgErr:1.5,
+   foldKm:1086,nearSite:'Derinkuyu',nearDist:193,cat:'confirm',note:'580 Mly → underground city'},
+  {n:'QSO J0313-1806',bh:'J0313',dist_ly:1.3e10,lat:22.6,lng:34.2,shell:'Mars',shellErr:7.4,brg:'G9',brgErr:1.2,
+   foldKm:871,nearSite:'Abu Simbel',nearDist:266,cat:'confirm',note:'Most distant quasar → Nile'},
+  {n:'V4641 Sgr',bh:'V4641',dist_ly:2e4,lat:-28.0,lng:-110.5,shell:'Neptune',shellErr:12,brg:'G15',brgErr:4.6,
+   foldKm:16331,nearSite:'Easter Island',nearDist:450,cat:'confirm',note:'20 kly → Easter Island'},
+  // Tight shell+bearing projections — new predictions
+  {n:'GW151226 proj',bh:'GW151226',dist_ly:1.4e9,lat:-30.2,lng:-157.5,shell:'φ×Uranus',shellErr:0.1,brg:'G19',brgErr:1.5,
+   foldKm:19185,nearSite:'Taputapuatea',nearDist:1612,cat:'bhpred',note:'Grav wave → S.Pacific'},
+  {n:'Holmberg 15A proj',bh:'Holm15A',dist_ly:7e8,lat:-45.5,lng:-14.8,shell:'φ×Saturn',shellErr:0.8,brg:'G12',brgErr:0.2,
+   foldKm:9593,nearSite:'Tristan da Cunha',nearDist:1200,cat:'bhpred',note:'700 Mly → S.Atlantic'},
+  {n:'HLX-1 proj',bh:'HLX-1',dist_ly:2.9e8,lat:-34.8,lng:-147.8,shell:'φ×Uranus',shellErr:1.6,brg:'G4',brgErr:0.2,
+   foldKm:19472,nearSite:'Taputapuatea',nearDist:2028,cat:'bhpred',note:'290 Mly → antipode region'},
+  {n:'IC 1101 proj',bh:'IC1101',dist_ly:1.045e9,lat:66.8,lng:-36.2,shell:'Saturn',shellErr:1.6,brg:'S4',brgErr:2.0,
+   foldKm:5981,nearSite:'Greenland coast',nearDist:800,cat:'bhpred',note:'Largest galaxy → N.Atlantic'},
+  {n:'Omega Cen proj',bh:'ωCen',dist_ly:1.58e4,lat:-37.5,lng:-152.3,shell:'φ×Uranus',shellErr:0.2,brg:'G9',brgErr:2.5,
+   foldKm:19123,nearSite:'Taputapuatea',nearDist:2297,cat:'bhpred',note:'IMBH → S.Pacific'},
+  {n:'XTE J1752 proj',bh:'J1752',dist_ly:1.15e4,lat:-2.1,lng:-51.2,shell:'φ×Saturn',shellErr:1.4,brg:'G15',brgErr:1.7,
+   foldKm:9390,nearSite:'Amazon mouth',nearDist:600,cat:'bhpred',note:'11.5 kly → Amazon basin'},
+  {n:'GX 339-4 proj',bh:'GX339',dist_ly:2.6e4,lat:-36.9,lng:-138.7,shell:'Neptune',shellErr:1.3,brg:'G20',brgErr:2.2,
+   foldKm:18800,nearSite:'Taputapuatea',nearDist:2558,cat:'bhpred',note:'Galactic center BH → S.Pacific'},
+  {n:'3XMM J2150 proj',bh:'3XMM',dist_ly:7.4e8,lat:-26.8,lng:-69.7,shell:'Uranus',shellErr:5.0,brg:'S6',brgErr:0.6,
+   foldKm:12428,nearSite:'Atacama',nearDist:400,cat:'bhpred',note:'740 Mly → Atacama'},
+  {n:'Gaia18ajz proj',bh:'Gaia18',dist_ly:3800,lat:-1.0,lng:-69.8,shell:'Uranus',shellErr:6.2,brg:'G2',brgErr:0.4,
+   foldKm:11260,nearSite:'Ecuador/Peru',nearDist:932,cat:'bhpred',note:'3.8 kly → equatorial Andes'},
+  {n:'Cyg X-3 proj',bh:'CygX3',dist_ly:2.4e4,lat:-27.8,lng:-145.4,shell:'φ×Uranus',shellErr:2.3,brg:'S9',brgErr:2.0,
+   foldKm:19597,nearSite:'Taputapuatea',nearDist:1368,cat:'bhpred',note:'24 kly → on S9 corridor'},
+  {n:'NGC 4151 proj',bh:'N4151',dist_ly:5.15e7,lat:-27.0,lng:-150.2,shell:'φ×Uranus',shellErr:2.6,brg:'G8',brgErr:2.5,
+   foldKm:19663,nearSite:'Taputapuatea',nearDist:1142,cat:'bhpred',note:'51.5 Mly → near antipode'},
+  {n:'IC 10 X-1 proj',bh:'IC10',dist_ly:2.15e6,lat:68.9,lng:-29.5,shell:'Saturn',shellErr:2.2,brg:'S4',brgErr:1.3,
+   foldKm:5757,nearSite:'E.Greenland',nearDist:600,cat:'bhpred',note:'Local Group BH → N.Atlantic'},
+  {n:'Fornax A proj',bh:'FornA',dist_ly:6.2e7,lat:-72.9,lng:95.4,shell:'Uranus',shellErr:4.7,brg:'S8',brgErr:1.8,
+   foldKm:12401,nearSite:'Kerguelen',nearDist:900,cat:'bhpred',note:'62 Mly → S.Indian Ocean'},
+  {n:'S5 0014+81 proj',bh:'S5',dist_ly:1.21e10,lat:-4.1,lng:-146.8,shell:'Neptune',shellErr:7.7,brg:'S12',brgErr:0.1,
+   foldKm:17196,nearSite:'Taputapuatea',nearDist:1504,cat:'bhpred',note:'12.1 Bly → almost exact S12'},
+  {n:'GRS 1009-45 proj',bh:'GRS1009',dist_ly:1.72e4,lat:-6.7,lng:72.9,shell:'Saturn',shellErr:2.6,brg:'G14',brgErr:0.4,
+   foldKm:6039,nearSite:'Maldives/Chagos',nearDist:800,cat:'bhpred',note:'17.2 kly → Indian Ocean'},
+  {n:'M104 Sombrero proj',bh:'M104',dist_ly:2.935e7,lat:18.0,lng:161.5,shell:'Uranus',shellErr:5.5,brg:'G3',brgErr:1.0,
+   foldKm:12880,nearSite:'Marshall Islands',nearDist:600,cat:'bhpred',note:'29 Mly → W.Pacific'},
+];
+
+const BH_COLORS = {confirm:'#ff4466',bhpred:'#cc44ff'};
+
+function drawBHProjections(){
+  bhMarkers.forEach(m=>m.setMap(null));
+  bhLines.forEach(l=>l.setMap(null));
+  bhMarkers=[];
+  bhLines=[];
+  if(!document.getElementById('cb-bhproj').checked) return;
+  for(const bh of BH_PROJECTIONS){
+    const col = BH_COLORS[bh.cat]||'#cc44ff';
+    const opacity = bh.shellErr < 3 ? 0.9 : bh.shellErr < 7 ? 0.7 : 0.5;
+    const scale = bh.cat==='confirm' ? 3.5 : 2.8;
+    const marker = new google.maps.Marker({
+      position:{lat:bh.lat,lng:bh.lng},
+      map:map,
+      icon:{
+        path:'M 0,-10 L 7,-3 L 4,8 L 0,4 L -4,8 L -7,-3 Z',
+        fillColor:col,fillOpacity:opacity,
+        strokeColor:'#ffffff',strokeWeight:1,
+        scale:scale,anchor:new google.maps.Point(0,0)
+      },
+      title:bh.n,
+      zIndex:bh.cat==='confirm'?12:11
+    });
+    marker.addListener('click',()=>{
+      const info=document.getElementById('click-info');
+      const distStr = bh.dist_ly>=1e9?(bh.dist_ly/1e9).toFixed(1)+' Bly':
+                      bh.dist_ly>=1e6?(bh.dist_ly/1e6).toFixed(1)+' Mly':
+                      bh.dist_ly>=1e3?(bh.dist_ly/1e3).toFixed(1)+' kly':
+                      bh.dist_ly.toFixed(0)+' ly';
+      info.innerHTML=
+        '<div style="margin-bottom:6px"><span class="val" style="color:'+col+';font-size:12px">★ '+bh.n+'</span></div>'+
+        '<div><span class="label">Source BH:</span> <span class="val">'+bh.bh+'</span> ('+distStr+')</div>'+
+        '<div><span class="label">Folded to:</span> <span class="val">'+bh.foldKm.toFixed(0)+' km</span></div>'+
+        '<div><span class="label">Shell:</span> <span class="'+(bh.shellErr<5?'good':'val')+'">'+bh.shell+' ('+bh.shellErr.toFixed(1)+'% err)</span></div>'+
+        '<div><span class="label">Bearing:</span> <span class="'+(bh.brgErr<2?'good':'val')+'">'+bh.brg+' ('+bh.brgErr.toFixed(1)+'° err)</span></div>'+
+        '<div style="margin-top:4px;border-top:1px solid #333;padding-top:4px">'+
+        '<span class="label">Near:</span> <span class="val">'+bh.nearSite+'</span> ('+bh.nearDist+' km)</div>'+
+        '<div style="color:#888;font-size:9px;margin-top:3px">'+bh.note+'</div>';
+    });
+    bhMarkers.push(marker);
+    if(bh.cat==='confirm' && bh.nearDist < 500){
+      const ns = SITES.find(s=>s.n.includes(bh.nearSite));
+      if(ns){
+        const line = new google.maps.Polyline({
+          path:[{lat:bh.lat,lng:bh.lng},{lat:ns.lat,lng:ns.lng}],
+          map:map,strokeColor:col,strokeOpacity:0.4,strokeWeight:1,
+          icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.6,scale:2,strokeColor:col},offset:'0',repeat:'8px'}]
+        });
+        bhLines.push(line);
+      }
+    }
+  }
+}
+
+// === FULL SKY CATALOG (k-sorted) ===
+const FULL_CATALOG = [
+  {n:'HR 6819',t:'BH',d:'1.1kly',k:3,kl:'F4',fi:13,fe:1.0,lat:-30.76,lng:-148.10,sh:'phi_Ura',se:3.9,bg:'S11',be:2.2},
+  {n:'Gaia BH1',t:'BH',d:'1.6kly',k:11,kl:'φ5',fi:11,fe:1.5,lat:14.23,lng:-76.87,sh:'Uranus',se:8.1,bg:'G10',be:3.6},
+  {n:'Gaia BH3',t:'BH',d:'1.9kly',k:3,kl:'F4',fi:14,fe:5.2,lat:12.55,lng:-69.13,sh:'phi_Sat',se:7.9,bg:'S1',be:3.3},
+  {n:'A0620-00',t:'BH',d:'3.3kly',k:1612,kl:'62x26',fi:2,fe:2.4,lat:-15.09,lng:119.66,sh:'Uranus',se:9.6,bg:'G6',be:1.2},
+  {n:'Gaia BH2',t:'BH',d:'3.8kly',k:26,kl:'rev62',fi:11,fe:1.5,lat:-69.63,lng:41.65,sh:'Uranus',se:6.2,bg:'G17',be:1.3},
+  {n:'Gaia18ajz',t:'BH',d:'3.8kly',k:26,kl:'rev62',fi:11,fe:1.5,lat:-0.95,lng:-69.76,sh:'Uranus',se:6.2,bg:'G2',be:0.4},
+  {n:'MOA-2011-BLG-191',t:'BH',d:'5.2kly',k:9,kl:'3sq',fi:14,fe:6.2,lat:-20.77,lng:-66.06,sh:'Uranus',se:0.3,bg:'S6',be:4.8},
+  {n:'GRS 1124-683',t:'BH',d:'5.4kly',k:9,kl:'3sq',fi:14,fe:1.6,lat:-66.45,lng:83.71,sh:'Uranus',se:2.0,bg:'G9',be:3.3},
+  {n:'Swift J1357',t:'BH',d:'5.0kly',k:1612,kl:'62x26',fi:3,fe:3.4,lat:66.39,lng:38.88,sh:'phi_Jup',se:21.4,bg:'G21',be:2.5},
+  {n:'XTE J1118+480',t:'BH',d:'5.7kly',k:65,kl:'F5F7',fi:10,fe:1.5,lat:55.26,lng:54.20,sh:'Jupiter',se:4.4,bg:'S7',be:1.3},
+  {n:'Cygnus X-1',t:'BH',d:'6.1kly',k:26,kl:'rev62',fi:12,fe:0.2,lat:-8.64,lng:-119.71,sh:'Neptune',se:12.9,bg:'S9',be:0.7},
+  {n:'LB-1',t:'BH',d:'6.9kly',k:1,kl:'id',fi:19,fe:2.0,lat:5.42,lng:128.15,sh:'phi_Sat',se:9.0,bg:'S10',be:1.5},
+  {n:'V404 Cygni',t:'BH',d:'7.8kly',k:3,kl:'F4',fi:17,fe:0.6,lat:0.17,lng:-105.97,sh:'Uranus',se:21.4,bg:'G10',be:3.4},
+  {n:'GRO J0422+32',t:'BH',d:'8.1kly',k:1612,kl:'62x26',fi:4,fe:0.5,lat:-21.77,lng:-173.39,sh:'Neptune',se:6.2,bg:'G11',be:2.7},
+  {n:'GS 2000+25',t:'BH',d:'8.8kly',k:9,kl:'3sq',fi:15,fe:0.9,lat:-7.87,lng:-108.98,sh:'Neptune',se:18.1,bg:'G10',be:2.7},
+  {n:'GRO J1719-24',t:'BH',d:'8.5kly',k:9,kl:'3sq',fi:15,fe:4.3,lat:8.95,lng:-32.11,sh:'Saturn',se:18.0,bg:'G15',be:1.7},
+  {n:'Gaia18cbf',t:'BH',d:'9.3kly',k:65,kl:'F5F7',fi:11,fe:1.1,lat:-23.54,lng:-34.17,sh:'phi_Sat',se:3.8,bg:'S19',be:0.6},
+  {n:'MAXI J1820',t:'BH',d:'9.8kly',k:26,kl:'rev62',fi:13,fe:0.0,lat:-13.24,lng:-114.29,sh:'Neptune',se:13.7,bg:'G10',be:5.0},
+  {n:'GRO J1655-40',t:'BH',d:'11.0kly',k:1,kl:'id',fi:20,fe:0.5,lat:-18.57,lng:-35.97,sh:'phi_Sat',se:5.7,bg:'G7',be:0.3},
+  {n:'Swift J1727',t:'BH',d:'11.0kly',k:1,kl:'id',fi:20,fe:0.5,lat:8.68,lng:-53.18,sh:'phi_Sat',se:5.7,bg:'G2',be:0.3},
+  {n:'XTE J1752',t:'BH',d:'11.5kly',k:19,kl:'p',fi:14,fe:0.8,lat:-2.09,lng:-51.23,sh:'phi_Sat',se:1.4,bg:'G15',be:1.7},
+  {n:'4U 1630-47',t:'BH',d:'15.0kly',k:65,kl:'F5F7',fi:12,fe:1.0,lat:-45.67,lng:-57.64,sh:'Uranus',se:3.4,bg:'G20',be:2.1},
+  {n:'NGC 3201',t:'BH',d:'15.7kly',k:16,kl:'2^4',fi:15,fe:0.6,lat:0.25,lng:64.22,sh:'phi_Jup',se:7.3,bg:'G14',be:2.1},
+  {n:'XTE J1550',t:'BH',d:'17.0kly',k:11,kl:'phi5',fi:16,fe:3.2,lat:-66.42,lng:-77.95,sh:'Uranus',se:17.2,bg:'G12',be:2.7},
+  {n:'GRS 1009-45',t:'BH',d:'17.2kly',k:11,kl:'phi5',fi:16,fe:2.1,lat:-6.70,lng:72.89,sh:'Saturn',se:2.6,bg:'G14',be:0.4},
+  {n:'SS 433',t:'BH',d:'18.0kly',k:1,kl:'id',fi:21,fe:1.6,lat:-12.27,lng:-100.77,sh:'Neptune',se:20.8,bg:'S1',be:1.6},
+  {n:'Cyg X-3',t:'BH',d:'24.0kly',k:65,kl:'F5F7',fi:13,fe:2.1,lat:-27.79,lng:-145.37,sh:'phi_Ura',se:2.3,bg:'S9',be:2.0},
+  {n:'GX 339-4',t:'BH',d:'26.0kly',k:26,kl:'rev62',fi:15,fe:1.3,lat:-36.92,lng:-138.73,sh:'Neptune',se:1.3,bg:'G20',be:2.2},
+  {n:'GRS 1758',t:'BH',d:'28.0kly',k:11,kl:'phi5',fi:17,fe:1.5,lat:-31.30,lng:-119.04,sh:'Neptune',se:7.5,bg:'G15',be:3.2},
+  {n:'GRS 1915',t:'BH',d:'36.0kly',k:9,kl:'3sq',fi:18,fe:4.3,lat:10.56,lng:-71.75,sh:'Uranus',se:10.2,bg:'S1',be:3.0},
+  {n:'LMC X-1',t:'BH',d:'160kly',k:62,kl:'RITO',fi:17,fe:0.1,lat:-60.85,lng:64.99,sh:'Uranus',se:10.8,bg:'S8',be:1.0},
+  {n:'IC 10 X-1',t:'BH',d:'2.1Mly',k:11,kl:'phi5',fi:26,fe:0.5,lat:68.95,lng:-29.52,sh:'Saturn',se:2.2,bg:'S4',be:1.3},
+  {n:'M33 X-7',t:'BH',d:'2.7Mly',k:1612,kl:'62x26',fi:16,fe:4.9,lat:29.27,lng:-0.10,sh:'Jupiter',se:6.2,bg:'G2',be:1.4},
+  {n:'Omega Cen',t:'BH',d:'15.8kly',k:16,kl:'2^4',fi:15,fe:0.1,lat:-37.48,lng:-152.30,sh:'phi_Ura',se:0.2,bg:'G9',be:2.5},
+  {n:'M82 X-1',t:'BH',d:'12Mly',k:9,kl:'3sq',fi:30,fe:1.0,lat:63.59,lng:165.18,sh:'phi_Sat',se:7.0,bg:'G8',be:1.1},
+  {n:'3XMM J2150',t:'BH',d:'740Mly',k:19,kl:'p',fi:37,fe:0.4,lat:-26.76,lng:-69.74,sh:'Uranus',se:5.0,bg:'S6',be:0.6},
+  {n:'Centaurus A',t:'BH',d:'13Mly',k:6,kl:'2x3',fi:31,fe:0.5,lat:-27.59,lng:59.70,sh:'Saturn',se:20.4,bg:'S21',be:1.0},
+  {n:'M104 Sombrero',t:'BH',d:'29.4Mly',k:1612,kl:'62x26',fi:21,fe:2.8,lat:18.00,lng:161.54,sh:'Uranus',se:5.5,bg:'G3',be:1.0},
+  {n:'NGC 3115',t:'BH',d:'32Mly',k:62,kl:'RITO',fi:28,fe:0.4,lat:6.41,lng:127.65,sh:'phi_Sat',se:7.9,bg:'S10',be:0.9},
+  {n:'M87*',t:'BH',d:'53.5Mly',k:65,kl:'F5F7',fi:29,fe:1.1,lat:31.63,lng:175.89,sh:'Uranus',se:3.2,bg:'S7',be:3.8},
+  {n:'Holmberg 15A',t:'BH',d:'700Mly',k:1,kl:'id',fi:43,fe:0.2,lat:-45.55,lng:-14.81,sh:'phi_Sat',se:0.8,bg:'G12',be:0.2},
+  {n:'IC 1101*',t:'BH',d:'1.0Bly',k:26,kl:'rev62',fi:37,fe:2.8,lat:66.81,lng:-36.19,sh:'Saturn',se:1.6,bg:'S4',be:2.0},
+  {n:'GW150914',t:'BH',d:'1.3Bly',k:3,kl:'F4',fi:42,fe:0.0,lat:-78.80,lng:31.01,sh:'Uranus',se:2.2,bg:'G17',be:2.4},
+  {n:'GW151226',t:'BH',d:'1.4Bly',k:1612,kl:'62x26',fi:29,fe:4.4,lat:-30.24,lng:-157.49,sh:'phi_Ura',se:0.1,bg:'G19',be:1.5},
+  {n:'3C 273',t:'BH',d:'2.4Bly',k:62,kl:'RITO',fi:37,fe:0.7,lat:22.75,lng:172.58,sh:'Uranus',se:8.5,bg:'G16',be:0.5},
+  {n:'Markarian 231',t:'BH',d:'580Mly',k:62,kl:'RITO',fi:34,fe:1.4,lat:39.60,lng:33.15,sh:'phi_Earth',se:8.8,bg:'G21',be:1.5},
+  {n:'Phoenix A',t:'BH',d:'5.7Bly',k:1612,kl:'62x26',fi:32,fe:0.3,lat:-1.25,lng:17.32,sh:'Jupiter',se:17.4,bg:'G12',be:4.7},
+  {n:'TON 618',t:'BH',d:'10.4Bly',k:62,kl:'RITO',fi:40,fe:1.3,lat:-2.11,lng:-159.78,sh:'Neptune',se:9.9,bg:'G8',be:2.4},
+  {n:'S5 0014+81',t:'BH',d:'12.1Bly',k:11,kl:'phi5',fi:44,fe:3.1,lat:-4.11,lng:-146.75,sh:'Neptune',se:7.7,bg:'S12',be:0.1},
+  {n:'QSO J0313',t:'BH',d:'13Bly',k:19,kl:'p',fi:43,fe:2.5,lat:22.64,lng:34.20,sh:'Mars',se:7.4,bg:'G9',be:1.2},
+  {n:'ULAS J1342',t:'BH',d:'13.1Bly',k:19,kl:'p',fi:43,fe:1.7,lat:76.15,lng:175.83,sh:'phi_Sat',se:16.4,bg:'G21',be:0.7},
+  {n:'Ross 128',t:'STAR',d:'11ly',k:11,kl:'phi5',fi:0,fe:0.1,lat:38.61,lng:47.40,sh:'phi_Mars',se:16.4,bg:'G3',be:0.4},
+  {n:'Tau Ceti',t:'STAR',d:'11.9ly',k:6,kl:'2x3',fi:2,fe:0.7,lat:12.85,lng:29.06,sh:'phi_Mars',se:26.0,bg:'S16',be:1.5},
+  {n:'Teegarden',t:'STAR',d:'12.5ly',k:1,kl:'id',fi:6,fe:3.9,lat:16.14,lng:43.85,sh:'phi_Mars',se:32.2,bg:'G1',be:0.4},
+  {n:'Kruger 60',t:'STAR',d:'13.1ly',k:1,kl:'id',fi:6,fe:0.6,lat:44.20,lng:15.36,sh:'Jupiter',se:34.5,bg:'S17',be:0.2},
+  {n:'Sigma Draconis',t:'STAR',d:'18.8ly',k:19,kl:'p',fi:0,fe:1.1,lat:54.15,lng:13.81,sh:'Jupiter',se:5.8,bg:'S4',be:2.4},
+  {n:'Delta Pavonis',t:'STAR',d:'19.9ly',k:19,kl:'p',fi:0,fe:4.7,lat:3.78,lng:18.52,sh:'Jupiter',se:0.3,bg:'G12',be:3.2},
+  {n:'82 Eridani',t:'STAR',d:'19.7ly',k:19,kl:'p',fi:0,fe:3.7,lat:2.18,lng:37.84,sh:'Jupiter',se:1.2,bg:'S8',be:0.6},
+  {n:'Vega',t:'STAR',d:'25ly',k:26,kl:'rev62',fi:0,fe:3.8,lat:49.09,lng:-9.65,sh:'phi_Jup',se:22.5,bg:'G18',be:1.6},
+  {n:'Arcturus',t:'STAR',d:'37ly',k:19,kl:'p',fi:2,fe:2.6,lat:82.91,lng:7.87,sh:'Saturn',se:1.2,bg:'S12',be:1.3},
+  {n:'Capella',t:'STAR',d:'43ly',k:9,kl:'3sq',fi:4,fe:4.4,lat:44.06,lng:110.17,sh:'Saturn',se:17.6,bg:'G3',be:0.4},
+  {n:'Rasalhague',t:'STAR',d:'47ly',k:16,kl:'2^4',fi:3,fe:2.1,lat:37.79,lng:-53.16,sh:'phi_Sat',se:20.6,bg:'S9',be:0.7},
+  {n:'Caph',t:'STAR',d:'54ly',k:11,kl:'phi5',fi:4,fe:1.8,lat:60.21,lng:-90.93,sh:'phi_Sat',se:8.7,bg:'S4',be:0.7},
+  {n:'Aldebaran',t:'STAR',d:'65ly',k:65,kl:'F5F7',fi:0,fe:0.0,lat:-13.00,lng:118.33,sh:'phi_Sat',se:9.9,bg:'S18',be:2.4},
+  {n:'Regulus',t:'STAR',d:'79ly',k:16,kl:'2^4',fi:4,fe:1.2,lat:8.90,lng:156.02,sh:'Uranus',se:7.4,bg:'S2',be:2.6},
+  {n:'Megrez',t:'STAR',d:'80.5ly',k:16,kl:'2^4',fi:4,fe:0.6,lat:31.84,lng:-164.10,sh:'Uranus',se:9.4,bg:'S20',be:0.9},
+  {n:'Mizar',t:'STAR',d:'82.9ly',k:16,kl:'2^4',fi:4,fe:3.6,lat:29.78,lng:-154.69,sh:'Uranus',se:12.7,bg:'G21',be:1.8},
+  {n:'Algol',t:'STAR',d:'93ly',k:19,kl:'p',fi:4,fe:2.1,lat:4.76,lng:-179.38,sh:'Neptune',se:19.3,bg:'S15',be:2.5},
+  {n:'Dubhe',t:'STAR',d:'124ly',k:62,kl:'RITO',fi:2,fe:0.0,lat:-29.48,lng:-149.07,sh:'phi_Ura',se:4.2,bg:'G8',be:0.2},
+  {n:'Elnath',t:'STAR',d:'134ly',k:65,kl:'F5F7',fi:2,fe:3.1,lat:-26.36,lng:-164.16,sh:'Neptune',se:0.5,bg:'S10',be:1.6},
+  {n:'Achernar',t:'STAR',d:'140ly',k:11,kl:'phi5',fi:6,fe:2.1,lat:-52.54,lng:-146.57,sh:'Neptune',se:5.7,bg:'S16',be:1.7},
+  {n:'Spica',t:'STAR',d:'250ly',k:19,kl:'p',fi:6,fe:1.2,lat:31.60,lng:32.15,sh:'Mercury',se:14.5,bg:'S7',be:0.3},
+  {n:'Bellatrix',t:'STAR',d:'250ly',k:19,kl:'p',fi:6,fe:1.2,lat:29.45,lng:33.16,sh:'Mercury',se:14.5,bg:'G6',be:1.2},
+  {n:'Canopus',t:'STAR',d:'310ly',k:62,kl:'RITO',fi:4,fe:0.0,lat:-45.04,lng:83.15,sh:'phi_Sat',se:3.6,bg:'S0',be:1.0},
+  {n:'Thuban',t:'STAR',d:'303ly',k:9,kl:'3sq',fi:8,fe:1.0,lat:71.48,lng:-148.91,sh:'phi_Sat',se:8.3,bg:'G0',be:0.0},
+  {n:'Polaris',t:'STAR',d:'430ly',k:3,kl:'F4',fi:11,fe:0.5,lat:52.38,lng:-149.03,sh:'Uranus',se:8.3,bg:'G0',be:0.1},
+  {n:'Antares',t:'STAR',d:'550ly',k:26,kl:'rev62',fi:7,fe:0.7,lat:4.68,lng:-45.44,sh:'phi_Sat',se:11.2,bg:'S14',be:2.9},
+  {n:'Betelgeuse',t:'STAR',d:'640ly',k:19,kl:'p',fi:8,fe:0.9,lat:-31.14,lng:-179.47,sh:'Neptune',se:7.9,bg:'S18',be:0.1},
+  {n:'Rigel',t:'STAR',d:'860ly',k:6,kl:'2x3',fi:11,fe:0.5,lat:-37.11,lng:-165.13,sh:'Neptune',se:1.3,bg:'G14',be:3.0},
+  {n:'Mintaka',t:'STAR',d:'900ly',k:26,kl:'rev62',fi:8,fe:1.8,lat:-35.78,lng:160.30,sh:'Neptune',se:17.7,bg:'S5',be:1.0},
+  {n:'Alnilam',t:'STAR',d:'1.2kly',k:3,kl:'F4',fi:13,fe:4.3,lat:-19.90,lng:111.75,sh:'phi_Sat',se:7.6,bg:'S5',be:0.9},
+  {n:'Alnitak',t:'STAR',d:'1.3kly',k:62,kl:'RITO',fi:7,fe:0.2,lat:-14.11,lng:102.47,sh:'phi_Sat',se:4.8,bg:'S5',be:1.0},
+  {n:'Gamma Velorum',t:'STAR',d:'1.1kly',k:3,kl:'F4',fi:13,fe:1.2,lat:-32.21,lng:-151.74,sh:'phi_Ura',se:2.5,bg:'S13',be:0.1},
+  {n:'Eta Carinae',t:'STAR',d:'7.5kly',k:3,kl:'F4',fi:17,fe:3.3,lat:-17.86,lng:59.45,sh:'Saturn',se:4.1,bg:'S0',be:1.4},
+  {n:'WR 136',t:'STAR',d:'5.7kly',k:65,kl:'F5F7',fi:10,fe:2.3,lat:21.23,lng:-88.36,sh:'Uranus',se:3.7,bg:'S9',be:1.0},
+  {n:'Mu Cephei',t:'STAR',d:'2.8kly',k:19,kl:'p',fi:11,fe:3.8,lat:-5.28,lng:-131.67,sh:'Neptune',se:9.8,bg:'S17',be:0.5},
+  {n:'Gamma Cas',t:'STAR',d:'550ly',k:26,kl:'rev62',fi:7,fe:0.7,lat:68.66,lng:-104.19,sh:'phi_Sat',se:11.2,bg:'G13',be:2.9},
+  {n:'W44',t:'RADIO',d:'230ly',k:11,kl:'phi5',fi:7,fe:0.4,lat:2.97,lng:28.69,sh:'Jupiter',se:6.1,bg:'S16',be:0.1},
+  {n:'Cygnus Loop',t:'RADIO',d:'230ly',k:11,kl:'phi5',fi:7,fe:0.4,lat:5.02,lng:42.35,sh:'Jupiter',se:6.1,bg:'S21',be:2.0},
+  {n:'Vela SNR',t:'RADIO',d:'1.8kly',k:19,kl:'p',fi:10,fe:3.5,lat:42.73,lng:29.15,sh:'phi_Mars',se:6.1,bg:'S12',be:1.8},
+  {n:'Cassiopeia A',t:'RADIO',d:'2.7kly',k:19,kl:'p',fi:11,fe:0.6,lat:32.46,lng:58.21,sh:'Jupiter',se:19.6,bg:'S10',be:3.4},
+  {n:'W28',t:'RADIO',d:'310ly',k:62,kl:'RITO',fi:4,fe:0.0,lat:-50.55,lng:73.14,sh:'phi_Sat',se:3.6,bg:'S21',be:2.0},
+  {n:'Orion Nebula',t:'RADIO',d:'400ly',k:19,kl:'p',fi:7,fe:0.3,lat:-68.92,lng:-148.87,sh:'Neptune',se:15.5,bg:'G17',be:2.4},
+  {n:'IC 10',t:'RADIO',d:'2.2Mly',k:1,kl:'id',fi:31,fe:1.0,lat:72.29,lng:4.72,sh:'phi_Jup',se:4.5,bg:'G13',be:1.3},
+  {n:'Sgr A*',t:'BH',d:'26kly',k:26,kl:'rev62',fi:14,fe:4.9,lat:-32.18,lng:-113.36,sh:'Neptune',se:10.3,bg:'G15',be:6.0},
+  {n:'Sirius',t:'STAR',d:'8.6ly',k:6,kl:'2x3',fi:12,fe:1.0,lat:24.23,lng:43.55,sh:'phi_Mars',se:9.0,bg:'S5',be:1.8},
+  {n:'Proxima Centauri',t:'STAR',d:'4.25ly',k:3,kl:'F4',fi:12,fe:2.1,lat:23.85,lng:30.51,sh:'phi_Venus',se:5.2,bg:'S16',be:0.0},
+  {n:'Alpha Centauri',t:'STAR',d:'4.37ly',k:3,kl:'F4',fi:12,fe:0.6,lat:23.72,lng:30.15,sh:'phi_Venus',se:2.6,bg:'G4',be:1.8},
+  {n:'Crab Nebula',t:'RADIO',d:'6.5kly',k:11,kl:'phi5',fi:13,fe:0.3,lat:25.30,lng:73.27,sh:'sqphi_Jupiter',se:1.9,bg:'G19',be:6.0},
+  {n:'Deneb',t:'STAR',d:'2.6kly',k:1,kl:'id',fi:21,fe:0.1,lat:-15.86,lng:-132.10,sh:'Neptune',se:4.6,bg:'S9',be:6.1},
+  {n:'Procyon',t:'STAR',d:'11.5ly',k:3,kl:'F4',fi:14,fe:0.8,lat:29.01,lng:50.18,sh:'phi_Jup',se:7.0,bg:'G19',be:4.0},
+  {n:'Fomalhaut',t:'STAR',d:'25.1ly',k:11,kl:'phi5',fi:13,fe:2.5,lat:0.87,lng:8.20,sh:'sqphi_Jupiter',se:1.0,bg:'S11',be:3.3},
+];
+
+const K_COLORS = {
+  1:   {fill:'#ffffff',stroke:'#aaaaaa',label:'k=1 (id)'},
+  3:   {fill:'#66aaff',stroke:'#3377cc',label:'k=3 (F₄)'},
+  6:   {fill:'#44dddd',stroke:'#22aaaa',label:'k=6 (2×3)'},
+  9:   {fill:'#ffdd44',stroke:'#ccaa22',label:'k=9 (3²)'},
+  11:  {fill:'#44ff88',stroke:'#22cc55',label:'k=11 (φ⁵)'},
+  16:  {fill:'#bb66ff',stroke:'#8833cc',label:'k=16 (2⁴)'},
+  19:  {fill:'#ff88cc',stroke:'#cc5599',label:'k=19 (p)'},
+  26:  {fill:'#ff9944',stroke:'#cc6622',label:'k=26 (rev62)'},
+  62:  {fill:'#ff4444',stroke:'#cc2222',label:'k=62 (RITO)'},
+  65:  {fill:'#44cccc',stroke:'#229999',label:'k=65 (F₅F₇)'},
+  1612:{fill:'#ff44ff',stroke:'#cc22cc',label:'k=1612 (BH only)'},
+};
+
+const TYPE_PATHS = {
+  BH:   'M 0,-8 L 5,-2 L 3,7 L 0,4 L -3,7 L -5,-2 Z',
+  STAR: 'M 0,-8 L 2,-2 L 8,-2 L 3,2 L 5,8 L 0,4 L -5,8 L -3,2 L -8,-2 L -2,-2 Z',
+  RADIO:'M -6,-6 L 6,-6 L 6,6 L -6,6 Z',
+};
+
+function drawCatalog(){
+  catalogMarkers.forEach(m=>m.setMap(null));
+  catalogMarkers=[];
+  const legend=document.getElementById('k-legend');
+  if(!document.getElementById('cb-catalog').checked){legend.style.display='none';return;}
+  legend.style.display='block';
+  let lhtml='';
+  for(const[k,c] of Object.entries(K_COLORS)){
+    const cnt=FULL_CATALOG.filter(o=>o.k==k).length;
+    if(cnt>0) lhtml+=`<span style="color:${c.fill};margin-right:6px">● ${c.label} (${cnt})</span> `;
+  }
+  legend.innerHTML=lhtml;
+
+  for(const obj of FULL_CATALOG){
+    const kc=K_COLORS[obj.k]||K_COLORS[1];
+    const path=TYPE_PATHS[obj.t]||TYPE_PATHS.STAR;
+    const opacity=obj.fe<=2?0.9:obj.fe<=5?0.7:0.5;
+    const scale=obj.t==='BH'?1.8:obj.t==='RADIO'?1.2:1.4;
+    const marker=new google.maps.Marker({
+      position:{lat:obj.lat,lng:obj.lng},map:map,
+      icon:{path:path,fillColor:kc.fill,fillOpacity:opacity,strokeColor:kc.stroke,strokeWeight:1.2,scale:scale,anchor:new google.maps.Point(0,0)},
+      title:obj.n+' [k='+obj.k+' '+obj.t+']',zIndex:8
+    });
+    marker.addListener('click',()=>{
+      const info=document.getElementById('click-info');
+      const typeLabel={BH:'★ Black Hole',STAR:'✦ Star',RADIO:'■ Radio'}[obj.t]||obj.t;
+      info.innerHTML=
+        '<div style="margin-bottom:6px"><span class="val" style="color:'+kc.fill+';font-size:12px">'+obj.n+'</span></div>'+
+        '<div><span class="label">Type:</span> <span class="val">'+typeLabel+'</span> ('+obj.d+')</div>'+
+        '<div style="margin-top:4px;padding:4px 6px;background:rgba('+
+          (obj.k===1612?'255,68,255':'100,120,160')+',0.15);border-radius:3px">'+
+        '<span class="label">Divisor:</span> <span class="val" style="color:'+kc.fill+';font-size:13px">k='+obj.k+'</span> <span class="label">('+obj.kl+')</span><br>'+
+        '<span class="label">d/k ≈ F('+obj.fi+')</span> — <span class="'+(obj.fe<=3?'good':'val')+'">'+obj.fe+'% err</span></div>'+
+        '<div style="margin-top:4px"><span class="label">Shell:</span> <span class="'+(obj.se<10?'val':'warn')+'">'+obj.sh+' ('+obj.se+'%)</span></div>'+
+        '<div><span class="label">Bearing:</span> <span class="'+(obj.be<3?'good':'val')+'">'+obj.bg+' ('+obj.be+'°)</span></div>'+
+        (obj.k===1612?'<div style="margin-top:4px;color:#ff44ff;font-size:9px">⚠ k=1612 selects ONLY black holes (10/10)</div>':'');
+    });
+    catalogMarkers.push(marker);
+  }
+}
+
+function filterByK(val){
+  const k=val?parseInt(val):0;
+  const res=document.getElementById('k-results');
+
+  // Reset all catalog marker opacities
+  for(let i=0;i<catalogMarkers.length;i++){
+    const obj=FULL_CATALOG[i];
+    if(!k){
+      catalogMarkers[i].setOpacity(obj.fe<=2?0.9:obj.fe<=5?0.7:0.5);
+    } else {
+      catalogMarkers[i].setOpacity(obj.k===k?1.0:0.08);
+    }
+  }
+
+  if(!k){ res.innerHTML=''; return; }
+
+  const matches=FULL_CATALOG.filter(o=>o.k===k);
+  const kc=K_COLORS[k]||K_COLORS[1];
+  let html='<div style="margin-bottom:4px;color:'+kc.fill+'">'+matches.length+' objects with k='+k+'</div>';
+  const typeIcon={BH:'★',STAR:'✦',RADIO:'■'};
+  for(const m of matches){
+    html+='<div class="site-row" onclick="map.panTo({lat:'+m.lat+',lng:'+m.lng+'});map.setZoom(5)" style="cursor:pointer">'+
+      '<span style="color:'+kc.fill+'">'+( typeIcon[m.t]||'·')+' '+m.n+'</span>'+
+      '<span class="serr">'+m.bg+' '+m.be+'° | '+m.d+'</span></div>';
+  }
+  res.innerHTML=html;
+}
+
+// === BH SKY PATHS + ORION BELT ===
+const BH_PATHS = [
+  {n:'→ Markarian 231',brg:9.2,color:'#ff4466',dash:true,
+   hits:[{n:'Derinkuyu',km:940,lat:38.374,lng:34.734,xt:164},{n:'Taputapuatea',km:18553,lat:-16.833,lng:-151.432,xt:44}]},
+  {n:'→ M31 Andromeda',brg:309.9,color:'#44bbff',dash:true,
+   hits:[{n:'Town Creek',km:9789,lat:35.4392,lng:-80.0811,xt:73},{n:'Teotihuacan',km:12324,lat:19.6925,lng:-98.8438,xt:42}]},
+  {n:'→ QSO J0313-1806',brg:158.8,color:'#ffaa33',dash:true,
+   hits:[{n:'Luxor/Karnak',km:497,lat:25.7188,lng:32.6573,xt:29},{n:'Madagascar',km:5884,lat:-20.37,lng:48.06,xt:106}]},
+];
+
+const ORION_BELT = [
+  {n:'Alnitak (ζ Ori)',dist_ly:1260,fib:'1260/9≈F(11)',lat:19.21,lng:54.38,shell:'Jupiter',shellErr:18.1,brgLine:'S5',brgErr:1.0},
+  {n:'Alnilam (ε Ori)',dist_ly:2000,fib:'2000/9≈F(12)',lat:23.69,lng:46.03,shell:'φ×Mars',shellErr:7.3,brgLine:'S5',brgErr:0.9},
+  {n:'Mintaka (δ Ori)',dist_ly:1200,fib:'1200/3≈F(13)',lat:-3.47,lng:87.31,shell:'Saturn',shellErr:19.4,brgLine:'S5',brgErr:1.0},
+];
+
+const NILE_LINE = {n:'Nile BH Line',from:{lat:39.6,lng:33.2},to:{lat:22.6,lng:34.2},brg:176.8,lattice:'G17',err:0.2,
+  hits:['Derinkuyu','Jerusalem','Petra','Luxor/Karnak']};
+
+function drawBHPaths(){
+  bhPathLines.forEach(l=>l.setMap(null));
+  orionMarkers.forEach(m=>m.setMap(null));
+  bhPathLines=[];
+  orionMarkers=[];
+  if(!document.getElementById('cb-bhpaths').checked) return;
+
+  // Draw three great circle paths from Giza toward each BH
+  for(const p of BH_PATHS){
+    const pts=[];
+    for(let d=0;d<=20100;d+=200) pts.push(destPt(GIZA.lat,GIZA.lng,p.brg,d));
+    const line = new google.maps.Polyline({
+      path:pts, map:map, strokeColor:p.color, strokeOpacity:0.6, strokeWeight:2.2, clickable:true,
+      icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.7,scale:2.5,strokeColor:p.color},offset:'0',repeat:'14px'},
+             {icon:{path:'M -1.5,-1 1.5,0 -1.5,1',strokeOpacity:1,scale:3,strokeColor:p.color},offset:'100%'}]
+    });
+    line.addListener('click',()=>{
+      const info=document.getElementById('click-info');
+      info.innerHTML=
+        '<div style="margin-bottom:6px"><span class="val" style="color:'+p.color+';font-size:12px">'+p.n+'</span></div>'+
+        '<div><span class="label">Sky bearing:</span> <span class="val">'+p.brg.toFixed(1)+'°</span> from Giza</div>'+
+        '<div style="margin-top:6px;font-size:10px;color:#ff9944">Sites on path:</div>'+
+        p.hits.map(h=>'<div style="font-size:9px"><span class="good">● '+h.n+'</span> — '+h.xt+'km cross-track at '+h.km+'km</div>').join('');
+    });
+    bhPathLines.push(line);
+
+    // Mark sites that fall on this path
+    for(const h of p.hits){
+      const m = new google.maps.Marker({
+        position:{lat:h.lat,lng:h.lng}, map:map,
+        icon:{path:google.maps.SymbolPath.CIRCLE, scale:7, fillColor:p.color, fillOpacity:0.3,
+              strokeColor:p.color, strokeWeight:2},
+        title:h.n+' (on '+p.n+' path, '+h.xt+'km off)', zIndex:15
+      });
+      orionMarkers.push(m);
+    }
+  }
+
+  // Draw the Nile Line connecting three BH projections
+  const nilePts=[];
+  const nBrg = bear(NILE_LINE.from.lat,NILE_LINE.from.lng,NILE_LINE.to.lat,NILE_LINE.to.lng);
+  const nDist = hav(NILE_LINE.from.lat,NILE_LINE.from.lng,NILE_LINE.to.lat,NILE_LINE.to.lng);
+  // Extend 400km beyond each end
+  const extStart = destPt(NILE_LINE.from.lat,NILE_LINE.from.lng,(nBrg+180)%360,400);
+  const extEnd = destPt(NILE_LINE.to.lat,NILE_LINE.to.lng,nBrg,400);
+  for(let i=0;i<=40;i++){
+    const t=i/40;
+    nilePts.push(destPt(extStart.lat,extStart.lng,nBrg,(nDist+800)*t));
+  }
+  const nileLine = new google.maps.Polyline({
+    path:nilePts, map:map, strokeColor:'#ff88ff', strokeOpacity:0.7, strokeWeight:2, clickable:true,
+    icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.8,scale:2,strokeColor:'#ff88ff'},offset:'0',repeat:'10px'}]
+  });
+  nileLine.addListener('click',()=>{
+    const info=document.getElementById('click-info');
+    info.innerHTML=
+      '<div style="margin-bottom:6px"><span class="val" style="color:#ff88ff;font-size:12px">Nile BH Line</span></div>'+
+      '<div><span class="label">Bearing:</span> <span class="val">176.8°</span> → <span class="good">G17 (0.2° err)</span></div>'+
+      '<div><span class="label">Connects:</span> <span class="val">Mrk 231 → M31 → J0313</span></div>'+
+      '<div><span class="label">Spacing ratio:</span> <span class="good">1.910</span> (Orion Belt = 1.993, Giza = 1.965)</div>'+
+      '<div style="margin-top:6px;font-size:10px;color:#ff9944">Sites within 200km:</div>'+
+      NILE_LINE.hits.map(h=>'<div style="font-size:9px"><span class="good">● '+h+'</span></div>').join('');
+  });
+  bhPathLines.push(nileLine);
+
+  // Draw Orion Belt star projections
+  for(let i=0;i<ORION_BELT.length;i++){
+    const o=ORION_BELT[i];
+    const marker = new google.maps.Marker({
+      position:{lat:o.lat,lng:o.lng}, map:map,
+      icon:{
+        path:'M 0,-12 L 3,-3 L 12,-3 L 5,3 L 7,12 L 0,7 L -7,12 L -5,3 L -12,-3 L -3,-3 Z',
+        fillColor:'#ffdd44', fillOpacity:0.9, strokeColor:'#ffffff', strokeWeight:1.2,
+        scale:1.4, anchor:new google.maps.Point(0,0)
+      },
+      title:o.n, zIndex:20
+    });
+    marker.addListener('click',()=>{
+      const info=document.getElementById('click-info');
+      info.innerHTML=
+        '<div style="margin-bottom:6px"><span class="val" style="color:#ffdd44;font-size:12px">✦ '+o.n+'</span></div>'+
+        '<div><span class="label">Distance:</span> <span class="val">'+o.dist_ly+' ly</span></div>'+
+        '<div><span class="label">Fibonacci:</span> <span class="good">'+o.fib+'</span></div>'+
+        '<div><span class="label">Shell:</span> <span class="'+(o.shellErr<10?'val':'warn')+'">'+o.shell+' ('+o.shellErr.toFixed(1)+'%)</span></div>'+
+        '<div><span class="label">Bearing:</span> <span class="good">'+o.brgLine+' ('+o.brgErr.toFixed(1)+'°)</span></div>'+
+        '<div style="margin-top:6px;font-size:9px;color:#ffdd44">All 3 belt stars lock to bearing S5</div>'+
+        '<div style="font-size:9px;color:#ffdd44">F(11), F(12), F(13) — three consecutive Fibonacci</div>';
+    });
+    orionMarkers.push(marker);
+  }
+
+  // Connect the three Orion Belt projections
+  const beltPts = ORION_BELT.map(o=>({lat:o.lat,lng:o.lng}));
+  const beltLine = new google.maps.Polyline({
+    path:beltPts, map:map, strokeColor:'#ffdd44', strokeOpacity:0.5, strokeWeight:1.5, clickable:false,
+    icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.6,scale:1.5,strokeColor:'#ffdd44'},offset:'0',repeat:'8px'}]
+  });
+  bhPathLines.push(beltLine);
+}
+
+function drawSites(){
+  siteMarkers.forEach(m=>m.setMap(null));
+  siteMarkers=[];
+  if(!document.getElementById('cb-sites').checked) return;
+  for(const s of SITES){
+    if(s.lat===GIZA.lat && s.lng===GIZA.lng) continue;
+    const colors=SITE_COLORS[s.t]||SITE_COLORS.other;
+    const isPred = s.t==='pred';
+    const marker = new google.maps.Marker({
+      position: {lat:s.lat,lng:s.lng},
+      map: map,
+      icon: isPred ? {
+        path: 'M 0,-8 L 6,0 L 0,8 L -6,0 Z',
+        fillColor: colors.fill,
+        fillOpacity: 0.8,
+        strokeColor: colors.stroke,
+        strokeWeight: 2,
+        scale: 1
+      } : {
+        path: google.maps.SymbolPath.CIRCLE,
+        scale: s.t==='anchor'?6:4,
+        fillColor: colors.fill,
+        fillOpacity: 0.9,
+        strokeColor: colors.stroke,
+        strokeWeight: 1.5
+      },
+      title: s.n + (isPred?' (predicted)':''),
+      zIndex: s.t==='anchor'?500:isPred?200:100
+    });
+    marker.addListener('click',()=>{ showAnalysis(s.lat,s.lng); });
+    siteMarkers.push(marker);
+  }
+}
+
+function drawPredictions(){
+  predMarkers.forEach(m=>m.setMap(null));
+  predMarkers=[];
+  if(!document.getElementById('cb-preds').checked) return;
+  for(const p of predictions){
+    const marker = new google.maps.Marker({
+      position: {lat:p.lat,lng:p.lon},
+      map: map,
+      icon: {
+        path: 'M 0,-8 L 6,0 L 0,8 L -6,0 Z',
+        fillColor: '#ff6688',
+        fillOpacity: 0.8,
+        strokeColor: '#ff4466',
+        strokeWeight: 2,
+        scale: 1.2
+      },
+      title: p.label||'Prediction',
+      label: p.score ? {text:String(p.score),color:'#fff',fontSize:'8px'} : undefined,
+      zIndex: 800
+    });
+    marker.addListener('click',()=>{ showAnalysis(p.lat,p.lon); });
+    predMarkers.push(marker);
+  }
+}
+
+function drawIntersite(){
+  intersiteLines.forEach(l=>l.setMap(null));
+  intersiteLines=[];
+  if(!document.getElementById('cb-intersite').checked) return;
+
+  // Build unified point array from all layers
+  const pts=[];
+  for(const s of SITES){
+    if(s.lat===GIZA.lat && s.lng===GIZA.lng) continue;
+    pts.push({lat:s.lat,lng:s.lng,n:s.n,src:'site',color:'#ffffff'});
+  }
+  for(const c of FULL_CATALOG){
+    const kc=K_COLORS[c.k]||K_COLORS[1];
+    pts.push({lat:c.lat,lng:c.lng,n:c.n,src:'catalog',k:c.k,color:kc.fill});
+  }
+  for(const b of BH_PROJECTIONS){
+    pts.push({lat:b.lat,lng:b.lng,n:b.n,src:'bhproj',color:'#ff44ff'});
+  }
+  for(const o of ORION_BELT){
+    pts.push({lat:o.lat,lng:o.lng,n:o.n,src:'orion',color:'#ffdd44'});
+  }
+
+  for(let i=0;i<pts.length;i++){
+    for(let j=i+1;j<pts.length;j++){
+      const a=pts[i],b=pts[j];
+      const d=hav(a.lat,a.lng,b.lat,b.lng);
+      if(d<50) continue;
+      const brg=bear(a.lat,a.lng,b.lat,b.lng);
+      const lb=nearestBrg(brg);
+      const fb=bestFib(d);
+      if(lb.err<=2 && fb.err<=3){
+        // Pick line color: sky objects get their class color, site↔site stays white
+        let col='#ffffff', op=0.15, wt=1;
+        if(a.src!=='site'||b.src!=='site'){
+          col = a.src!=='site' ? a.color : b.color;
+          op=0.25; wt=1.2;
+        }
+        const line = new google.maps.Polyline({
+          path:[{lat:a.lat,lng:a.lng},{lat:b.lat,lng:b.lng}],
+          map: map, strokeColor: col, strokeOpacity: op, strokeWeight: wt,
+          clickable: true,
+          icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:op+0.1,scale:1},offset:'0',repeat:'8px'}]
+        });
+        line.addListener('click',()=>{
+          document.getElementById('click-info').innerHTML=
+            '<div style="margin-bottom:4px"><span class="val" style="font-size:11px">Lattice Link</span></div>'+
+            '<div><span class="label">From:</span> <span class="val">'+a.n+'</span> <span class="label" style="font-size:8px">('+a.src+')</span></div>'+
+            '<div><span class="label">To:</span> <span class="val">'+b.n+'</span> <span class="label" style="font-size:8px">('+b.src+')</span></div>'+
+            '<div><span class="label">Distance:</span> <span class="val">'+d.toFixed(0)+' km</span></div>'+
+            '<div><span class="label">Bearing:</span> <span class="good">'+lb.line+' ('+lb.err.toFixed(1)+'°)</span></div>'+
+            '<div><span class="label">Fibonacci:</span> <span class="good">'+fb.match+' ('+fb.err.toFixed(1)+'%)</span></div>';
+        });
+        intersiteLines.push(line);
+      }
+    }
+  }
+}
+
+// === ANALYSIS DISPLAY ===
+function showAnalysis(lat,lon){
+  const a=analyzePoint(lat,lon);
+  lastClick={lat,lon,analysis:a};
+
+  // Move/create click marker
+  if(clickMarker) clickMarker.setMap(null);
+  clickMarker = new google.maps.Marker({
+    position:{lat,lng:lon},
+    map:map,
+    icon:{path:google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,scale:5,fillColor:'#ffffff',fillOpacity:0.9,strokeColor:'#ffffff',strokeWeight:1},
+    zIndex:2000
+  });
+
+  let html='';
+  html+=`<div style="margin-bottom:8px"><span class="val" style="font-size:12px">${Math.abs(lat).toFixed(4)}°${lat>=0?'N':'S'}, ${Math.abs(lon).toFixed(4)}°${lon>=0?'E':'W'}</span></div>`;
+  html+=`<div><span class="label">Giza dist:</span> <span class="val">${a.dist.toFixed(1)} km</span></div>`;
+  html+=`<div><span class="label">Giza bearing:</span> <span class="val">${a.brg.toFixed(2)}°</span> → <span class="${a.lb.err<=3?'good':a.lb.err<=5?'warn':'bad'}">${a.lb.line} (${a.lb.err.toFixed(2)}° err)</span></div>`;
+  html+=`<div><span class="label">Shell:</span> <span class="${a.sh.err<=3?'good':a.sh.err<=7?'warn':'bad'}">${a.sh.name} (${a.sh.km.toFixed(0)}km) ${a.sh.err.toFixed(2)}%</span></div>`;
+  html+=`<div><span class="label">Phi:</span> <span class="${a.ph.err<=3?'good':a.ph.err<=5?'warn':'bad'}">${a.ph.name} ${a.ph.err.toFixed(2)}%</span></div>`;
+  html+=`<div><span class="label">Fibonacci:</span> <span class="${a.fb.err<=3?'good':a.fb.err<=5?'val':'bad'}">${a.fb.match} (${a.fb.err.toFixed(2)}%)</span></div>`;
+  html+=`<div><span class="label">Convergence:</span> <span class="${a.conv>=6?'good':a.conv>=4?'val':a.conv>=2?'warn':'bad'}">${Math.floor(a.conv)} anchors</span></div>`;
+
+  // Score bar
+  const maxScore=25;
+  const pct=Math.min(a.score/maxScore*100,100);
+  const barColor=a.score>=15?'#44ff88':a.score>=10?'#ffaa33':a.score>=5?'#ff8844':'#ff4466';
+  html+=`<div style="margin:8px 0"><span class="label">SCORE:</span> <span class="val" style="font-size:16px;color:${barColor}">${a.score}</span><span class="label"> / ${maxScore}</span></div>`;
+  html+=`<div class="convergence-bar"><div class="convergence-fill" style="width:${pct}%;background:${barColor}"></div></div>`;
+
+  // Detail hits
+  if(a.details.length){
+    html+=`<div style="margin-top:8px;border-top:1px solid rgba(100,120,160,0.15);padding-top:6px">`;
+    for(const d of a.details) html+=`<div style="font-size:9px"><span class="${d.c}">● ${d.t}:</span> ${d.v}</div>`;
+    html+=`</div>`;
+  }
+
+  // Convergence lines
+  if(a.convList.length>0){
+    html+=`<div style="margin-top:6px;font-size:8px;color:#5a6680;max-height:60px;overflow-y:auto">`;
+    for(const c of a.convList.slice(0,10)) html+=`<div>${c.from}→${c.line} ${c.err.toFixed(1)}°</div>`;
+    if(a.convList.length>10) html+=`<div>+${a.convList.length-10} more</div>`;
+    html+=`</div>`;
+  }
+
+  // Nearest site
+  html+=`<div style="margin-top:8px;border-top:1px solid rgba(100,120,160,0.15);padding-top:4px"><span class="label">Nearest:</span> <span class="val">${a.nearest.n}</span> <span class="label">(${a.nearest.d.toFixed(0)}km)</span></div>`;
+
+  document.getElementById('click-info').innerHTML=html;
+  document.getElementById('btn-mark').style.display='inline-block';
+}
+
+// === PREDICTIONS ===
+function markPrediction(){
+  if(!lastClick) return;
+  const label=prompt('Label:',lastClick.lat.toFixed(3)+', '+lastClick.lon.toFixed(3));
+  if(label===null) return;
+  predictions.push({lat:lastClick.lat,lon:lastClick.lon,label,score:lastClick.analysis.score,ts:Date.now()});
+  savePreds(); renderPreds(); drawPredictions();
+}
+function removePred(i){
+  predictions.splice(i,1);
+  savePreds(); renderPreds(); drawPredictions();
+}
+function savePreds(){ localStorage.setItem('lattice_preds',JSON.stringify(predictions)); }
+function goToPred(i){
+  const p=predictions[i];
+  map.panTo({lat:p.lat,lng:p.lon});
+  map.setZoom(8);
+  showAnalysis(p.lat,p.lon);
+}
+
+function renderPreds(){
+  document.getElementById('pred-count').textContent='('+predictions.length+')';
+  let html='';
+  for(let i=0;i<predictions.length;i++){
+    const p=predictions[i];
+    const scoreColor=p.score>=15?'#44ff88':p.score>=10?'#ffaa33':'#ff8844';
+    html+=`<div class="pred-item" onclick="goToPred(${i})"><span class="coords">${p.lat.toFixed(2)}°, ${p.lon.toFixed(2)}°</span><span style="flex:1;padding:0 4px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${p.label||''}</span><span style="color:${scoreColor};font-weight:700">${p.score||'?'}</span><button onclick="event.stopPropagation();removePred(${i})">×</button></div>`;
+  }
+  document.getElementById('pred-list').innerHTML=html;
+}
+
+function exportPreds(){
+  let csv='lat,lon,label,score,timestamp\n';
+  for(const p of predictions) csv+=`${p.lat},${p.lon},"${(p.label||'').replace(/"/g,'""')}",${p.score||''},${p.ts||''}\n`;
+  const blob=new Blob([csv],{type:'text/csv'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='lattice_predictions.csv';a.click();
+}
+
+function exportKML(){
+  let kml=`<?xml version="1.0" encoding="UTF-8"?>\n<kml xmlns="http://www.opengis.net/kml/2.2">\n<Document>\n<name>Lattice Predictions</name>\n`;
+  kml+=`<Style id="pred"><IconStyle><color>ff4466ff</color><scale>1.2</scale><Icon><href>http://maps.google.com/mapfiles/kml/shapes/diamond.png</href></Icon></IconStyle></Style>\n`;
+  for(const p of predictions){
+    kml+=`<Placemark><name>${p.label||'Prediction'}</name><description>Score: ${p.score||'?'}</description><styleUrl>#pred</styleUrl><Point><coordinates>${p.lon},${p.lat},0</coordinates></Point></Placemark>\n`;
+  }
+  kml+=`</Document>\n</kml>`;
+  const blob=new Blob([kml],{type:'application/vnd.google-earth.kml+xml'});
+  const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download='lattice_predictions.kml';a.click();
+}
+
+function clearPreds(){ if(confirm('Clear all predictions?')){predictions=[];savePreds();renderPreds();drawPredictions();} }
+
+// === SITE LIST ===
+function renderSiteList(){
+  const filter=document.getElementById('site-filter').value;
+  const filtered=SITES.filter(s=> filter==='all'||s.t===filter);
+  let html='';
+  for(const s of filtered){
+    const d=hav(GIZA.lat,GIZA.lng,s.lat,s.lng);
+    if(d<10)continue;
+    const sh=bestShell(d);
+    const b=bear(GIZA.lat,GIZA.lng,s.lat,s.lng);
+    const lb=nearestBrg(b);
+    const colors=SITE_COLORS[s.t]||SITE_COLORS.other;
+    html+=`<div class="site-row" onclick="map.panTo({lat:${s.lat},lng:${s.lng}});map.setZoom(8);showAnalysis(${s.lat},${s.lng})"><span class="sname" style="color:${colors.fill}">${s.n}</span><span class="serr">${sh.name} ${sh.err.toFixed(1)}% | ${lb.line} ${lb.err.toFixed(1)}°</span></div>`;
+  }
+  document.getElementById('site-list').innerHTML=html;
+}
+
+// === COUNTER LATTICE (Easter Island Antipole) ===
+let counterShells=[], counterBearings=[], counterDualMarkers=[];
+
+function drawCounterLattice(){
+  counterShells.forEach(c=>c.setMap(null)); counterShells=[];
+  counterBearings.forEach(l=>l.setMap(null)); counterBearings=[];
+  counterDualMarkers.forEach(m=>m.setMap(null)); counterDualMarkers=[];
+  const hud=document.getElementById('counter-hud');
+  if(!hud) return;
+  if(!document.getElementById('cb-counter').checked){hud.style.display='none';return;}
+  hud.style.display='block';
+
+  const EI_ANTI={lat:-27.1127,lng:-109.3497}; // Easter Island coords
+  const R=Math.PI/180;
+  const PHI_V=(1+Math.sqrt(5))/2;
+  const GA_V=137.508;
+
+  function destPtC(lat1,lng1,brg,dKm){
+    const la1=lat1*R, lo1=lng1*R, b=brg*R, d=dKm/6371;
+    const la2=Math.asin(Math.sin(la1)*Math.cos(d)+Math.cos(la1)*Math.sin(d)*Math.cos(b));
+    const lo2=lo1+Math.atan2(Math.sin(b)*Math.sin(d)*Math.cos(la1),Math.cos(d)-Math.sin(la1)*Math.sin(la2));
+    return{lat:la2/R,lng:lo2/R};
+  }
+  function angDistC(lat1,lng1,lat2,lng2){
+    const la1=lat1*R,lo1=lng1*R,la2=lat2*R,lo2=lng2*R;
+    const cd=Math.sin(la1)*Math.sin(la2)+Math.cos(la1)*Math.cos(la2)*Math.cos(lo2-lo1);
+    return Math.acos(Math.max(-1,Math.min(1,cd)))/R;
+  }
+  function bearC(lat1,lng1,lat2,lng2){
+    const la1=lat1*R,lo1=lng1*R,la2=lat2*R,lo2=lng2*R;
+    const dl=lo2-lo1;
+    const x=Math.sin(dl)*Math.cos(la2);
+    const y=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(dl);
+    return((Math.atan2(x,y)/R)%360+360)%360;
+  }
+
+  const gBrgs=[];
+  for(let i=1;i<=22;i++) gBrgs.push({n:'G'+i,az:(GA_V*i)%360});
+
+  function nearestGC(az){
+    let best=null,bestErr=999;
+    for(const g of gBrgs){
+      let err=Math.abs(az-g.az); if(err>180) err=360-err;
+      if(err<bestErr){bestErr=err;best=g;}
+    }
+    return{g:best,err:bestErr};
+  }
+
+  // Counter shells: base=3 deg scaled by phi^n
+  const BASE_DEG=3.0;
+  const shellData=[];
+  for(let n=-1;n<=8;n++){
+    const deg=BASE_DEG*Math.pow(PHI_V,n);
+    if(deg>170) break;
+    const km=deg*111.32;
+    shellData.push({n:n,deg:deg,km:km});
+  }
+
+  // Draw counter shells as circles from EI
+  for(const s of shellData){
+    if(s.km>6500||s.km<50) continue;
+    const op=s.n<=2?0.9:0.7;
+    const wt=s.n<=2?3.0:2.0;
+    const circle=new google.maps.Circle({
+      center:EI_ANTI, radius:s.km*1000, map:map,
+      fillOpacity:0, strokeColor:'#4aeaaa',
+      strokeOpacity:op, strokeWeight:wt, clickable:false
+    });
+    counterShells.push(circle);
+  }
+
+  // Draw 22 G-bearing great circles from EI
+  for(const g of gBrgs){
+    const pts=[];
+    for(let d=0;d<=20000;d+=400){
+      pts.push(destPtC(EI_ANTI.lat,EI_ANTI.lng,g.az,d));
+    }
+    const segs=[]; let seg=[pts[0]];
+    for(let i=1;i<pts.length;i++){
+      if(Math.abs(pts[i].lng-pts[i-1].lng)>180){segs.push(seg);seg=[pts[i]];}
+      else{seg.push(pts[i]);}
+    }
+    segs.push(seg);
+    for(const s of segs){
+      if(s.length<2) continue;
+      const line=new google.maps.Polyline({
+        path:s, map:map, strokeColor:'#4aeaaa', strokeOpacity:0.45,
+        strokeWeight:1.3, clickable:false
+      });
+      counterBearings.push(line);
+    }
+  }
+
+  // Antipole marker
+  const antiMk=new google.maps.Marker({
+    position:EI_ANTI, map:map,
+    icon:{path:google.maps.SymbolPath.CIRCLE, scale:14,
+      fillColor:'#4aeaaa',fillOpacity:1.0,strokeColor:'#0a5a4a',strokeWeight:3},
+    title:'Easter Island - Counter Lattice Antipole',
+    zIndex:100
+  });
+  counterDualMarkers.push(antiMk);
+
+  // Giza-EI axis line (great circle through both poles)
+  const axisBrg1=bearC(GIZA.lat,GIZA.lng,EI_ANTI.lat,EI_ANTI.lng);
+  const fullPts=[];
+  for(let d=0;d<=40030;d+=200){
+    fullPts.push(destPtC(GIZA.lat,GIZA.lng,axisBrg1,d));
+  }
+  const axSegs=[]; let axSeg=[fullPts[0]];
+  for(let i=1;i<fullPts.length;i++){
+    if(Math.abs(fullPts[i].lng-fullPts[i-1].lng)>180){axSegs.push(axSeg);axSeg=[fullPts[i]];}
+    else{axSeg.push(fullPts[i]);}
+  }
+  axSegs.push(axSeg);
+  for(const s of axSegs){
+    if(s.length<2) continue;
+    const axLine=new google.maps.Polyline({
+      path:s, map:map, strokeColor:'#4aeaaa', strokeOpacity:0.5, strokeWeight:2,
+      icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.7,scale:2},offset:'0',repeat:'15px'}],
+      clickable:false
+    });
+    counterBearings.push(axLine);
+  }
+
+  // Dual-hit analysis
+  const DUAL_THRESH=5.0;
+  const dualHits=[];
+
+  for(const site of SITES){
+    if(site.n==='Easter Island'||site.n==='Giza') continue;
+    const brgGz=bearC(GIZA.lat,GIZA.lng,site.lat,site.lng);
+    const brgEi=bearC(EI_ANTI.lat,EI_ANTI.lng,site.lat,site.lng);
+    const dGz=angDistC(GIZA.lat,GIZA.lng,site.lat,site.lng);
+    const dEi=angDistC(EI_ANTI.lat,EI_ANTI.lng,site.lat,site.lng);
+    const gzHit=nearestGC(brgGz);
+    const eiHit=nearestGC(brgEi);
+
+    let shellHit=null;
+    for(const s of shellData){
+      if(Math.abs(dEi-s.deg)<2.0){shellHit=s;break;}
+    }
+
+    if(gzHit.err<DUAL_THRESH && eiHit.err<DUAL_THRESH){
+      dualHits.push({
+        name:site.n, lat:site.lat, lng:site.lng,
+        gzG:gzHit.g.n, gzErr:gzHit.err,
+        eiG:eiHit.g.n, eiErr:eiHit.err,
+        dGz:dGz, dEi:dEi,
+        shell:shellHit,
+        combo:gzHit.err+eiHit.err
+      });
+    }
+  }
+
+  dualHits.sort((a,b)=>a.combo-b.combo);
+
+  // Draw dual-hit markers
+  for(const dh of dualHits){
+    const isTight=dh.gzErr<3&&dh.eiErr<3;
+    const mk=new google.maps.Marker({
+      position:{lat:dh.lat,lng:dh.lng}, map:map,
+      icon:{
+        path:google.maps.SymbolPath.BACKWARD_CLOSED_ARROW,
+        scale:isTight?5:3.5,
+        fillColor:isTight?'#ffe066':'#4aeaaa',
+        fillOpacity:0.85,
+        strokeColor:isTight?'#aa8800':'#0a5a4a',
+        strokeWeight:1.5,
+        rotation:0
+      },
+      title:dh.name+' DUAL: Giza>'+dh.gzG+' ('+dh.gzErr.toFixed(1)+'d) + EI>'+dh.eiG+' ('+dh.eiErr.toFixed(1)+'d)',
+      zIndex:90
+    });
+    counterDualMarkers.push(mk);
+  }
+
+  // Build HUD
+  const tightCount=dualHits.filter(d=>d.gzErr<3&&d.eiErr<3).length;
+  let h='<div class="ch-title">COUNTER LATTICE &mdash; Easter Island Antipole</div>';
+  h+='<div class="ch-row"><span>Antipole: 27.1&deg;S, 109.35&deg;W</span><span>Axis: '+angDistC(GIZA.lat,GIZA.lng,EI_ANTI.lat,EI_ANTI.lng).toFixed(1)+'&deg; to Giza</span></div>';
+  h+='<div class="ch-row"><span>Counter shells: '+shellData.filter(s=>s.km>=50&&s.km<=20200).length+'</span><span>Counter bearings: 22 G-lines</span></div>';
+  h+='<div class="ch-row" style="border-bottom:1px solid rgba(74,234,170,0.3)"><span>Dual hits (&lt;'+DUAL_THRESH+'&deg;): <b>'+dualHits.length+'</b></span><span class="ch-dual">Tight (&lt;3&deg;): '+tightCount+'</span></div>';
+
+  for(const dh of dualHits){
+    const isTight=dh.gzErr<3&&dh.eiErr<3;
+    const cls=isTight?'ch-dual':'';
+    const shellNote=dh.shell?' n='+dh.shell.n:'';
+    h+='<div class="ch-row '+cls+'">';
+    h+='<span>'+dh.name+'</span>';
+    h+='<span class="ch-brg">Gz&rarr;'+dh.gzG+' '+dh.gzErr.toFixed(1)+'&deg;</span>';
+    h+='<span class="ch-brg">EI&rarr;'+dh.eiG+' '+dh.eiErr.toFixed(1)+'&deg;</span>';
+    h+='<span>&Sigma;'+dh.combo.toFixed(1)+'&deg;'+shellNote+'</span>';
+    h+='</div>';
+  }
+
+  hud.innerHTML=h;
+}
+
+
+// === SPINDLE RIBS — antipodal fans (pole -> site -> counterpole great circles) ===
+let ribLines=[], ribLinesEI=[];
+
+const RIB_G=[];
+for(let i=1;i<=22;i++) RIB_G.push((137.508*i)%360);
+function ribNearestG(az){let e=999;for(const g of RIB_G){let d=Math.abs(az-g);if(d>180)d=360-d;if(d<e)e=d;}return e;}
+function ribBearing(lat1,lng1,lat2,lng2){
+  const R=Math.PI/180;
+  const la1=lat1*R,lo1=lng1*R,la2=lat2*R,lo2=lng2*R;
+  const x=Math.sin(lo2-lo1)*Math.cos(la2);
+  const y=Math.cos(la1)*Math.sin(la2)-Math.sin(la1)*Math.cos(la2)*Math.cos(lo2-lo1);
+  return((Math.atan2(x,y)/R)%360+360)%360;
+}
+
+function drawRibFan(P,Q,arr,colTight,colMid){
+  for(const site of SITES){
+    if(site.t==='pred') continue;
+    if(Math.abs(site.lat-P.lat)<0.5&&Math.abs(site.lng-P.lng)<0.5) continue;
+    if(Math.abs(site.lat-Q.lat)<0.5&&Math.abs(site.lng-Q.lng)<0.5) continue;
+    const b1=ribBearing(P.lat,P.lng,site.lat,site.lng);
+    const b2=ribBearing(Q.lat,Q.lng,site.lat,site.lng);
+    const e1=ribNearestG(b1), e2=ribNearestG(b2);
+    let col=colMid,op=0.18,wt=0.8;
+    if(e1<3&&e2<3){col=colTight;op=0.9;wt=2.5;}
+    else if(e1<5&&e2<5){op=0.6;wt=1.6;}
+    const pts=[];
+    for(let d=0;d<=20015;d+=300) pts.push(destPt(P.lat,P.lng,b1,d));
+    const segs=[];let seg=[pts[0]];
+    for(let i=1;i<pts.length;i++){
+      if(Math.abs(pts[i].lng-pts[i-1].lng)>180){segs.push(seg);seg=[pts[i]];}
+      else seg.push(pts[i]);
+    }
+    segs.push(seg);
+    for(const s of segs){
+      if(s.length<2) continue;
+      arr.push(new google.maps.Polyline({path:s,map:map,strokeColor:col,strokeOpacity:op,strokeWeight:wt,clickable:false}));
+    }
+  }
+}
+
+function drawRibs(){
+  ribLines.forEach(l=>l.setMap(null)); ribLines=[];
+  const cb=document.getElementById('cb-ribs');
+  if(!cb||!cb.checked) return;
+  drawRibFan({lat:29.9792,lng:31.1342},{lat:-29.9792,lng:-148.8658},ribLines,'#ffd700','#88aaff');
+}
+
+function drawRibsEI(){
+  ribLinesEI.forEach(l=>l.setMap(null)); ribLinesEI=[];
+  const cb=document.getElementById('cb-ribs-ei');
+  if(!cb||!cb.checked) return;
+  drawRibFan({lat:-27.1127,lng:-109.3497},{lat:27.1127,lng:70.6503},ribLinesEI,'#ffd700','#ffaa44');
+}
+
+// === ANTIPODE POLES (Giza-antipode S Pacific + EI-antipode Indus) ===
+let antipoleObjs=[];
+
+function drawAntipodePoles(){
+  antipoleObjs.forEach(o=>o.setMap(null)); antipoleObjs=[];
+  const cb=document.getElementById('cb-antipoles');
+  if(!cb||!cb.checked) return;
+  const PHI_A=(1+Math.sqrt(5))/2;
+  const POLES=[
+    {lat:-29.9792,lng:-148.8658,color:'#88aaff',stroke:'#334488',
+     name:"Giza Antipode (S Pacific) — shells organize the Austral chain"},
+    {lat:27.1127,lng:70.6503,color:'#ffaa44',stroke:'#885511',
+     name:"EI Antipode (Indus) — shells hold the Harappan cluster"}
+  ];
+  for(const p of POLES){
+    antipoleObjs.push(new google.maps.Marker({
+      position:{lat:p.lat,lng:p.lng}, map:map,
+      icon:{path:google.maps.SymbolPath.CIRCLE, scale:10,
+        fillColor:p.color, fillOpacity:0.9, strokeColor:p.stroke, strokeWeight:3},
+      title:p.name, zIndex:95
+    }));
+    for(let n=-1;n<=6;n++){
+      const deg=3.0*Math.pow(PHI_A,n);
+      const km=deg*111.32;
+      if(km>6500||km<50) continue;
+      const inner=n<=2;
+      antipoleObjs.push(new google.maps.Circle({
+        center:{lat:p.lat,lng:p.lng}, radius:km*1000, map:map,
+        fillOpacity:0, strokeColor:p.color,
+        strokeOpacity:inner?0.85:0.55, strokeWeight:inner?2.5:1.5,
+        clickable:false
+      }));
+    }
+  }
+}
+
+
+// === SOLSTICE SUNSETS (Dec=G7, Jun=G10) from all four poles ===
+let solsticeLines=[];
+
+function drawSolstice(){
+  solsticeLines.forEach(l=>l.setMap(null)); solsticeLines=[];
+  const cb=document.getElementById('cb-solstice');
+  if(!cb||!cb.checked) return;
+  const R=Math.PI/180;
+  const EPS_S=23.44;
+  const FOUR_POLES=[
+    {lat:29.9792,lng:31.1342},      // Giza -> line ends at SPac pole
+    {lat:-27.1127,lng:-109.3497},   // EI -> ends at Indus pole
+    {lat:-29.9792,lng:-148.8658},   // SPac -> ends at Giza
+    {lat:27.1127,lng:70.6503}       // Indus -> ends at EI
+  ];
+  const SEASONS=[
+    {dec:-EPS_S, color:'#ff7043', label:'Dec solstice sunset (G7)'},
+    {dec: EPS_S, color:'#ffe14a', label:'Jun solstice sunset (G10)'}
+  ];
+  for(const p of FOUR_POLES){
+    for(const s of SEASONS){
+      const x=Math.sin(s.dec*R)/Math.cos(p.lat*R);
+      if(Math.abs(x)>1) continue;
+      const azSet=360-Math.acos(x)/R;   // sunset azimuth for this latitude
+      const pts=[];
+      for(let d=0;d<=20015;d+=300){
+        pts.push(destPt(p.lat,p.lng,azSet,d));
+      }
+      const segs=[]; let seg=[pts[0]];
+      for(let i=1;i<pts.length;i++){
+        if(Math.abs(pts[i].lng-pts[i-1].lng)>180){segs.push(seg);seg=[pts[i]];}
+        else seg.push(pts[i]);
+      }
+      segs.push(seg);
+      for(const sg of segs){
+        if(sg.length<2) continue;
+        solsticeLines.push(new google.maps.Polyline({
+          path:sg, map:map, strokeColor:s.color, strokeOpacity:0.75, strokeWeight:2,
+          icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.9,scale:2.5,strokeColor:s.color},offset:'0',repeat:'26px'}],
+          clickable:false, zIndex:44
+        }));
+      }
+    }
+  }
+}
+
+
+// === MAYA CALENDAR (Chichen Itza) — vigesimal wheel + Long Count tun pointer ===
+let mayaObjs=[];
+
+function drawMaya(){
+  mayaObjs.forEach(o=>o.setMap(null)); mayaObjs=[];
+  const hud=document.getElementById('maya-hud');
+  const cb=document.getElementById('cb-maya');
+  if(!cb||!hud) return;
+  if(!cb.checked){hud.style.display='none';return;}
+  hud.style.display='block';
+
+  const CI={lat:20.683,lng:-88.569};
+  const WHEEL_KM=1800, PTR_KM=2300;
+  const GSPOKES={54:'G3',72:'G11',126:'G14',144:'G22'};
+
+  // Long Count (GMT correlation, epoch JDN 584283)
+  const _tz=new Date().getTimezoneOffset()*60000;const jdn=Math.floor((Date.now()-_tz)/86400000+2440588);
+  const days=jdn-584283;
+  let rem=days;
+  const baktun=Math.floor(rem/144000); rem%=144000;
+  const katun=Math.floor(rem/7200); rem%=7200;
+  const tun=Math.floor(rem/360); rem%=360;
+  const uinal=Math.floor(rem/20);
+  const kin=rem%20;
+  const lc=baktun+'.'+katun+'.'+tun+'.'+uinal+'.'+kin;
+
+  const TZN=['Imix','Ik','Akbal','Kan','Chicchan','Cimi','Manik','Lamat','Muluc','Oc','Chuen','Eb','Ben','Ix','Men','Cib','Caban','Etznab','Cauac','Ahau'];
+  const HAB=['Pop','Uo','Zip','Zotz','Tzec','Xul','Yaxkin','Mol','Chen','Yax','Zac','Ceh','Mac','Kankin','Muan','Pax','Kayab','Cumku','Wayeb'];
+  const tzNum=((days+3)%13)+1;
+  const tzName=TZN[(days+19)%20];
+  const doy=(348+days)%365;
+  const habDay=doy%20, habMon=HAB[Math.floor(doy/20)];
+
+  const tunBrg=days%360;
+  // nearest G-bearing to the tun pointer
+  let gBest='',gErr=999;
+  for(let i=1;i<=22;i++){
+    const g=(137.508*i)%360;
+    let d=Math.abs(tunBrg-g); if(d>180)d=360-d;
+    if(d<gErr){gErr=d;gBest='G'+i;}
+  }
+  const gc2=days-1872000;
+  const gcPct=(gc2/1872000*100);
+
+  // Wheel ring
+  mayaObjs.push(new google.maps.Circle({
+    center:CI, radius:WHEEL_KM*1000, map:map, fillOpacity:0,
+    strokeColor:'#44cc88', strokeOpacity:0.7, strokeWeight:1.5, clickable:false
+  }));
+
+  // 20 vigesimal spokes
+  for(let k=0;k<20;k++){
+    const az=k*18;
+    const isG=GSPOKES[az]!==undefined;
+    const pts=[];
+    for(let d=0;d<=WHEEL_KM;d+=100) pts.push(destPt(CI.lat,CI.lng,az,d));
+    mayaObjs.push(new google.maps.Polyline({
+      path:pts, map:map,
+      strokeColor:isG?'#ffd700':'#44cc88',
+      strokeOpacity:isG?0.9:0.45,
+      strokeWeight:isG?2.5:1.0,
+      clickable:false, zIndex:isG?52:50
+    }));
+  }
+
+  // Tun pointer (red, arrow)
+  const ppts=[];
+  for(let d=0;d<=PTR_KM;d+=100) ppts.push(destPt(CI.lat,CI.lng,tunBrg,d));
+  mayaObjs.push(new google.maps.Polyline({
+    path:ppts, map:map, strokeColor:'#ff4444', strokeOpacity:0.95, strokeWeight:3,
+    icons:[{icon:{path:google.maps.SymbolPath.FORWARD_CLOSED_ARROW,scale:3,strokeColor:'#ff4444',fillColor:'#ff4444',fillOpacity:1},offset:'100%'}],
+    clickable:false, zIndex:55
+  }));
+
+  // Chichen Itza hub marker
+  mayaObjs.push(new google.maps.Marker({
+    position:CI, map:map,
+    icon:{path:google.maps.SymbolPath.CIRCLE, scale:6,
+      fillColor:'#44cc88', fillOpacity:1, strokeColor:'#ffd700', strokeWeight:2},
+    title:'Chichen Itza — Maya vigesimal wheel (tun = 360 = the degree wheel)',
+    zIndex:96
+  }));
+
+  hud.innerHTML=
+    '<div class="mh-title">MAYA CALENDAR &mdash; Chichen Itza</div>'+
+    '<div class="mh-row"><span>Long Count</span><span class="mh-big">'+lc+'</span></div>'+
+    '<div class="mh-row"><span>Tzolkin</span><span>'+tzNum+' '+tzName+'</span></div>'+
+    '<div class="mh-row"><span>Haab</span><span>'+habDay+' '+habMon+'</span></div>'+
+    '<div class="mh-row"><span>Days since epoch</span><span>'+days.toLocaleString()+'</span></div>'+
+    '<div class="mh-row"><span>Tun bearing (days mod 360)</span><span class="mh-big">'+tunBrg+'&deg;</span></div>'+
+    '<div class="mh-row"><span>Nearest G</span><span class="mh-g">'+gBest+' ('+gErr.toFixed(1)+'&deg;)</span></div>'+
+    '<div class="mh-row"><span>Great Cycle 2 progress</span><span>'+gcPct.toFixed(2)+'% ('+gc2.toLocaleString()+' d)</span></div>'+
+    '<div class="mh-row"><span>G-spokes on wheel</span><span class="mh-g">54=G3 72=G11 126=G14 144=G22</span></div>'+
+    '<div class="mh-row"><span>Closure</span><span>Great Cycle = 5,200 tun exact &middot; Round = +260&deg;</span></div>';
+}
+
+
+// === SAILING ROADS: the five G-corridors out of Easter Island + Ahu Akivi ===
+let roadObjs=[];
+function drawRoads(){
+  roadObjs.forEach(o=>o.setMap(null)); roadObjs=[];
+  const cb=document.getElementById('cb-roads');
+  const hud=document.getElementById('roads-hud');
+  if(!cb||!cb.checked){if(hud)hud.style.display='none';return;}
+  if(hud)hud.style.display='block';
+  const EI={lat:-27.1127,lng:-109.3497};
+  const ROADS=[{"g": "G7", "brg": 242.556, "km": 7111, "col": "#ff7043", "note": "Dec solstice sunset \u2014 New Zealand 2.5\u00b0"}, {"g": "G15", "brg": 262.62, "km": 7873, "col": "#66ccff", "note": "axis road \u2014 Rapa Iti, Tonga, Fiji"}, {"g": "G2", "brg": 275.016, "km": 10981, "col": "#ffd700", "note": "Akivi road \u2014 Henderson 0.1\u00b0, Tahiti 0.7\u00b0, Nan Madol 0.0\u00b0"}, {"g": "G10", "brg": 295.08, "km": 6466, "col": "#ffe14a", "note": "Jun solstice sunset \u2014 Kiritimati, Marquesas"}, {"g": "G18", "brg": 315.144, "km": 7620, "col": "#cc88ff", "note": "Hawaii 3.6\u00b0"}];
+  for(const r of ROADS){
+    const pts=[];
+    for(let d=0;d<=r.km;d+=100) pts.push(destPt(EI.lat,EI.lng,r.brg,d));
+    const segs=[];let seg=[pts[0]];
+    for(let i=1;i<pts.length;i++){
+      if(Math.abs(pts[i].lng-pts[i-1].lng)>180){segs.push(seg);seg=[pts[i]];}
+      else seg.push(pts[i]);
+    }
+    segs.push(seg);
+    for(const s of segs){
+      if(s.length<2)continue;
+      roadObjs.push(new google.maps.Polyline({path:s,map:map,strokeColor:r.col,
+        strokeOpacity:0.85,strokeWeight:2.5,clickable:false,zIndex:60}));
+    }
+  }
+  // Ahu Akivi facing ray: 271 deg — the seven moai sight line (dashed white)
+  const apts=[];
+  for(let d=0;d<=3500;d+=100) apts.push(destPt(EI.lat,EI.lng,271,d));
+  roadObjs.push(new google.maps.Polyline({path:apts,map:map,strokeOpacity:0,
+    icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.9,strokeColor:'#ffffff',scale:2},offset:'0',repeat:'12px'}],
+    clickable:false,zIndex:61}));
+  const DEST=[["NZ East Cape", -37.7, 178.5], ["Rarotonga", -21.23, -159.78], ["Kiritimati", 1.87, -157.4], ["Samoa", -14.215, -169.058], ["Rangiroa (Tuamotu)", -15.12, -147.64], ["Tubuai", -23.35, -149.48]];
+  for(const d of DEST){
+    roadObjs.push(new google.maps.Marker({position:{lat:d[1],lng:d[2]},map:map,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:4,fillColor:'#ffffff',fillOpacity:0.9,strokeColor:'#333333',strokeWeight:1},
+      title:d[0]+' — sailing-road landfall',zIndex:62}));
+  }
+  if(hud) hud.innerHTML=
+    '<div class="rh-title">FIVE SAILING ROADS FROM EASTER ISLAND</div>'+
+    ROADS.map(r=>'<div class="rh-row"><span style="color:'+r.col+'">&#9632; '+r.g+' '+r.brg.toFixed(1)+'&deg;</span><span>'+r.note+'</span></div>').join('')+
+    '<div class="rh-row"><span style="color:#ffffff">&#9633; 271&deg;</span><span>Ahu Akivi facing — 7 moai; Pitcairn 0.6&deg; off</span></div>'+
+    '<div class="rh-row"><span>Back line</span><span>EI&rarr;Giza 75.7&deg; / EI&rarr;SPac 255.7&deg; (one axis)</span></div>';
+}
+
+
+// === COMPASS ROSE: 8-direction golden-angle cycle from Easter Island ===
+let compassObjs=[];
+function drawCompass(){
+  compassObjs.forEach(o=>o.setMap(null)); compassObjs=[];
+  const cb=document.getElementById('cb-compass');
+  if(!cb||!cb.checked) return;
+
+  const EI={lat:-27.1127,lng:-109.3497};
+  const PHI=(1+Math.sqrt(5))/2;
+  const GA=360.0/(PHI*PHI);
+
+  const CCOLORS={N:'#4488ff',NE:'#44ddaa',E:'#ffcc44',SE:'#ff8844',
+    S:'#ff4466',SW:'#cc66ff',W:'#66aaff',NW:'#88ff88'};
+  const CLABELS=['N','NE','E','SE','S','SW','W','NW'];
+  function cDir(az){return CLABELS[Math.floor((az+22.5)/45)%8];}
+
+  for(let i=1;i<=22;i++){
+    const az=(GA*i)%360;
+    const dir=cDir(az);
+    const col=CCOLORS[dir];
+    const cycle=i<=8?1:i<=16?2:3;
+    const opac=cycle===1?0.9:cycle===2?0.55:0.35;
+    const wt=cycle===1?3:cycle===2?2:1.5;
+
+    // Build arc: ~2800 km from EI along bearing
+    const pts=[];
+    for(let d=0;d<=2800;d+=100) pts.push(destPt(EI.lat,EI.lng,az,d));
+
+    // Split at antimeridian
+    const segs=[];let seg=[pts[0]];
+    for(let j=1;j<pts.length;j++){
+      if(Math.abs(pts[j].lng-pts[j-1].lng)>180){segs.push(seg);seg=[pts[j]];}
+      else seg.push(pts[j]);
+    }
+    segs.push(seg);
+
+    for(const s of segs){
+      if(s.length<2)continue;
+      compassObjs.push(new google.maps.Polyline({path:s,map:map,strokeColor:col,
+        strokeOpacity:opac,strokeWeight:wt,clickable:false,zIndex:65}));
+    }
+
+    // Dot at arc endpoint
+    const tip=pts[pts.length-1];
+    compassObjs.push(new google.maps.Marker({position:tip,map:map,
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:cycle===1?5:3,
+        fillColor:col,fillOpacity:0.9,strokeColor:'#101820',strokeWeight:1},
+      title:'G'+i+' = '+az.toFixed(1)+'\u00b0 ('+dir+') \u2014 Cycle '+cycle,
+      zIndex:66}));
+  }
+
+  // Opposite-pair dashed lines through EI (cycle 1 only)
+  const pairs=[[1,5],[2,6],[3,7],[4,8]];
+  for(const [a,b] of pairs){
+    const azA=(GA*a)%360, azB=(GA*b)%360;
+    const ptsA=[];for(let d=0;d<=2800;d+=200)ptsA.push(destPt(EI.lat,EI.lng,azA,d));
+    const ptsB=[];for(let d=0;d<=2800;d+=200)ptsB.push(destPt(EI.lat,EI.lng,azB,d));
+    const path=[...ptsA.reverse(),EI,...ptsB];
+    compassObjs.push(new google.maps.Polyline({path:path,map:map,
+      strokeOpacity:0,icons:[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.35,
+        strokeColor:'#ffffff',scale:1.5},offset:'0',repeat:'8px'}],
+      clickable:false,zIndex:64}));
+  }
+
+  // Compass direction labels at 8 cardinal positions
+  for(let c=0;c<8;c++){
+    const az=c*45;
+    const pt=destPt(EI.lat,EI.lng,az,3300);
+    const dir=CLABELS[c];
+    compassObjs.push(new google.maps.Marker({position:pt,map:map,
+      icon:{path:'M 0,0 0,0',scale:0},
+      label:{text:dir,color:CCOLORS[dir],fontSize:'13px',fontWeight:'bold'},
+      zIndex:67}));
+  }
+}
+
+// === ANTIPODAL IMPACTS: Wilkes Land, Siberian Traps lattice node, Chicxulub ===
+let antipodalObjs=[];
+function drawAntipodal(){
+  antipodalObjs.forEach(o=>o.setMap(null)); antipodalObjs=[];
+  const hud=document.getElementById('antipodal-hud');
+  const cb=document.getElementById('cb-antipodal');
+  if(!cb||!cb.checked){if(hud)hud.style.display='none';return;}
+
+  const IMPACTS=[
+    {name:"Wilkes Land Crater",lat:-70.0,lng:120.0,type:"impact",
+     desc:"~480 km, probable (Earth Impact Database)\nGRACE mascon under 1.5 km ice\n~260 Ma (Capitanian) — P-T extinction",
+     ring:480,color:"#ff4466",size:2.0},
+    {name:"Siberian Traps — Lattice Node",lat:71.925,lng:92.712,type:"volcanism",
+     desc:"Saturn shell: 0.00% err (5884 km)\nG8 bearing: 0.10° err\n12 anchor convergences\nAntipodal product of Wilkes Land impact\nvon Frese et al. 2009",
+     color:"#ffd700",size:1.8},
+    {name:"Chicxulub Crater",lat:21.4,lng:-89.5,type:"impact",
+     desc:"~180 km, confirmed\n66 Ma — K-Pg extinction\nMaya cenote ring built on rim",
+     ring:180,color:"#ff6644",size:1.6},
+    {name:"Deccan Traps",lat:18.5,lng:73.5,type:"volcanism",
+     desc:"Impact-triggered intensification\nRichards et al. 2015\n~130° from Chicxulub (seismic shaking)",
+     color:"#ffaa33",size:1.4}
+  ];
+
+  // Draw crater rings
+  for(const imp of IMPACTS){
+    if(imp.ring){
+      const pts=[];
+      for(let a=0;a<=360;a+=3){
+        const ar=a*Math.PI/180;
+        const d=imp.ring/(2*111.32);
+        const latR=imp.lat*Math.PI/180;
+        const lat2=Math.asin(Math.sin(latR)*Math.cos(d*Math.PI/180)+Math.cos(latR)*Math.sin(d*Math.PI/180)*Math.cos(ar));
+        const lng2=imp.lng*Math.PI/180+Math.atan2(Math.sin(ar)*Math.sin(d*Math.PI/180)*Math.cos(latR),Math.cos(d*Math.PI/180)-Math.sin(latR)*Math.sin(lat2));
+        pts.push({lat:lat2*180/Math.PI,lng:lng2*180/Math.PI});
+      }
+      const ring=new google.maps.Polyline({path:pts,geodesic:false,
+        strokeColor:imp.color,strokeOpacity:0.6,strokeWeight:2,map:map,zIndex:70});
+      antipodalObjs.push(ring);
+    }
+  }
+
+  // Draw antipodal connecting lines (great circles)
+  const pairs=[
+    {from:IMPACTS[0],to:IMPACTS[1],label:"Wilkes → Siberian Traps (~260 Ma)",color:"#ff6688",dash:true},
+    {from:IMPACTS[2],to:IMPACTS[3],label:"Chicxulub → Deccan Traps (66 Ma)",color:"#ffaa44",dash:true}
+  ];
+  for(const p of pairs){
+    const line=new google.maps.Polyline({
+      path:[{lat:p.from.lat,lng:p.from.lng},{lat:p.to.lat,lng:p.to.lng}],
+      geodesic:true,strokeColor:p.color,strokeOpacity:0.5,strokeWeight:1.5,
+      icons:p.dash?[{icon:{path:'M 0,-1 0,1',strokeOpacity:0.7,scale:2},offset:'0',repeat:'12px'}]:[],
+      map:map,zIndex:69
+    });
+    antipodalObjs.push(line);
+  }
+
+  // Draw markers
+  for(const imp of IMPACTS){
+    const isImpact=imp.type==='impact';
+    const path=isImpact?'M 0,-8 L 5.5,4 L -5.5,4 Z':'M -6,0 L 0,-8 L 6,0 L 0,8 Z';
+    const mk=new google.maps.Marker({
+      position:{lat:imp.lat,lng:imp.lng},map:map,
+      icon:{path:path,fillColor:imp.color,fillOpacity:0.95,
+        strokeColor:'#ffffff',strokeWeight:1.5,scale:imp.size,
+        anchor:new google.maps.Point(0,0)},
+      title:imp.name+'\n'+imp.desc,zIndex:72
+    });
+    antipodalObjs.push(mk);
+  }
+
+  // HUD
+  if(hud){
+    hud.style.display='block';
+    hud.innerHTML=`<div style="background:rgba(40,15,15,0.85);border:1px solid #ff4466;border-radius:4px;padding:6px 8px;margin:4px 0;font-size:8px;line-height:1.6;color:#e0c0c0">
+      <div style="font-size:9px;font-weight:bold;color:#ff6688;margin-bottom:3px">ANTIPODAL IMPACTS</div>
+      <div style="display:flex;justify-content:space-between;padding:1px 0;border-bottom:1px solid rgba(255,68,102,0.15)">
+        <span style="color:#ff4466">▲ Wilkes Land</span><span>70°S 120°E · 480 km · ~260 Ma</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:1px 0;border-bottom:1px solid rgba(255,68,102,0.15)">
+        <span style="color:#ffd700">◆ Siberian Traps</span><span>Saturn 0.00% · G8 0.10°</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:1px 0;border-bottom:1px solid rgba(255,68,102,0.15)">
+        <span style="color:#ff6644">▲ Chicxulub</span><span>21.4°N 89.5°W · 180 km · 66 Ma</span>
+      </div>
+      <div style="display:flex;justify-content:space-between;padding:1px 0">
+        <span style="color:#ffaa33">◆ Deccan Traps</span><span>18.5°N 73.5°E</span>
+      </div>
+      <div style="margin-top:4px;color:#886666;font-size:7px">Lattice predicted Siberian Traps node independently — 12 anchors, score 16/25</div>
+    </div>`;
+  }
+}
+
+// === ACTIVE GEOPHYSICS (reverb): instrument-era features on the phi-shells ===
+let reverbObjs=[];
+function drawReverb(){
+  reverbObjs.forEach(o=>o.setMap(null)); reverbObjs=[];
+  const cb=document.getElementById('cb-reverb');
+  if(!cb||!cb.checked) return;
+  const F=[["Macdonald Seamount \u2014 ACTIVE hotspot, erupted 1987-89", -28.978, -140.258, "n=2", 0.29], ["Teahitia \u2014 32,000 quakes 1981-85, hydrothermal 2013", -17.567, -148.85, "n=3", 0.3], ["Mehetia \u2014 Society hotspot", -17.87, -148.07, "n=3", 0.58], ["Superswell center \u2014 seafloor 680 m too shallow", -25.0, -143.0, "n=2", 0.65], ["Arago Seamount \u2014 Austral hotspot", -23.44, -150.73, "n=2", 1.11], ["EPR 30S \u2014 fastest seafloor spreading on Earth (~150 mm/yr)", -31.0, -112.0, "n=5", 1.63], ["Juan Fernandez microplate", -33.0, -110.0, "n=5", 0.18], ["Easter microplate", -25.5, -114.5, "n=5", 2.64], ["Adams Seamount \u2014 Pitcairn hotspot, lavas ~2 ka", -25.37, -129.27, "n=4", 2.63], ["Vailulu'u \u2014 Samoa hotspot, Nafanua cone grew 300 m in 4 yr", -14.215, -169.058, "n=4", 3.83]];
+  for(const f of F){
+    const col=f[4]<1?'#ffd700':f[4]<2?'#44dddd':'#8899aa';
+    reverbObjs.push(new google.maps.Marker({position:{lat:f[1],lng:f[2]},map:map,
+      icon:{path:'M 0,-6 5,0 0,6 -5,0 z',fillColor:col,fillOpacity:0.95,strokeColor:'#101820',strokeWeight:1,scale:1},
+      title:f[0]+'  [shell '+f[3]+' err '+f[4]+'°]',zIndex:63}));
+  }
+}
+
+</script>
+<script async src="https://maps.googleapis.com/maps/api/js?key=YOUR_API_KEY&callback=initMap"></script>
+</body>
+</html>
