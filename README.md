@@ -34,7 +34,6 @@ The geographic layer provides the sharpest test. 109 ancient sites across six co
 | `lattice-thesis.html` | **Paper III: The Lattice Thesis** — 109 ancient sites, four-pole geometry, Rongorongo, Younger Dryas corridor. |
 | `landing.html` | Navigation hub for all visualisations. |
 | `lattice-shells.html` | φ-shell intersection explorer. |
-| `prism.html` | 210-gon primorial prism — the geometric container. |
 | `cycles.html` | Cycle analysis and periodicity. |
 | `timeline.html` | Chronological framework development. |
 | `research.html` | Research notes and references. |
